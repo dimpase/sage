@@ -213,6 +213,8 @@ AUTHORS:
 
 from __future__ import print_function, absolute_import
 
+from pprint import pprint
+
 from .gap_includes cimport *
 from .util cimport *
 from .element cimport *
@@ -222,7 +224,7 @@ from sage.structure.parent cimport Parent
 from sage.structure.element cimport ModuleElement, RingElement, Vector
 from sage.rings.all import ZZ
 from sage.misc.cachefunc import cached_method
-from sage.misc.superseded import deprecated_function_alias
+from sage.misc.superseded import deprecated_function_alias, deprecation
 
 
 ############################################################################
@@ -629,12 +631,13 @@ class Gap(Parent):
            sage: 'OctaveAlgebra' in dir(libgap)
            True
         """
-        from sage.libs.gap.gap_functions import common_gap_functions
-        return dir(self.__class__) + list(common_gap_functions)
+        from sage.libs.gap.gap_globals import common_gap_globals
+        return dir(self.__class__) + sorted(common_gap_globals)
 
     def __getattr__(self, name):
         r"""
-        The attributes of the Gap object are the Gap functions.
+        The attributes of the Gap object are the Gap functions, and in some
+        cases other global variables from GAP.
 
         INPUT:
 
@@ -643,32 +646,52 @@ class Gap(Parent):
 
         OUTPUT:
 
-        A :class:`GapElement_Function`. A ``AttributeError`` is raised
-        if there is no such function.
+        A :class:`GapElement`. A ``AttributeError`` is raised
+        if there is no such function or global variable.
 
         EXAMPLES::
 
             sage: libgap.List
             <Gap function "List">
+            sage: libgap.GlobalRandomSource
+            <RandomSource in IsGlobalRandomSource>
         """
         if name in dir(self.__class__):
             return getattr(self.__class__, name)
+
         from sage.libs.gap.gap_functions import common_gap_functions
+        from sage.libs.gap.gap_globals import common_gap_globals
         if name in common_gap_functions:
-            f = make_GapElement_Function(self, gap_eval(str(name)))
-            assert f.is_function()
-            self.__dict__[name] = f
-            return f
+            g = make_GapElement_Function(self, gap_eval(name))
+            assert g.is_function()
+        elif name in common_gap_globals:
+            g = make_any_gap_element(self, gap_eval(name))
         else:
-            raise AttributeError('No such attribute: '+name+'.')
+            raise AttributeError(f'No such attribute: {name}.')
+
+        self.__dict__[name] = g
+        return g
 
     def show(self):
         """
-        Print statistics about the GAP owned object list
+        Return statistics about the GAP owned object list
 
-        Slight complication is that we want to do it without accessing
-        libgap objects, so we don't create new GapElements as a side
-        effect.
+        This includes the total memory allocated by GAP as returned by
+        ``libgap.eval('TotalMemoryAllocated()'), as well as garbage collection
+        / object count statistitics as returned by
+        ``libgap.eval('GasmanStatistics')``, and finally the total number of
+        GAP objects held by Sage as :class:`~sage.libs.gap.element.GapElement`
+        instances.
+
+        The value ``livekb + deadkb`` will roughly equal the total memory
+        allocated for GAP objects (see
+        ``libgap.eval('TotalMemoryAllocated()')``).
+
+        .. note::
+
+            Slight complication is that we want to do it without accessing
+            libgap objects, so we don't create new GapElements as a side
+            effect.
 
         EXAMPLES::
 
@@ -676,15 +699,25 @@ class Gap(Parent):
             sage: b = libgap(456)
             sage: c = libgap(789)
             sage: del b
-            sage: libgap.show() # random output
-            11 LibGAP elements currently alive
-            rec( full := rec( cumulative := 122, deadbags := 9,
-            deadkb := 0, freekb := 7785, livebags := 304915,
-            livekb := 47367, time := 33, totalkb := 68608 ),
-            nfull := 3, npartial := 14 )
+            sage: libgap.collect()
+            sage: libgap.show()  # random output
+            {'gasman_stats': {'full': {'cumulative': 110,
+               'deadbags': 321400,
+               'deadkb': 12967,
+               'freekb': 15492,
+               'livebags': 396645,
+               'livekb': 37730,
+               'time': 110,
+               'totalkb': 65536},
+              'nfull': 1,
+              'npartial': 1},
+             'nelements': 23123,
+             'total_alloc': 3234234}
         """
-        print('{} LibGAP elements currently alive'.format(self.count_GAP_objects()))
-        print(self.eval('GasmanStatistics()'))
+        d = {'nelements': self.count_GAP_objects()}
+        d['total_alloc'] = self.eval('TotalMemoryAllocated()').sage()
+        d['gasman_stats'] = self.eval('GasmanStatistics()').sage()
+        return d
 
     def count_GAP_objects(self):
         """
@@ -700,57 +733,19 @@ class Gap(Parent):
             sage: libgap.count_GAP_objects()   # random output
             5
         """
-        return sum([1 for obj in get_owned_objects()])
+        return len(get_owned_objects())
 
     def mem(self):
         """
-        Return information about libGAP memory usage
+        Return information about GAP memory usage
 
-        The GAP workspace is partitioned into 5 pieces (see gasman.c
-        in the GAP sources for more details):
-
-        * The **masterpointer area**  contains  all the masterpointers  of  the bags.
-
-        * The **old bags area** contains the bodies of all the  bags that survived at
-          least one  garbage collection.  This area is  only  scanned for dead bags
-          during a full garbage collection.
-
-        * The **young bags area** contains the bodies of all  the bags that have been
-          allocated since the  last garbage collection.  This  area is scanned  for
-          dead  bags during  each garbage  collection.
-
-        * The **allocation area** is the storage  that is available for allocation of
-          new bags.  When a new bag is allocated the storage for  the body is taken
-          from  the beginning of   this area,  and  this  area  is  correspondingly
-          reduced.   If  the body does not   fit in the  allocation  area a garbage
-          collection is  performed.
-
-        * The **unavailable  area** is  the free  storage that  is not  available for
-          allocation.
-
-        OUTPUT:
-
-        This function returns a tuple containing 5 integers. Each is
-        the size (in bytes) of the five partitions of the
-        workspace. This will potentially change after each GAP garbage
-        collection.
-
-        EXAMPLES::
-
-            sage: libgap.collect()
-            sage: libgap.mem()   # random output
-            (1048576, 6706782, 0, 960930, 0)
-
-            sage: libgap.FreeGroup(3)
-            <free group on the generators [ f1, f2, f3 ]>
-            sage: libgap.mem()   # random output
-            (1048576, 6706782, 47571, 913359, 0)
-
-            sage: libgap.collect()
-            sage: libgap.mem()   # random output
-            (1048576, 6734785, 0, 998463, 0)
+        This method is deprecated and is a no-op.  Use :meth:`Gap.show` to
+        display memory-usage and bag count statistics from GASMAN.
         """
-        return memory_usage()
+
+        deprecation(22626, 'this functionality is not supported by GAP; use '
+                           'libgap.show() for GAP memory usage statistics')
+        return (0, 0, 0, 0, 0)
 
     def collect(self):
         """

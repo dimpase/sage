@@ -18,8 +18,9 @@ import os
 import signal
 import warnings
 
-from cpython.exc cimport PyErr_SetObject
+from cpython.exc cimport PyErr_SetObject, PyErr_Occurred, PyErr_Fetch
 from cpython.object cimport Py_LT, Py_LE, Py_EQ, Py_NE, Py_GT, Py_GE
+from cpython.ref cimport PyObject
 from cysignals.pysignals import changesignal
 from cysignals.signals cimport sig_on, sig_off, sig_error
 
@@ -328,13 +329,48 @@ cdef Obj gap_eval(str gap_string) except? NULL:
         sage: libgap.eval('if 4>3 thenPrint("hi");\nfi')
         Traceback (most recent call last):
         ...
-        ValueError: libGAP: Syntax error: then expected
+        ValueError: libGAP: Syntax error: then expected in stream:1
         if 4>3 thenPrint("hi");
-        fi;
-                       ^
+               ^^^^^^^^^
         sage: libgap.eval('1+1')   # testing that we have successfully recovered
         2
 
+    TESTS:
+
+    A bad eval string that results in multiple statement evaluations by GAP
+    and hence multiple errors should still result in a single exception
+    with a message capturing all errors that occurrer::
+
+        sage: libgap.eval('Complex Field with 53 bits of precision;')
+        Traceback (most recent call last):
+        ...
+        ValueError: libGAP: Error, Variable: 'Complex' must have a value
+        Syntax error: ; expected in stream:1
+        Complex Field with 53 bits of precision;;
+         ^^^^^^^^^^^^
+        Error, Variable: 'with' must have a value
+        Syntax error: ; expected in stream:1
+        Complex Field with 53 bits of precision;;
+         ^^^^^^^^^^^^^^^^^^^^
+        Error, Variable: 'bits' must have a value
+        Syntax error: ; expected in stream:1
+        Complex Field with 53 bits of precision;;
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        Error, Variable: 'precision' must have a value
+
+
+    Test that on a subsequent attemt we get the same message (no garbage was
+    left in the error stream)::
+
+        sage: libgap.eval('Complex Field with 53 bits of precision;')
+        Traceback (most recent call last):
+        ...
+        ValueError: libGAP: Error, Variable: 'Complex' must have a value
+        ...
+        Error, Variable: 'precision' must have a value
+
+        sage: libgap.eval('1+1')  # test that we successfully recover
+        2
     """
     initialize()
     cdef Obj result
@@ -364,12 +400,11 @@ cdef Obj gap_eval(str gap_string) except? NULL:
         result = ELM0_LIST(result, 1) # 1-indexed!
 
         if ELM0_LIST(result, 1) != GAP_True:
-            # TODO: There might still be some error output in this case
-            # Rathe than complaining that the error handler wasn't run,
-            # just wrap the error message in an exception
-            # See for example the case where GAP raises a syntax error
-            raise RuntimeError("an error occurred, but libGAP has no "
-                               "error handler set")
+            # An otherwise unhandled error occurred in GAP (such as a
+            # syntax error).  Try running the error handler manually
+            # to capture the error output, if any.
+            # This should result in a RuntimeError being set.
+            error_handler_check_exception()
 
         # The actual resultant object, if any, is in the second entry
         # (which may be unassigned--see previous github comment; in this case
@@ -411,6 +446,31 @@ cdef void hold_reference(Obj obj):
 ### Error handler ##########################################################
 ############################################################################
 
+
+cdef object extract_libgap_errout():
+    """
+    Reads the global variable libgap_errout and returns a Python string
+    containing the error message (with some boilerplate removed).
+    """
+    cdef Obj r
+    cdef char *msg
+
+    r = GAP_ValueGlobalVariable("libgap_errout")
+
+    # Grab a pointer to the C string underlying the GAP string libgap_errout
+    # then copy it to a Python str (char_to_str contains an implicit strcpy)
+    msg = CSTR_STRING(r)
+    if msg != NULL:
+        msg_py = char_to_str(msg)
+        msg_py = msg_py.replace('For debugging hints type ?Recovery from '
+                                'NoMethodFound\n', '').strip()
+    else:
+        # Shouldn't happen but just in case...
+        msg_py = ""
+
+    return msg_py
+
+
 cdef void error_handler():
     """
     The libgap error handler.
@@ -422,122 +482,33 @@ cdef void error_handler():
     are already handling an error; if there is an error in our stream
     handling code below it could result in a stack overflow.
     """
-    cdef Obj r
-    cdef char *msg
-
-    # TODO: Do we need/want this ClearError??
-    # ClearError()
+    cdef PyObject *exc_type, *exc_val, *exc_tb
 
     # Close the error stream: This flushes any remaining output and closes
     # the stream for further writing; reset ERROR_OUTPUT to something sane
     # just in case (trying to print to a closed stream segfaults GAP)
     try:
         GAP_EnterStack()
-        GAP_EvalString(_close_error_output_cmd)
-        r = GAP_ValueGlobalVariable("libgap_errout")
+        GAP_EvalStringNoExcept(_close_error_output_cmd)
+        msg = extract_libgap_errout()
 
-        # Grab a pointer to the C string underlying the GAP string libgap_errout
-        # then copy it to a Python str (char_to_str contains an implicit strcpy)
-        msg = CSTR_STRING(r)
-        if msg != NULL:
-            msg_py = char_to_str(msg)
-            msg_py = msg_py.replace('For debugging hints type ?Recovery from '
-                                    'NoMethodFound\n', '').strip()
-        else:
-            # Shouldn't happen but just in case...
-            msg_py = "An unknown error occurred in libGAP"
+        if PyErr_Occurred() != NULL and msg:
+            # Sometimes error_handler() can be called multiple times from a
+            # single GAP_EvalString call before it returns; in this case we
+            # just update the exception by appending to the existing exception
+            # message
+            PyErr_Fetch(&exc_type, &exc_val, &exc_tb)
+            if exc_val != NULL:
+                msg = str(<object>exc_val) + '\n' + msg
+        elif not msg:
+            msg = "An unknown error occurred in libGAP"
 
-        # Reset ERROR_OUTPUT with a new text string stream
-        GAP_EvalString(_reset_error_output_cmd)
+        PyErr_SetObject(RuntimeError, msg)
     finally:
+        # Reset ERROR_OUTPUT with a new text string stream
+        GAP_EvalStringNoExcept(_reset_error_output_cmd)
         GAP_LeaveStack()
 
-    PyErr_SetObject(RuntimeError, msg_py)
 
-    # TODO: Do we need/want this ClearError??
-    # ClearError()
-
-
-
-############################################################################
-### Debug functions ########################################################
-############################################################################
-
-
-cpdef memory_usage():
-    """
-    Return information about the memory usage.
-
-    See :meth:`~sage.libs.gap.libgap.Gap.mem` for details.
-    """
-    pass
-
-cpdef error_enter_libgap_block_twice():
-    """
-    Demonstrate that we catch errors from entering a block twice.
-
-    EXAMPLES::
-
-        sage: from sage.libs.gap.util import error_enter_libgap_block_twice
-        sage: error_enter_libgap_block_twice()
-        Traceback (most recent call last):
-        ...
-        RuntimeError: Entered a critical block twice
-    """
-    from sage.libs.gap.libgap import libgap
-    try:
-        # The exception will be seen by this sig_on() after being
-        sig_on()
-        sig_off()
-    finally:
-        pass
-
-
-cpdef error_exit_libgap_block_without_enter():
-    """
-
-    EXAMPLES::
-
-        sage: from sage.libs.gap.util import error_exit_libgap_block_without_enter
-        sage: error_exit_libgap_block_without_enter()
-        Traceback (most recent call last):
-        ...
-    """
-    from sage.libs.gap.libgap import libgap
-    sig_on()
-    sig_off()
-
-############################################################################
-### Auxilliary functions ###################################################
-############################################################################
-
-
-def command(command_string):
-    """
-    Playground for accessing Gap via libGap.
-
-    You should not use this function in your own programs. This is
-    just here for convenience if you want to play with the libgap
-    libray code.
-
-    EXAMPLES::
-
-        sage: from sage.libs.gap.util import command
-        sage: command('1')
-        Output follows...
-        1
-
-        sage: command('1/0')
-        Traceback (most recent call last):
-        ...
-        ValueError: libGAP: Error, Rational operations: <divisor> must not be zero
-
-        sage: command('NormalSubgroups')
-        Output follows...
-        <Attribute "NormalSubgroups">
-
-        sage: command('rec(a:=1, b:=2)')
-        Output follows...
-        rec( a := 1, b := 2 )
-    """
-    pass
+cdef void error_handler_check_exception() except *:
+    error_handler()

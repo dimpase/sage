@@ -80,6 +80,7 @@ cdef extern from "<gap/libgap-api.h>":
     void GAP_Initialize(int argc, char ** argv, char ** env,
         CallbackFunc, CallbackFunc)
     Obj GAP_EvalString(const char *) except *
+    Obj GAP_EvalStringNoExcept "GAP_EvalString"(const char *)
     Obj GAP_ValueGlobalVariable(const char *)
 
 
@@ -150,10 +151,6 @@ cdef extern from "<gap/records.h>":
     bint IS_REC(Obj obj)
     Obj ELM_REC(Obj rec, UInt rnam)
     UInt RNamName(Char* name)
-
-
-cdef extern from "<gap/stats.h>":
-    void ClearError()
 
 
 cdef extern from "<gap/stringobj.h>":
