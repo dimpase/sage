@@ -38,8 +38,12 @@ mkdir -p "$SAGE_DESTDIR$SAGE_BIN" || sdh_die "Failed to create the directory $SA
 # Now copy additional files GAP needs to run (and a few optional bits) into
 # GAP_ROOT; we don't need everything from the source tree
 sdh_install doc gen grp lib src tst sysinfo.gap "$GAP_ROOT"
-# Install only the minimal packages GAP needs to run
-sdh_install pkg/GAPDoc-* pkg/primgrp-* pkg/SmallGrp-* pkg/transgrp "$GAP_ROOT"/pkg
+# Install only the minimal packages GAP needs to run+tomlib, remaining from old database_gap package
+sdh_install pkg/GAPDoc-* pkg/primgrp-* pkg/SmallGrp-* pkg/transgrp pkg/tomlib-* "$GAP_ROOT"/pkg
+
+# Install the rest of GAP default auto-loaded packages
+sdh_install pkg/autpgrp-* pkg/alnuth-* pkg/crisp-* pkg/ctbllib pkg/FactInt-* pkg/fga pkg/irredsol-* \
+            pkg/laguna-* pkg/polenta-* pkg/polycyclic-* pkg/resclasses-* pkg/sophus-* "$GAP_ROOT"/pkg
 
 # Install the GAP startup script; ensure it is executable
 sdh_install -T ../gap "$SAGE_BIN/gap"
