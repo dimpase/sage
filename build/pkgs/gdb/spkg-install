@@ -4,8 +4,8 @@ cd src
 export LDFLAGS="${LDFLAGS} -L${SAGE_LOCAL}/lib -ltinfo"
 
 sdh_configure \
-    --with-mpc="$SAGE_MPC_PREFIX" \
-    --with-mpfr="$SAGE_MPFR_PREFIX" \
+    --with-mpc="$SAGE_LOCAL" \
+    $SAGE_CONFIGURE_MPFR \
     $SAGE_CONFIGURE_GMP
 sdh_make
 sdh_make_install
