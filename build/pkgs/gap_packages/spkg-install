@@ -19,6 +19,7 @@ sdh_install \
     crystcat \
     design \
     gbnp \
+    genss-* \
     Hap* \
     HAPcryst \
     hecke-* \
@@ -76,7 +77,7 @@ done
 # These packages have a new-style autoconf ./configure
 # that takes --with-gaproot
 
-for pkg in nq-* io-*
+for pkg in nq-* io-* orb-* digraphs-* semigroups-*
 do
     cd "$PKG_SRC_DIR/$pkg"
     sdh_configure --with-gaproot="$GAP_ROOT"
