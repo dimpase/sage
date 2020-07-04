@@ -641,7 +641,7 @@ jobs:
     env:
       STAGE: iv-a
       PREVIOUS_STAGES: iii
-      TARGETS: ptest
+      TARGETS: test
       LOCAL_ARTIFACT_NAME: sage-local-commit-${{ github.sha }}-cygwin-${{ matrix.pkgs }}
       LOGS_ARTIFACT_NAME: logs-commit-${{ github.sha }}-cygwin-${{ matrix.pkgs }}
 
