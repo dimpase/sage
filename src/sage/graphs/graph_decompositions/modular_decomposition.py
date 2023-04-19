@@ -725,7 +725,7 @@ class _TedderTreeNode():
         """
         Returns True if this node has no children, and False otherwise
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -742,7 +742,7 @@ class _TedderTreeNode():
         """
         Returns True if this node has exactly one child, and False otherwise
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -812,7 +812,7 @@ class _TedderTreeNode():
         """
         Removes the subtree rooted at this node
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -972,7 +972,7 @@ class _TedderTreeNode():
         leaves in this case refers to the _TedderMDLeafNode's present in the 
         tree.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode, _TedderMDLeafNode
             sage: n1 = _TedderTreeNode()
@@ -1019,7 +1019,7 @@ class _TedderTreeNode():
         
         - ``parent`` -- _TedderTreeNode
 
-        EXAMPLES:
+        EXAMPLES::
         
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -1051,7 +1051,7 @@ class _TedderTreeNode():
         Removes just this node of the tree, the children of this node become 
         children of this node's parent
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -1085,7 +1085,7 @@ class _TedderTreeNode():
         
         - ``replacement`` -- _TedderTreeNode
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -1120,7 +1120,7 @@ class _TedderTreeNode():
         For the general node, this means if it has no parent, but will be 
         overridden for subclasses
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -1143,7 +1143,7 @@ class _TedderTreeNode():
         This will be overridden by all of the subclasses, for more useful 
         representaitons.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderTreeNode
             sage: n1 = _TedderTreeNode()
@@ -1218,7 +1218,7 @@ class _TedderMDNode(_TedderTreeNode):
         
         - ``copy`` -- _TedderMDNode, the node whose fields are being copied
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, NodeType
             sage: n1 = _TedderMDNode()
@@ -1294,7 +1294,7 @@ class _TedderMDNode(_TedderTreeNode):
         Returns True if the number of marks this node has is equal to the 
         number of it's children, and False otherwise
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode
             sage: n1 = _TedderMDNode()
@@ -1314,7 +1314,7 @@ class _TedderMDNode(_TedderTreeNode):
         """
         Resets the number of marks this node has to 0
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode
             sage: n1 = _TedderMDNode()
@@ -1329,7 +1329,7 @@ class _TedderMDNode(_TedderTreeNode):
         """
         Returns True if this node has at least one mark, and False otherwise
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode
             sage: n1 = _TedderMDNode()
@@ -1350,7 +1350,7 @@ class _TedderMDNode(_TedderTreeNode):
         
         - ``comp_number`` -- integer
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode
             sage: n1 = _TedderMDNode()
@@ -1383,7 +1383,7 @@ class _TedderMDNode(_TedderTreeNode):
         
         - ``tree_number`` -- integer
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode
             sage: n1 = _TedderMDNode()
@@ -1510,7 +1510,7 @@ class _TedderMDNode(_TedderTreeNode):
         
         - ``split_type`` -- NodeSplit, LEFT_SPLIT or RIGHT_SPLIT
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, NodeSplit
             sage: n1 = _TedderMDNode()
@@ -1554,7 +1554,7 @@ class _TedderMDNode(_TedderTreeNode):
         
         - ``split_type`` -- NodeSplit, LEFT_SPLIT or RIGHT_SPLIT
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, NodeSplit
             sage: n1 = _TedderMDNode()
@@ -1676,7 +1676,7 @@ class _TedderMDNode(_TedderTreeNode):
         
         - ``split_type`` -- NodeSplit, LEFT_SPLIT or RIGHT_SPLIT
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, NodeSplit
             sage: n1 = _TedderMDNode()
@@ -1693,7 +1693,7 @@ class _TedderMDNode(_TedderTreeNode):
         """
         Sets the split marks for all nodes in this node's subtree to NO_SPLIT
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, NodeSplit
             sage: n1 = _TedderMDNode()
@@ -1900,7 +1900,7 @@ class _TedderMDNode(_TedderTreeNode):
         Resets to their defaults all properties of all nodes in this node's 
         subtree, except their type, which remains the same.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, NodeType
             sage: n1 = _TedderMDNode(NodeType.SERIES)
@@ -1943,7 +1943,7 @@ class _TedderMDNode(_TedderTreeNode):
         For these nodes, this is True if the parent of this node is NOT a 
         _TedderMDNode
 
-        EXAMPLES:
+        EXAMPLES::
 
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, _TedderTreeNode
@@ -1976,7 +1976,7 @@ class _TedderMDNode(_TedderTreeNode):
         This method will be overridden by _TedderMDLeafNode, as they have no 
         children and a different definition of `value` of the node.
 
-        EXAMPLES:
+        EXAMPLES::
         
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDNode, NodeType
             sage: n1 = _TedderMDNode()
@@ -2045,7 +2045,7 @@ class _TedderMDLeafNode(_TedderMDNode):
         """
         Resets alpha to []
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDLeafNode
             sage: n1 = _TedderMDLeafNode()
@@ -2064,7 +2064,7 @@ class _TedderMDLeafNode(_TedderMDNode):
         
         - ``new_alpha`` -- list of _TedderMDLeafNodes
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDLeafNode
             sage: n1 = _TedderMDLeafNode()
@@ -2083,7 +2083,7 @@ class _TedderMDLeafNode(_TedderMDNode):
         the ones inherited from _TedderMDNode that needs to be reset is the 
         alpha-list of this node.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDLeafNode, NodeSplit
             sage: n1 = _TedderMDLeafNode()
@@ -2107,7 +2107,7 @@ class _TedderMDLeafNode(_TedderMDNode):
         This node will have no children, so that is all that is needed for the
         representation of the node.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderMDLeafNode, NodeSplit, NodeType
             sage: n1 = _TedderMDLeafNode(1)
@@ -2179,7 +2179,7 @@ class _TedderFactPermElement(_TedderTreeNode):
         """
         Returns True if the element has been marked
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderFactPermElement
             sage: n1 = _TedderFactPermElement()
@@ -2195,7 +2195,7 @@ class _TedderFactPermElement(_TedderTreeNode):
         """
         Resets the marks to their default value (0)
         
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderFactPermElement
             sage: n1 = _TedderFactPermElement()
@@ -2215,7 +2215,7 @@ class _TedderFactPermElement(_TedderTreeNode):
         
         - ``new_neighbors`` -- List of _TedderFactPermElements
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderFactPermElement
             sage: n1 = _TedderFactPermElement()
@@ -2320,7 +2320,7 @@ class _TedderSubProblem(_TedderTreeNode):
         
         - ``copy`` -- _TedderSubProblem
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderSubProblem
             sage: p1 = _TedderSubProblem()
@@ -2347,7 +2347,7 @@ class _TedderSubProblem(_TedderTreeNode):
         """
         Resets the fields of this problem to their default values
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderSubProblem
             sage: p1 = _TedderSubProblem()
@@ -2382,7 +2382,7 @@ class _TedderSubProblem(_TedderTreeNode):
 
         This node's children are _TedderMDNodes
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderSubProblem, _TedderMDNode, NodeSplit
             sage: p = _TedderSubProblem()
@@ -2421,7 +2421,9 @@ class _TedderSubProblem(_TedderTreeNode):
 
         This node has exactly one child, and that child is a _TedderMDNode
 
-        EXAMPLE:
+        EXAMPLES::
+
+            sage: # TODO!
         """
         assert(self.has_only_one_child() and isinstance(self.first_child, _TedderMDNode))
         self.first_child.remove_degenerate_duplicates_from_subtree()
@@ -2431,7 +2433,7 @@ class _TedderSubProblem(_TedderTreeNode):
         Returns True if this is the pivot subproblem, that is, the subproblem
         just containing the pivot of this node's parent's pivot.
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderSubProblem, _TedderMDLeafNode
             sage: p1 = _TedderSubProblem()
@@ -2465,7 +2467,7 @@ class _TedderSubProblem(_TedderTreeNode):
         ``graph`` is undirected, and has at least one node.
         This node has no children.
 
-        EXAMPLES:
+        EXAMPLES::
 
            sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderSubProblem
             sage: d = {0:[], 1:[2], 2:[1]}
@@ -3495,7 +3497,7 @@ class _TedderSubProblem(_TedderTreeNode):
         containing the pivot of this node (is there is one) is marked
         with 'PIVOT='
 
-        EXAMPLES:
+        EXAMPLES::
 
             sage: from sage.graphs.graph_decompositions.modular_decomposition import _TedderSubProblem, _TedderMDLeafNode
             sage: p1 = _TedderSubProblem()
