@@ -1,3 +1,7 @@
+/* WARNING: src/sage/libs/flint/flint_wrap.h is generated from
+ * src/sage_setup/autogen/flint/templates/flint_wrap.h.template
+ * please make sure that you are modifying the correct file! */
+
 #ifndef SAGE_FLINT_WRAP_H
 #define SAGE_FLINT_WRAP_H
 /* Using flint headers together in the same module as headers from
@@ -132,8 +136,6 @@
 #include <flint/hypgeom.h>
 #include <flint/long_extras.h>
 #include <flint/mag.h>
-#include <flint/mpf_mat.h>
-#include <flint/mpf_vec.h>
 #include <flint/mpfr_mat.h>
 #include <flint/mpfr_vec.h>
 #include <flint/mpn_extras.h>
@@ -167,5 +169,11 @@
 #undef mp_bitcnt_t
 
 #pragma pop_macro("ulong")
+
+/* CPU_SIZE_1 and SIZE_RED_FAILURE_THRESH are defined as macros in flint/fmpz_lll.h
+ * and as variables in fplll/defs.h, which breaks build if linbox is compiled with fplll */
+
+#undef CPU_SIZE_1
+#undef SIZE_RED_FAILURE_THRESH
 
 #endif

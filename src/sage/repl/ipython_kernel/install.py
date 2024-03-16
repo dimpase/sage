@@ -23,7 +23,6 @@ from sage.env import (
     SAGE_EXTCODE,
     SAGE_VENV,
     SAGE_VERSION,
-    THREEJS_DIR,
 )
 
 
@@ -123,6 +122,7 @@ class SageKernelSpec():
 
         EXAMPLES::
 
+            sage: # needs threejs
             sage: from sage.repl.ipython_kernel.install import SageKernelSpec
             sage: spec = SageKernelSpec(prefix=tmp_dir())
             sage: spec.use_local_threejs()
@@ -130,7 +130,10 @@ class SageKernelSpec():
             sage: os.path.isdir(threejs)
             True
         """
-        src = THREEJS_DIR
+        from sage.features.threejs import Threejs
+        if not Threejs().is_present():
+            return
+        src = os.path.dirname(os.path.dirname(Threejs().absolute_filename()))
         dst = os.path.join(self.nbextensions_dir, 'threejs-sage')
         self.symlink(src, dst)
 
@@ -280,7 +283,7 @@ def have_prerequisites(debug=True):
     Check that we have all prerequisites to run the Jupyter notebook.
 
     In particular, the Jupyter notebook requires OpenSSL whether or
-    not you are using https. See :trac:`17318`.
+    not you are using https. See :issue:`17318`.
 
     INPUT:
 

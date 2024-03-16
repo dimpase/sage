@@ -1233,7 +1233,7 @@ def SRG_from_RSHCD(v, k, l, mu, existence=False, check=True):
     if (e**2 == 1 and
             k == (n-1-a+e)/2 and
             l == (n-2*a)/4 - (1-e) and
-            mu== (n-2*a)/4 and
+            mu == (n-2*a)/4 and
             regular_symmetric_hadamard_matrix_with_constant_diagonal(n, sgn(a)*e, existence=True) is True):
         if existence:
             return True
@@ -2415,7 +2415,7 @@ def SRG_416_100_36_20():
     """
     from sage.libs.gap.libgap import libgap
     libgap.load_package("AtlasRep")
-    g=libgap.AtlasGroup("G2(4)", libgap.NrMovedPoints, 416)
+    g = libgap.AtlasGroup("G2(4)", libgap.NrMovedPoints, 416)
     h = Graph()
     h.add_edges(g.Orbit([1, 5],libgap.OnSets))
     h.relabel()
@@ -2439,7 +2439,7 @@ def SRG_560_208_72_80():
     """
     from sage.libs.gap.libgap import libgap
     libgap.load_package("AtlasRep")
-    g=libgap.AtlasGroup("Sz8", libgap.NrMovedPoints, 560)
+    g = libgap.AtlasGroup("Sz8", libgap.NrMovedPoints, 560)
 
     h = Graph()
     h.add_edges(g.Orbit([1, 2],libgap.OnSets))
@@ -2503,7 +2503,7 @@ def strongly_regular_from_two_intersection_set(M):
         for v in M:
             # u is adjacent with all vertices on a uv line.
             g.add_edges([[u, tuple([u[i] + qq*v[i] for i in range(k)])]
-                         for qq in K if not qq==K.zero()])
+                         for qq in K if not qq == K.zero()])
     g.relabel()
     e = QQ((1,k))
     qq = g.num_verts()**e
@@ -2698,7 +2698,7 @@ cdef bint seems_feasible(int v, int k, int l, int mu) noexcept:
 
     TESTS:
 
-    :trac:`32306` is fixed::
+    :issue:`32306` is fixed::
 
         sage: from sage.graphs.strongly_regular_db import strongly_regular_graph
         sage: strongly_regular_graph(16384, 8256, 4160, 4160, existence=True)           # needs sage.combinat sage.modules
@@ -2868,7 +2868,7 @@ def strongly_regular_graph(int v, int k, int l, int mu=-1, bint existence=False,
 
     TESTS:
 
-    Check that :trac:`26513` is fixed::
+    Check that :issue:`26513` is fixed::
 
         sage: graphs.strongly_regular_graph(539, 288, 162, 144)                         # needs sage.combinat
         descendant of (540, 264, 138, 120)-strongly regular graph at ... 539 vertices
@@ -2890,7 +2890,7 @@ def strongly_regular_graph(int v, int k, int l, int mu=-1, bint existence=False,
         ....:             if 'Brouwer' not in str(e):
         ....:                 raise
 
-    `\mu=0` behaves correctly (:trac:`19712`)::
+    `\mu=0` behaves correctly (:issue:`19712`)::
 
         sage: graphs.strongly_regular_graph(10,2,1)
         Traceback (most recent call last):
@@ -3264,8 +3264,9 @@ cdef load_brouwer_database() noexcept:
     if _brouwer_database is not None:
         return
 
-    from sage.env import GRAPHS_DATA_DIR
-    filename = os.path.join(GRAPHS_DATA_DIR, 'brouwer_srg_database.json')
+    from sage.features.databases import DatabaseGraphs
+    data_dir = os.path.dirname(DatabaseGraphs().absolute_filename())
+    filename = os.path.join(data_dir, 'brouwer_srg_database.json')
     with open(filename) as fobj:
         database = json.load(fobj)
 

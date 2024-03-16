@@ -38,7 +38,7 @@ cdef class SetSystem:
     contents. One is most likely to encounter these as output from some
     Matroid methods::
 
-        sage: M = matroids.named_matroids.Fano()
+        sage: M = matroids.catalog.Fano()
         sage: M.circuits()
         Iterator over a system of subsets
 
@@ -117,7 +117,6 @@ cdef class SetSystem:
             [1, 2]
             [3, 4]
             [1, 2, 4]
-
         """
         if subsets is not None:
             for e in subsets:
@@ -198,7 +197,6 @@ cdef class SetSystem:
             sage: S = SetSystem([1, 2, 3, 4], [[1, 2], [3, 4], [1, 2, 4]])
             sage: repr(S)  # indirect doctest
             'Iterator over a system of subsets'
-
         """
         return "Iterator over a system of subsets"
 
@@ -221,7 +219,6 @@ cdef class SetSystem:
         OUTPUT:
 
         ``None``.
-
         """
         cdef long i
         E = []
@@ -249,7 +246,6 @@ cdef class SetSystem:
             [3, 4]
             [1, 2]
             [3]
-
         """
         cdef SetSystem S
         if self._groundset_size == 0:
@@ -346,7 +342,6 @@ cdef class SetSystem:
             sage: S = SetSystem([1], [])
             sage: S.is_connected()
             True
-
         """
         if self._groundset_size <= 1:
             return True
@@ -727,7 +722,7 @@ cdef class SetSystem:
             sage: S._equivalence(lambda self, other, morph:True, T)
             {1: 'c', 2: 'd', 3: 'b', 4: 'a'}
 
-        Check that :trac:`15189` is fixed::
+        Check that :issue:`15189` is fixed::
 
             sage: M = Matroid(ring=GF(5), reduced_matrix=[[1,0,3],[0,1,1],[1,1,0]])
             sage: N = Matroid(ring=GF(5), reduced_matrix=[[1,0,1],[0,1,1],[1,1,0]])

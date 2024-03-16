@@ -22,7 +22,7 @@ AUTHORS:
 - David Harvey (2007-10): fixed up a few bugs, polish around the edges
 - David Loeffler (2009-05): added more documentation and tests
 - Vincent Delecroix (2012-07): added comparisons for quadratic number fields
-  (:trac:`13213`), abs, floor and ceil functions (:trac:`13256`)
+  (:issue:`13213`), abs, floor and ceil functions (:issue:`13256`)
 
 """
 # ****************************************************************************
@@ -49,9 +49,7 @@ from sage.libs.ntl.ntl_ZZ cimport ntl_ZZ
 from sage.libs.ntl.ntl_ZZX cimport ntl_ZZX
 from sage.libs.mpfi cimport *
 
-
 from sage.structure.parent cimport Parent
-from sage.structure.parent_base cimport ParentWithBase
 from sage.structure.element cimport Element
 from sage.structure.richcmp cimport rich_to_bool_sgn
 
@@ -92,7 +90,7 @@ def __make_NumberFieldElement_quadratic1(parent, cls, a, b, denom):
         sage: loads(dumps(a)) == a # indirect doctest
         True
 
-    We test that :trac:`6462` is fixed::
+    We test that :issue:`6462` is fixed::
 
         sage: L = QuadraticField(-11,'a'); OL = L.maximal_order(); w = OL.0
         sage: loads(dumps(w)) == w # indirect doctest
@@ -328,7 +326,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
 
         TESTS:
 
-        Test that :trac:`28377` is fixed::
+        Test that :issue:`28377` is fixed::
 
             sage: x = polygen(QQ, 'x')
             sage: K = NumberField(x^2 - x -1, 'a', embedding=(1-AA(5).sqrt())/2)
@@ -611,7 +609,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
 
         mpz_clear(tmp_mpz)
 
-        x._parent = <ParentWithBase>new_parent
+        x._parent = <Parent>new_parent
         x._fld_numerator, x._fld_denominator = new_parent.polynomial_ntl()
         x._denominator = elt_den
         cdef ZZX_c result
@@ -653,7 +651,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
             sage: RIF(K3(2))
             2
 
-        Check that :trac:`21979` is fixed::
+        Check that :issue:`21979` is fixed::
 
             sage: a = QuadraticField(5).gen()
             sage: u = -573147844013817084101/2*a + 1281597540372340914251/2
@@ -662,7 +660,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
             sage: RealIntervalField(128)(u).is_zero()
             False
 
-        This was fixed in :trac:`24371`::
+        This was fixed in :issue:`24371`::
 
             sage: RIF.convert_map_from(QuadraticField(5))
             Conversion via _real_mpfi_ method map:
@@ -712,7 +710,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
             sage: CIF(a)
             -1.414213562373095?*I
 
-        This was fixed in :trac:`24371`::
+        This was fixed in :issue:`24371`::
 
             sage: CIF.convert_map_from(QuadraticField(-5))
             Conversion via _complex_mpfi_ method map:
@@ -1084,7 +1082,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
 
         The following is tested because of the implementation of
         :func:`Q_to_quadratic_field_element` which was the cause of
-        some problems with :trac:`13213`::
+        some problems with :issue:`13213`::
 
             sage: K.<sqrt2> = QuadraticField(2)
             sage: 1/2 + sqrt2 > 0
@@ -1473,7 +1471,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
 
         TESTS:
 
-        Test that :trac:`30360` is fixed::
+        Test that :issue:`30360` is fixed::
 
             sage: K.<sqrt5> = QuadraticField(5, embedding=AA(5).sqrt())
             sage: sqrt5*vector([1,2])
@@ -1569,7 +1567,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
             sage: (3*a-2)/7 * b
             1
 
-        This fixes issue :trac:`9357`::
+        This fixes issue :issue:`9357`::
 
             sage: K.<a> = NumberField(x^2+1)
             sage: d = K(0)
@@ -1882,7 +1880,7 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
             sage: parent(a.imag())
             Rational Field
 
-        Check that :trac:`22095` is fixed::
+        Check that :issue:`22095` is fixed::
 
             sage: K.<a> = NumberField(x^2 + 2*x + 14, embedding=CC(-1,+3))
             sage: K13.<sqrt13> = QuadraticField(13)
@@ -2130,26 +2128,64 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
             sage: ((a+1)/3).is_integral()
             False
 
-        This works for order elements too, see :trac:`24077`::
+        This works for order elements too, see :issue:`24077`::
 
             sage: O.<w> = EisensteinIntegers()
             sage: w.is_integral()
             True
             sage: for _ in range(20):
             ....:     assert O.random_element().is_integral()
+
+        Check that :issue:`34800` is fixed::
+
+            sage: K.<t> = QuadraticField(-10007^2)
+            sage: (t/10007).is_integral()
+            True
         """
+        cdef mpz_t m, n, q, r, s, t, u
+        cdef bint result = False
+
+        # Shortcut for "obviously integral" elements
         if mpz_cmp_ui(self.denom, 1) == 0:
             return True
 
-        # Check for an element of the form x + y sqrt(D) where x and y
-        # are half-integers.
-        if mpz_even_p(self.a) or mpz_even_p(self.b):
-            return False
-        if mpz_cmp_ui(self.denom, 2) != 0:
-            return False
-        # Numbers with half-integral components are integral only for
-        # D = 1 mod 4
-        return mpz_fdiv_ui(self.D.value, 4) == 1
+        # a + b*sqrt(D) is integral if and only if
+        # denom | 2*a and denom^2 | a^2 - D*b^2.
+        # Do division with remainder: 2*a = denom*m + n.
+        mpz_init(t)
+        mpz_init(m)
+        mpz_init(n)
+        mpz_mul_ui(t, self.a, 2)
+        mpz_fdiv_qr(m, n, t, self.denom)
+        if mpz_cmp_ui(n, 0) == 0:
+            # Now 2*a = denom*m.
+            # If m is even, then denom | a and gcd(denom, b) = 1, so
+            # a + b*sqrt(D) is integral if and only if denom^2 | D.
+            # If m is odd, then denom is even; put u = denom/2.
+            # Then a + b*sqrt(D) is integral if and only if
+            # b is odd, u^2 | D and D/u^2 is congruent to 1 mod 4.
+            if mpz_even_p(m):
+                mpz_init(s)
+                mpz_mul(s, self.denom, self.denom)
+                result = mpz_divisible_p(self.D.value, s)
+                mpz_clear(s)
+            elif mpz_odd_p(self.b):
+                mpz_init(u)
+                mpz_init(s)
+                mpz_init(q)
+                mpz_init(r)
+                mpz_divexact_ui(u, self.denom, 2)
+                mpz_mul(s, u, u)
+                mpz_fdiv_qr(q, r, self.D.value, s)
+                result = mpz_cmp_ui(r, 0) == 0 and mpz_fdiv_ui(q, 4) == 1
+                mpz_clear(u)
+                mpz_clear(s)
+                mpz_clear(q)
+                mpz_clear(r)
+        mpz_clear(t)
+        mpz_clear(m)
+        mpz_clear(n)
+        return result
 
     def charpoly(self, var='x', algorithm=None):
         r"""
@@ -2351,6 +2387,8 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
 
         TESTS::
 
+            sage: import warnings
+            sage: warnings.filterwarnings("ignore", category=DeprecationWarning)
             sage: K2.<sqrt2> = QuadraticField(2)
             sage: K3.<sqrt3> = QuadraticField(3)
             sage: K5.<sqrt5> = QuadraticField(5)
@@ -2363,8 +2401,6 @@ cdef class NumberFieldElement_quadratic(NumberFieldElement_absolute):
             ....:    assert round(a+b*sqrt(2.)) == round(a+b*sqrt2), (a, b)
             ....:    assert round(a+b*sqrt(3.)) == round(a+b*sqrt3), (a, b)
             ....:    assert round(a+b*sqrt(5.)) == round(a+b*sqrt5), (a, b)
-            doctest...: DeprecationWarning: the default rounding for rationals, currently `away`, will be changed to `even`.
-            See https://github.com/sagemath/sage/issues/35473 for details.
         """
         n = self.floor()
         test = 2 * (self - n).abs()
@@ -2538,7 +2574,7 @@ cdef class NumberFieldElement_gaussian(NumberFieldElement_quadratic_sqrt):
 
         TESTS:
 
-        Check that :trac:`31808` is fixed::
+        Check that :issue:`31808` is fixed::
 
             sage: C.<I> = QuadraticField(-1)
             sage: AA(C.one())
@@ -2796,7 +2832,7 @@ cdef class OrderElement_quadratic(NumberFieldElement_quadratic):
     def __invert__(self):
         r"""
         Implement inversion, checking that the return value has the right parent.
-        See :trac:`4190`.
+        See :issue:`4190`.
 
         EXAMPLES::
 

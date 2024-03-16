@@ -123,7 +123,7 @@ AUTHORS:
 
 from sage.arith.misc import GCD as gcd
 from sage.combinat.posets.posets import FinitePoset
-from sage.env import POLYTOPE_DATA_DIR
+from sage.features.databases import DatabaseReflexivePolytopes
 from sage.geometry.cone import _ambient_space_point, integral_length
 from sage.geometry.hasse_diagram import lattice_from_incidences
 from sage.geometry.point_collection import (PointCollection,
@@ -451,8 +451,10 @@ def ReflexivePolytopes(dim):
     if dim not in [2, 3]:
         raise NotImplementedError("only 2- and 3-dimensional reflexive polytopes are available!")
     if _rp[dim] is None:
+        db = DatabaseReflexivePolytopes()
         rp = read_all_polytopes(
-            os.path.join(POLYTOPE_DATA_DIR, "reflexive_polytopes_%dd" % dim))
+                os.path.join(os.path.dirname(db.absolute_filename()),
+                             f'reflexive_polytopes_{dim}d'))
         for n, p in enumerate(rp):
             # Data files have normal form of reflexive polytopes
             p.normal_form.set_cache(p._vertices)
@@ -779,7 +781,7 @@ class LatticePolytopeClass(ConvexSet_compact, Hashable, sage.geometry.abc.Lattic
             N(-1,  1, 0)
             in 3-d lattice N
 
-        Check that :trac:`28741` is fixed::
+        Check that :issue:`28741` is fixed::
 
             sage: # needs sage.graphs
             sage: p = LatticePolytope([], lattice=ToricLattice(3).dual()); p
@@ -2463,7 +2465,7 @@ class LatticePolytopeClass(ConvexSet_compact, Hashable, sage.geometry.abc.Lattic
             sage: o.incidence_matrix().is_immutable()
             True
 
-        Check that the base ring is ``ZZ``, see :trac:`29840`::
+        Check that the base ring is ``ZZ``, see :issue:`29840`::
 
             sage: o.incidence_matrix().base_ring()
             Integer Ring
@@ -3451,7 +3453,7 @@ class LatticePolytopeClass(ConvexSet_compact, Hashable, sage.geometry.abc.Lattic
             None
 
         Now we make sure that the origin of non-full-dimensional polytopes can
-        be identified correctly (:trac:`10661`)::
+        be identified correctly (:issue:`10661`)::
 
             sage: LatticePolytope([(1,0,0), (-1,0,0)]).origin()
             2
