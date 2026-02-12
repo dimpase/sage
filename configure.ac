@@ -80,8 +80,7 @@ if test "$SAGE_LOCAL" = NONE; then
     SAGE_LOCAL=local
     if test -x "$SAGE_LOCAL"/bin/python3; then
         # Incremental build with an existing installation of python3 spkg
-        # in SAGE_LOCAL or venv in SAGE_LOCAL.  Keep old behavior.
-        SAGE_VENV_AUTO=no
+        AC_MSG_ERROR([A stale Python3 found in SAGE_LOCAL. Please remove local/ and try again.])
     else
         SAGE_VENV_AUTO=yes
     fi
