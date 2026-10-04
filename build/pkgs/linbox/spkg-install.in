@@ -3,6 +3,9 @@ if [ "$SAGE_DARWIN_ACCELERATE" = yes ]; then
 fi
 
 cd src/
+if [ "$UNAME" = Darwin ]; then
+    sdh_autoreconf
+fi
 
 ###############################################################################
 # Set up environment variables:

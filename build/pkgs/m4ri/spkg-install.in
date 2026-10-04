@@ -16,6 +16,9 @@ else
 fi
 
 cd src
+if [ "$UNAME" = Darwin ]; then
+    sdh_autoreconf
+fi
 
 cp "$SAGE_ROOT"/config/config.* .
 

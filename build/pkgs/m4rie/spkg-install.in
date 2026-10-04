@@ -23,6 +23,9 @@ export LDFLAGS
 # build M4RIE
 
 cd $ROOT_DIR/src/
+if [ "$UNAME" = Darwin ]; then
+    sdh_autoreconf
+fi
 
 cp "$SAGE_ROOT"/config/config.* .
 
