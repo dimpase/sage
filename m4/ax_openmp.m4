@@ -74,7 +74,7 @@
 #   modified version of the Autoconf Macro, you may extend this special
 #   exception to the GPL to apply to your modified version as well.
 
-#serial 15
+#serial 16
 
 AC_DEFUN([AX_OPENMP], [
 AC_PREREQ([2.69]) dnl for _AC_LANG_PREFIX
@@ -85,10 +85,9 @@ ax_cv_[]_AC_LANG_ABBREV[]_openmp=unknown
 #                -qopenmp (icc>=15), -openmp (icc),
 #                -xopenmp (Sun), -omp (Tru64),
 #                -qsmp=omp (AIX),
-#                -Xpreprocessor -fopenmp (Darwin's clang),
+#                -Wp,-fopenmp (Darwin's clang; one token for older libtool),
 #                none
-#ax_openmp_flags="-fopenmp:-openmp:-Xpreprocessor -fopenmp:-qopenmp:-mp:-xopenmp:-omp:-qsmp=omp:none"
-ax_openmp_flags="-fopenmp:-Xpreprocessor -fopenmp:-qopenmp:-mp:-xopenmp:-omp:-qsmp=omp:none"
+ax_openmp_flags="-fopenmp:-Wp,-fopenmp:-qopenmp:-mp:-xopenmp:-omp:-qsmp=omp:none"
 if test "x$OPENMP_[]_AC_LANG_PREFIX[]FLAGS" != x; then
   ax_openmp_flags="$OPENMP_[]_AC_LANG_PREFIX[]FLAGS:$ax_openmp_flags"
 fi
@@ -104,6 +103,9 @@ for ax_openmp_lib in "" "-lomp"; do
   esac
   AC_LINK_IFELSE([AC_LANG_SOURCE([[
 @%:@include <omp.h>
+@%:@ifndef _OPENMP
+@%:@error OpenMP is not enabled
+@%:@endif
 
 static void
 parallel_fill(int * data, int n)
@@ -142,7 +144,9 @@ if test "x$ax_cv_[]_AC_LANG_ABBREV[]_openmp" = "xunknown"; then
   m4_default([$2],:)
 else
   if test "x$ax_cv_[]_AC_LANG_ABBREV[]_openmp" != "xnone"; then
-    OPENMP_[]_AC_LANG_PREFIX[]FLAGS=$ax_cv_[]_AC_LANG_ABBREV[]_openmp
+    # Keep Apple Clang's preprocessor option in one token for bundled libtool.
+    # Also normalize explicit overrides and values from an older config.cache.
+    OPENMP_[]_AC_LANG_PREFIX[]FLAGS=$(AS_ECHO(["$ax_cv_[]_AC_LANG_ABBREV[]_openmp"]) | sed 's/-Xpreprocessor  *-fopenmp/-Wp,-fopenmp/g')
     OPENMP_[]_AC_LANG_PREFIX[]LIB=$ax_cv_[]_AC_LANG_ABBREV[]_omplib
   fi
   m4_default([$1], [AC_DEFINE(HAVE_OPENMP,1,[Define if OpenMP is enabled])])
