@@ -448,9 +448,9 @@ class RootSumFunction(BuiltinFunction):
 
         Coefficients may contain free parameters::
 
-            sage: a = var('a')
-            sage: rs = root_sum(r^5+a*r+1, r, sin(r))
-            sage: rs._sympy_()._sage_().is_trivially_equal(rs)
+            sage: a = var('a')                                  # needs sympy
+            sage: rs = root_sum(r^5+a*r+1, r, sin(r))            # needs sympy
+            sage: rs._sympy_()._sage_().is_trivially_equal(rs)    # needs sympy
             True
         """
         import sympy
