@@ -91,11 +91,19 @@ def doctest():
         path = Path(value).resolve()
         if not path.is_relative_to(root) or not path.exists():
             raise ValueError(f"Expected an existing path under src/sage: {value}")
-    command = [sys.executable, "-m", "sage.doctest", "-p", os.environ.get("CI_JOBS", "4"),
-               "--format", "github", "--random-seed=0", "--timeout=900",
-               f"--stats-path={os.environ['CI_RESULTS']}/doctest-stats.json", *paths]
-    print(shlex.join(command), flush=True)
-    subprocess.run(command, check=True)
+    arguments = ["-p", os.environ.get("CI_JOBS", "4"),
+                 "--format", "github", "--random-seed=0", "--timeout=900",
+                 f"--stats-path={os.environ['CI_RESULTS']}/doctest-stats.json", *paths]
+    if sys.platform == "darwin":
+        # Sage's doctest timer lazily imports psutil for pexpect processes.
+        # psutil 7.2.2 probes IOKit at import time, which can abort in a forked
+        # macOS worker. Initialize it in the parent, before Sage starts workers.
+        import psutil
+        print(f"Preloaded psutil {psutil.__version__} before doctest workers", flush=True)
+    from sage.doctest.__main__ import main
+    print("Running Sage doctests: " + shlex.join(arguments), flush=True)
+    sys.argv = ["sage.doctest", *arguments]
+    raise SystemExit(main())
 
 
 if __name__ == "__main__":
