@@ -1,0 +1,76 @@
+name: PR43138 affine Conda diagnostic
+
+on:
+  push:
+    branches: [diagnostics/pr43138-affine-conda]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: affine-conda-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    if: github.repository == 'dimpase/sage'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      SAGE_SOURCE: ${{ github.workspace }}/sage-baseline
+      DIAGNOSTIC_OUT: ${{ github.workspace }}/affine-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+      PYTHONNOUSERSITE: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+
+    steps:
+      - name: Check out diagnostic harness
+        uses: actions/checkout@v7
+        with:
+          path: diagnostic-harness
+          persist-credentials: false
+
+      - name: Check out unchanged upstream beta6
+        uses: actions/checkout@v7
+        with:
+          repository: sagemath/sage
+          ref: 026e931e47064f0a7fc095580119365518bfe7c0
+          path: sage-baseline
+          persist-credentials: false
+
+      - name: Verify source and save harness provenance
+        run: |
+          python diagnostic-harness/diagnostics/affine/affine-conda-diagnostic.py source
+
+      - name: Create original pinned Python 3.14 Conda environment
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          use-mamba: true
+          channels: conda-forge
+          channel-priority: true
+          activate-environment: sage-dev
+          environment-file: sage-baseline/environment-3.14-linux.yml
+
+      - name: Verify exact Conda versions and build Sage
+        id: build
+        run: |
+          bash diagnostic-harness/diagnostics/affine/run-affine-conda-diagnostic.sh build
+
+      - name: Run untouched full affine file, then instrument separately
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          bash diagnostic-harness/diagnostics/affine/run-affine-conda-diagnostic.sh test
+
+      - name: Preserve all diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: affine-conda-beta6-x86_64-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            ${{ env.DIAGNOSTIC_OUT }}
+            ${{ env.SAGE_SOURCE }}/builddir/meson-logs
