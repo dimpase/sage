@@ -24,20 +24,26 @@ def requirements():
 
 
 def data():
-    """Expose bottled databases also to checkouts predating Sage PR #42878."""
-    root = Path(os.environ["SAGE_DATA_PATH"])
-    root.mkdir()
+    """Check the published data bridge against the released Python packages."""
+    root = Path(os.environ["SAGE_SHARE"]) / "sagemath"
+    prefix = Path(subprocess.check_output(
+        ["brew", "--prefix", "dimpase/tap/sagemath-deps"], text=True).strip()).resolve()
     directories = {
-        "cremona": files("sage_data_elliptic_curves.data") / "cremona",
-        "ellcurves": files("sage_data_elliptic_curves.data") / "ellcurves",
-        "graphs": files("sage_data_graphs.data"),
-        "reflexive_polytopes": files("sage_data_polytopes") / "data",
+        "cremona": (files("elliptic_curve_databases") / "data" / "cremona", ("cremona_mini.db",)),
+        "ellcurves": (files("elliptic_curve_databases") / "data" / "ellcurves", ("rank0",)),
+        "graphs": (files("graph_databases") / "data", ("graphs.db", "isgci_sage.xml")),
+        "reflexive_polytopes": (files("polytope_databases") / "data", ("Full3d/zzdb.info",)),
     }
-    for name, path in directories.items():
-        if not path.is_dir():
-            raise RuntimeError(f"Missing bottled data: {path}")
-        (root / name).symlink_to(path, target_is_directory=True)
-    print(json.dumps({name: str(path) for name, path in directories.items()}, indent=2))
+    result = {}
+    for name, (directory, payloads) in directories.items():
+        path = Path(directory).resolve(strict=True)
+        if not path.is_relative_to(prefix) or not (root / name).samefile(path):
+            raise RuntimeError(f"{name} does not resolve to its bottled data: {path}")
+        for filename in payloads:
+            if not (path / filename).is_file():
+                raise RuntimeError(f"Missing bottled data: {path / filename}")
+        result[name] = str(path)
+    print(json.dumps(result, indent=2))
 
 
 def provenance():

@@ -4,14 +4,13 @@ set -euo pipefail
 : "${CI_SOURCE:?}" "${CI_RESULTS:?}" "${CI_RUN_DIR:?}" "${CI_HELPERS:?}"
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 export DOT_SAGE="$CI_RUN_DIR/dot-sage"
-export SAGE_DATA_PATH="$CI_RUN_DIR/data"
 export IPYTHONDIR="$CI_RUN_DIR/ipython"
 export MPLCONFIGDIR="$CI_RUN_DIR/matplotlib"
 export XDG_CACHE_HOME="$CI_RUN_DIR/cache"
 export CCACHE_DIR="${RUNNER_TEMP:-$CI_RUN_DIR}/sage-homebrew-ccache"
 export CCACHE_MAXSIZE=1G
 export PYTHONNOUSERSITE=1
-unset PYTHONPATH PYTHONHOME SAGE_LOCAL SAGE_ROOT SAGE_VENV
+unset PYTHONPATH PYTHONHOME SAGE_LOCAL SAGE_ROOT SAGE_VENV SAGE_DATA_PATH SAGE_SHARE
 cd "$CI_SOURCE"
 
 activate() {
@@ -30,6 +29,26 @@ case "${1:?Expected dependencies, venv, build, verify, pytest, or doctest}" in
         brew trust --tap dimpase/tap dimpase/gap macaulay2/tap
         # Fetch the tap metadata for the published dependency bottles.
         brew update
+        # A preinstalled core keg has the same name as the tap dependency.
+        # Reinstall through Homebrew so it can back up and restore the old keg.
+        ecm_prefix="$(brew --prefix)/opt/gmp-ecm"
+        if [[ -e "$ecm_prefix" || -L "$ecm_prefix" ]]; then
+            ecm_receipt="$ecm_prefix/INSTALL_RECEIPT.json"
+            ecm_tap=$(plutil -extract source.tap raw -expect string -o - "$ecm_receipt")
+            if [[ "$ecm_tap" == homebrew/core ]]; then
+                cp "$ecm_receipt" "$CI_RESULTS/gmp-ecm-before.json"
+                brew reinstall --force-bottle dimpase/tap/gmp-ecm
+                ecm_tap=$(plutil -extract source.tap raw -expect string -o - "$ecm_receipt")
+                ecm_poured=$(plutil -extract poured_from_bottle raw -expect bool -o - "$ecm_receipt")
+                if [[ "$ecm_tap" != dimpase/tap || "$ecm_poured" != true ]]; then
+                    echo "Expected the bottled dimpase/tap/gmp-ecm after reinstall" >&2
+                    exit 1
+                fi
+                # A previous failed dependency upgrade may have unlinked it.
+                brew link dimpase/tap/gmp-ecm
+                cp "$ecm_receipt" "$CI_RESULTS/gmp-ecm-after.json"
+            fi
+        fi
         # These formulae declare conflicts with their core counterparts.
         # Keep the core kegs installed for other jobs on the runner.
         for formula in numpy scipy python-matplotlib; do
