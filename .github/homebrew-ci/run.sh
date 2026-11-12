@@ -70,6 +70,7 @@ case "${1:?Expected dependencies, venv, build, verify, pytest, or doctest}" in
     venv)
         "$(brew --prefix python@3.14)/bin/python3.14" -m venv --system-site-packages "$CI_RUN_DIR/venv"
         activate
+        python -B "$CI_HELPERS/check.py" meson | tee "$CI_RESULTS/meson-package.json"
         # Freeze the bottled Python dependencies so adding pytest cannot upgrade them.
         python -m pip freeze --all --exclude sagemath > "$CI_RESULTS/bottled-python.txt"
         python "$CI_HELPERS/check.py" requirements > "$CI_RESULTS/test-requirements.txt"
@@ -77,6 +78,7 @@ case "${1:?Expected dependencies, venv, build, verify, pytest, or doctest}" in
             -r "$CI_RESULTS/test-requirements.txt"
         python "$CI_HELPERS/check.py" data | tee "$CI_RESULTS/data-paths.json"
         python -m pip list --format=json > "$CI_RESULTS/python-packages.json"
+        python -m pip check
         ;;
     build)
         activate

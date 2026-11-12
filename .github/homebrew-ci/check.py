@@ -23,6 +23,86 @@ def requirements():
         print(f"{name}=={versions.pop()}")
 
 
+def meson():
+    """Expose the genuine pure-Python Meson bottle to this development venv."""
+    from email.parser import Parser
+    import platform
+    import shutil
+    import sysconfig
+
+    from packaging.specifiers import SpecifierSet
+
+    venv = Path(os.environ["CI_RUN_DIR"], "venv").resolve(strict=True)
+    purelib = Path(sysconfig.get_path("purelib")).resolve(strict=True)
+    if (sys.prefix == sys.base_prefix or Path(sys.prefix).resolve() != venv
+            or not purelib.is_relative_to(venv)):
+        raise RuntimeError("Meson must be exposed only inside the CI development venv")
+    prefix = Path(subprocess.check_output(
+        ["brew", "--prefix", "meson"], text=True).strip()).resolve(strict=True)
+    receipt = json.loads((prefix / "INSTALL_RECEIPT.json").read_text())
+    if (receipt.get("source", {}).get("tap") != "homebrew/core"
+            or receipt.get("poured_from_bottle") is not True):
+        raise RuntimeError(f"Expected a poured Homebrew core Meson bottle: {prefix}")
+    locations = list(prefix.glob("lib/python*/site-packages/meson-*.dist-info"))
+    if len(locations) != 1:
+        raise RuntimeError(f"Expected one bottled Meson distribution: {locations}")
+    info = locations[0].resolve(strict=True)
+    site = info.parent
+    if (not site.is_relative_to(prefix)
+            or {path.name for path in site.iterdir()} != {info.name, "mesonbuild"}
+            or not (site / "mesonbuild").resolve(strict=True).is_relative_to(prefix)):
+        raise RuntimeError(f"Expected a dedicated Meson package directory inside {prefix}: {site}")
+    dist = metadata.PathDistribution(info)
+    wheel = Parser().parsestr(dist.read_text("WHEEL") or "")
+    requires_python = dist.metadata.get("Requires-Python")
+    if (dist.metadata["Name"] != "meson" or wheel["Root-Is-Purelib"] != "true"
+            or wheel.get_all("Tag") != ["py3-none-any"] or not requires_python
+            or platform.python_version() not in SpecifierSet(requires_python)):
+        raise RuntimeError(f"The bottled Meson package is not compatible with this Python: {info}")
+    executable = shutil.which("meson")
+    if not executable or Path(executable).resolve() != (prefix / "bin/meson").resolve(strict=True):
+        raise RuntimeError(f"Meson is not the current Homebrew executable: {executable}")
+    version = subprocess.check_output(
+        [executable, "--version"], text=True,
+        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}).strip()
+    if version != dist.version:
+        raise RuntimeError(f"Meson executable/package version mismatch: {version} != {dist.version}")
+    # A plain path admits the real package and metadata without executing .pth
+    # hooks or importing packages from another interpreter's global site.
+    bridge = purelib / "bottled-meson.pth"
+    if bridge.is_symlink():
+        raise RuntimeError(f"Expected a regular venv path file: {bridge}")
+    contents = str(site) + "\n"
+    if not bridge.exists() or bridge.read_text() != contents:
+        bridge.write_text(contents)
+    # Probe in a new interpreter so normal site initialization reads the .pth.
+    # -B keeps this Python from writing bytecode into the Homebrew keg.
+    probe = subprocess.check_output([
+        sys.executable, "-I", "-B", "-c", """
+import importlib.metadata as metadata
+import json
+from pathlib import Path
+import shutil
+import sys
+import mesonbuild
+from mesonbuild import coredata
+
+site, version, executable = sys.argv[1:]
+dist = metadata.distribution("meson")
+module = Path(mesonbuild.__file__).resolve()
+core = Path(coredata.__file__).resolve()
+if (dist.version != version or Path(dist.locate_file("")).resolve() != Path(site)
+        or module.parent != Path(site, "mesonbuild")
+        or core.parent != module.parent or coredata.version != version
+        or Path(shutil.which("meson")).resolve() != Path(executable).resolve()):
+    raise RuntimeError("Meson module, metadata or executable came from an unexpected location")
+print(json.dumps({"version": dist.version, "site": site, "module": str(module),
+                  "coredata": str(core), "module_version": coredata.version,
+                  "executable": executable}))
+""", str(site), version, executable], text=True)
+    print(json.dumps(json.loads(probe), indent=2))
+
+
 def data():
     """Check the published data bridge against the released Python packages."""
     root = Path(os.environ["SAGE_SHARE"]) / "sagemath"
@@ -107,5 +187,5 @@ def doctest():
 
 
 if __name__ == "__main__":
-    {"requirements": requirements, "data": data,
+    {"requirements": requirements, "meson": meson, "data": data,
      "provenance": provenance, "doctest": doctest}[sys.argv[1]]()
