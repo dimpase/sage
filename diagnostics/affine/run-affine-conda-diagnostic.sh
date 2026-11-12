@@ -58,6 +58,18 @@ elif [[ ${phase} == test ]]; then
     printf '%s\n' "${pipeline_status[0]}" > "${DIAGNOSTIC_OUT}/instrument-exit-${seed}.txt"
     if (( pipeline_status[0] != 0 || pipeline_status[1] != 0 )); then overall=1; fi
   done
+
+  # Separate fresh processes after both original traces. These controls never
+  # replace original CDF results or clear a previous nonzero overall status.
+  for seed in "${seeds[@]}"; do
+    set +e
+    python "${helper}" precision-controls --seed "${seed}" \
+      2>&1 | tee "${DIAGNOSTIC_OUT}/precision-${seed}.log"
+    pipeline_status=("${PIPESTATUS[@]}")
+    set -e
+    printf '%s\n' "${pipeline_status[0]}" > "${DIAGNOSTIC_OUT}/precision-exit-${seed}.txt"
+    if (( pipeline_status[0] != 0 || pipeline_status[1] != 0 )); then overall=1; fi
+  done
   python "${helper}" verify-after || overall=1
   printf '%s\n' "${overall}" > "${DIAGNOSTIC_OUT}/overall-exit.txt"
   exit "${overall}"

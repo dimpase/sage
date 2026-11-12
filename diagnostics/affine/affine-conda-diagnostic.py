@@ -199,6 +199,72 @@ def complex_record(value):
     return {"real": binary64(value.real), "imag": binary64(value.imag)}
 
 
+def mapped_openblas_getters(maps):
+    """Query the already mapped LP64 library, strictly after numerical work.
+
+    get_num_threads may initialize cached counts. These values describe the
+    configured runtime, not the number of workers used by a particular call.
+    """
+    import ctypes
+
+    result = {"capture_phase": "after_all_numerical_computations",
+              "configured_threads_are_not_active_worker_measurements": True}
+    candidates = set()
+    for line in maps:
+        parts = line.split(maxsplit=5)
+        if len(parts) != 6:
+            continue
+        path = parts[5]
+        name = Path(path).name
+        if name.startswith("libopenblas") and ".so" in name:
+            candidates.add(path)
+    result["mapped_candidates"] = sorted(candidates)
+    try:
+        require(len(candidates) == 1, "Expected exactly one already mapped OpenBLAS library")
+        mapped = candidates.pop()
+        require(mapped.startswith("/") and not mapped.endswith(" (deleted)"),
+                "OpenBLAS mapping is not a live absolute file path")
+        resolved = Path(mapped).resolve(strict=True)
+        require(resolved.is_relative_to(Path(sys.prefix).resolve()),
+                "Mapped OpenBLAS is outside the pinned Conda prefix")
+        require(all(hasattr(os, flag) for flag in ("RTLD_NOLOAD", "RTLD_LOCAL", "RTLD_NOW")),
+                "Required no-load dynamic-loader flags are unavailable")
+        mode = os.RTLD_NOLOAD | os.RTLD_LOCAL | os.RTLD_NOW
+        library = ctypes.CDLL(mapped, mode=mode)
+        result.update(path=mapped, resolved_path=str(resolved),
+                      loader_flags=["RTLD_NOLOAD", "RTLD_LOCAL", "RTLD_NOW"])
+        prototypes = {
+            "openblas_get_config": ctypes.c_char_p,
+            "openblas_get_corename": ctypes.c_char_p,
+            "openblas_get_num_threads": ctypes.c_int,
+            "openblas_get_parallel": ctypes.c_int,
+        }
+        # Resolve every required symbol before invoking any of them. No suffix
+        # guessing, alternate library lookup, setter or loader override.
+        functions = {}
+        for symbol, restype in prototypes.items():
+            function = getattr(library, symbol)
+            function.argtypes = []
+            function.restype = restype
+            functions[symbol] = function
+        values = {}
+        for symbol, function in functions.items():
+            value = function()
+            # c_char_p copies the static buffer to bytes at return; copy/decode
+            # it immediately because get_config reuses a static C buffer.
+            values[symbol] = value.decode("ascii", errors="replace") if isinstance(value, bytes) else value
+        require(isinstance(values["openblas_get_config"], str), "Null OpenBLAS config")
+        require(isinstance(values["openblas_get_corename"], str), "Null OpenBLAS corename")
+        require(values["openblas_get_num_threads"] > 0, "Invalid configured thread count")
+        require(values["openblas_get_parallel"] in (0, 1, 2), "Unknown parallelization code")
+        result.update(status="ok", values=values,
+                      parallel_kind={0: "sequential", 1: "threaded", 2: "openmp"}[
+                          values["openblas_get_parallel"]])
+    except (AttributeError, OSError, RuntimeError) as error:
+        result.update(status="unavailable", error=str(error))
+    return result
+
+
 def numpy_runtime(numpy):
     result = {"environment": {key: os.environ.get(key) for key in ENV_KEYS}}
     for name in ("show_config", "show_runtime"):
@@ -219,6 +285,7 @@ def numpy_runtime(numpy):
         if any(word in line.lower() for word in
                ("blas", "lapack", "_umath_linalg", "singular", "libgfortran", "libgomp"))
     ]
+    result["openblas_getters"] = mapped_openblas_getters(maps)
     return result
 
 
@@ -354,6 +421,8 @@ def instrument(source, out, seed):
         result["rejected_count"] = sum(c.get("accepted") is False for c in result["candidates"])
         result["exact_points_equal_to_untouched_method"] = accepted_points == control
         result["runtime"] = numpy_runtime(numpy)
+        require(result["runtime"]["openblas_getters"]["status"] == "ok",
+                "Post-computation OpenBLAS getters unavailable; inspect runtime evidence")
         result["source_after"] = check_source(source)
         require(accepted_points == control,
                 "Instrumented points differ from the untouched control; inspect nondeterminism/context")
@@ -371,9 +440,87 @@ def instrument(source, out, seed):
         save(out, f"instrument-{seed}.json", result)
 
 
+def precision_controls(source, out, seed):
+    """Separate higher-precision and well-conditioned controls, never a fix."""
+    from sage.all import AffineSpace, CDF, ComplexField, PolynomialRing, QQ, RR, set_random_seed
+
+    require(seed in SEEDS, "Only original Python3.14 seeds are accepted")
+    result = {"status": "started", "seed": seed, "source": check_source(source),
+              "scope": "Fresh-process controls after original CDF tests and traces; no production changes",
+              "cases": []}
+
+    def describe_points(label, scheme, field, points, tolerance):
+        polynomials = [g.change_ring(field) for g in scheme.defining_polynomials()]
+        coordinates = [tuple(point) for point in points]
+        residuals = [[g(list(point)) for g in polynomials] for point in points]
+        magnitudes = [abs(value) for row in residuals for value in row]
+        record = {
+            "label": label, "field": str(field), "precision_bits": int(field.precision()),
+            "point_count": len(points), "exact_distinct_count": len(set(coordinates)),
+            "zero_tolerance": str(tolerance),
+            "maximum_absolute_original_equation_residual": str(max(magnitudes)) if magnitudes else None,
+            "all_returned_points_satisfy_magnitude_tolerance": all(value < tolerance for value in magnitudes),
+            "points": [[{"real": str(value.real()), "imag": str(value.imag())} for value in point]
+                       for point in coordinates],
+            "original_equation_residuals": [
+                [{"real": str(value.real()), "imag": str(value.imag()), "abs": str(abs(value))}
+                 for value in row] for row in residuals],
+        }
+        result["cases"].append(record)
+        return record
+
+    try:
+        set_random_seed(int(seed))
+        polynomial_ring = PolynomialRing(QQ, "t")
+        t = polynomial_ring.gen()
+        eliminant = 30*t**100 - 1000*t**2 + 1
+        gcd = eliminant.gcd(eliminant.derivative())
+        result["eliminant"] = {"polynomial": str(eliminant),
+                              "degree": int(eliminant.degree()),
+                              "gcd_with_derivative": str(gcd),
+                              "squarefree": gcd == 1}
+        require(eliminant.degree() == 100 and gcd == 1,
+                "Degree100 squarefree eliminant check failed")
+
+        ambient = AffineSpace(QQ, 2, names=("x1", "x2"))
+        x1, x2 = ambient.gens()
+        scheme = ambient.subscheme([30*x1**100 + 1000*x2**2 + 2000*x1*x2 + 1, x1+x2])
+        for bits in (100, 200):
+            field = ComplexField(bits)
+            points = scheme(QQ).numerical_points(F=field, zero_tolerance=1e-9)
+            describe_points(f"degree100_ComplexField_{bits}", scheme, field, points, RR(1e-9))
+
+        small_ambient = AffineSpace(QQ, 2, names=("x", "y"))
+        x, y = small_ambient.gens()
+        small_scheme = small_ambient.subscheme([y**2-x**2-3*x, x**2-10*y])
+        # Omit zero_tolerance deliberately: exercise the original default1e-10.
+        small_points = small_scheme(QQ).numerical_points(F=CDF)
+        describe_points("four_points_CDF_original_default_tolerance",
+                        small_scheme, CDF, small_points, RR(10**(-10)))
+        result["source_after"] = check_source(source)
+        expected_counts = (100, 100, 4)
+        result["expected_counts_met"] = all(
+            case["point_count"] == count and case["exact_distinct_count"] == count
+            for case, count in zip(result["cases"], expected_counts))
+        result["all_magnitude_checks_passed"] = all(
+            case["all_returned_points_satisfy_magnitude_tolerance"]
+            for case in result["cases"])
+        require(result["expected_counts_met"] and result["all_magnitude_checks_passed"],
+                "A separate precision/CDF control failed; original results remain unchanged")
+        result["status"] = "precision_controls_completed"
+        print(json.dumps({key: result[key] for key in (
+            "status", "seed", "eliminant", "expected_counts_met", "all_magnitude_checks_passed")}, indent=2))
+    except BaseException as error:
+        result.update(status="precision_controls_error", error=repr(error),
+                      traceback=traceback.format_exc())
+        raise
+    finally:
+        save(out, f"precision-{seed}.json", result)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("phase", choices=("source", "environment", "installed", "instrument", "verify-after"))
+    parser.add_argument("phase", choices=("source", "environment", "installed", "instrument", "precision-controls", "verify-after"))
     parser.add_argument("--seed", choices=SEEDS)
     args = parser.parse_args()
     source = Path(os.environ["SAGE_SOURCE"]).resolve()
@@ -387,6 +534,9 @@ def main():
     elif args.phase == "instrument":
         require(args.seed is not None, "instrument requires an original seed")
         instrument(source, out, args.seed)
+    elif args.phase == "precision-controls":
+        require(args.seed is not None, "precision-controls requires an original seed")
+        precision_controls(source, out, args.seed)
     else:
         save(out, "source-after.json", check_source(source))
         environment_phase(source, out, "environment-after.json")
