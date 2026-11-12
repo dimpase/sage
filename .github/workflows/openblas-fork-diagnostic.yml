@@ -1,0 +1,79 @@
+name: PR43138 OpenBLAS fork diagnostic
+
+on:
+  push:
+    branches: [diagnostics/pr43138-openblas]
+
+permissions:
+  contents: read
+
+jobs:
+  minimal:
+    if: github.repository == 'dimpase/sage'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: baseline
+            repository: sagemath/sage
+            commit: 026e931e47064f0a7fc095580119365518bfe7c0
+          - variant: candidate
+            repository: dimpase/sage
+            commit: 6b02a2b16258264f20afd3a7cd0a394aa2d0bf1f
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      SAGE_SOURCE: ${{ github.workspace }}/sage-baseline
+      DIAGNOSTIC_OUT: ${{ github.workspace }}/openblas-${{ matrix.variant }}-${{ github.run_id }}-${{ github.run_attempt }}
+      DIAGNOSTIC_VARIANT: ${{ matrix.variant }}
+      PYTHONDONTWRITEBYTECODE: '1'
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: diagnostic-harness
+          persist-credentials: false
+
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ matrix.repository }}
+          ref: ${{ matrix.commit }}
+          path: sage-baseline
+          persist-credentials: false
+
+      - name: Record unchanged source and diagnostic provenance
+        run: python diagnostic-harness/diagnostics/openblas/check.py source
+
+      - name: Create the original pinned Conda environment
+        uses: conda-incubator/setup-miniconda@v4
+        with:
+          use-mamba: true
+          channels: conda-forge
+          channel-priority: true
+          activate-environment: sage-dev
+          environment-file: sage-baseline/environment-3.14-linux.yml
+
+      - name: Remove the same optional packages as minimal CI
+        run: conda remove --yes bliss libbraiding libhomfly rw sirocco
+
+      - name: Verify packages and perform the complete minimal build
+        id: build
+        run: bash diagnostic-harness/diagnostics/openblas/run.sh build
+
+      - name: Compare unchanged startup with the existing Sage OpenBLAS policy
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: bash diagnostic-harness/diagnostics/openblas/run.sh test
+
+      - name: Preserve all results, including failed controls
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openblas-${{ matrix.variant }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            ${{ env.DIAGNOSTIC_OUT }}
+            ${{ env.SAGE_SOURCE }}/builddir/meson-logs
