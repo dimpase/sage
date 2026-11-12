@@ -1,0 +1,154 @@
+name: Homebrew CI compatibility diagnostic v2
+
+on:
+  push:
+    branches: [diagnostics/homebrew-ci-compat-v2]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homebrew-ci-compat-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  hosted-macos:
+    if: github.repository == 'dimpase/sage'
+    runs-on: macos-26
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: 1
+      HOMEBREW_NO_INSTALL_CLEANUP: 1
+      HOMEBREW_NO_ANALYTICS: 1
+      HOMEBREW_NO_ASK: 1
+      PYTHONNOUSERSITE: 1
+      PYTHONDONTWRITEBYTECODE: 1
+      PIP_DISABLE_PIP_VERSION_CHECK: 1
+      MPLBACKEND: Agg
+      SAGE_NUM_THREADS: 4
+      OMP_NUM_THREADS: 1
+      OPENBLAS_NUM_THREADS: 1
+      VECLIB_MAXIMUM_THREADS: 1
+      CI_JOBS: 4
+      CI_SUITE: smoke
+
+    steps:
+      - name: Checkout the candidate helper and diagnostic
+        uses: actions/checkout@v7
+        with:
+          path: pipeline
+          fetch-depth: 4
+          sparse-checkout: |
+            .github/homebrew-ci
+            diagnostics/homebrew-ci
+          persist-credentials: false
+
+      - name: Checkout the exact same Sage commit
+        uses: actions/checkout@v7
+        with:
+          path: sage
+          fetch-depth: 4
+          persist-credentials: false
+
+      - name: Require a disposable hosted runner and prepare evidence
+        run: |
+          if [[ "$RUNNER_ENVIRONMENT" != github-hosted || "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
+            echo 'A disposable hosted macOS ARM64 runner is required' >&2
+            exit 1
+          fi
+          if [[ "$(sw_vers -productVersion)" != 26.* ]]; then
+            echo 'This diagnostic requires the macos-26 hosted image' >&2
+            exit 1
+          fi
+          echo '/opt/homebrew/bin' >> "$GITHUB_PATH"
+          echo '/opt/homebrew/sbin' >> "$GITHUB_PATH"
+          results="$GITHUB_WORKSPACE/results/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -p "$results"
+          run_dir=$(mktemp -d "$RUNNER_TEMP/sage-homebrew-compat.XXXXXX")
+          {
+            echo "CI_RUN_DIR=$run_dir"
+            echo "CI_SOURCE=$GITHUB_WORKSPACE/sage"
+            echo "CI_RESULTS=$results"
+            echo "CI_HELPERS=$GITHUB_WORKSPACE/pipeline/.github/homebrew-ci"
+            echo "DIAGNOSTIC=$GITHUB_WORKSPACE/pipeline/diagnostics/homebrew-ci/hosted-check.py"
+          } >> "$GITHUB_ENV"
+
+      - name: Save source and initial runner provenance
+        run: python3 "$DIAGNOSTIC" prepare
+
+      - name: Establish the core gmp-ecm migration input
+        run: |
+          brew install --force-bottle homebrew/core/gmp-ecm 2>&1 | tee "$CI_RESULTS/core-install.log"
+          python3 "$DIAGNOSTIC" core-linked
+          brew unlink homebrew/core/gmp-ecm 2>&1 | tee "$CI_RESULTS/core-unlink.log"
+          python3 "$DIAGNOSTIC" core
+
+      - name: Run the actual helper and verify migration
+        run: |
+          bash -x "$CI_HELPERS/run.sh" dependencies 2>&1 | tee "$CI_RESULTS/dependencies-first.log"
+          python3 "$DIAGNOSTIC" migrated
+
+      - name: Repeat dependencies and verify the tap keg is retained
+        run: |
+          bash -x "$CI_HELPERS/run.sh" dependencies 2>&1 | tee "$CI_RESULTS/dependencies-second.log"
+          python3 "$DIAGNOSTIC" idempotent
+
+      - name: Record the Meson bottle before venv setup
+        run: python3 "$DIAGNOSTIC" meson-before-venv
+
+      - name: Create the development venv with the actual helper
+        run: bash "$CI_HELPERS/run.sh" venv 2>&1 | tee "$CI_RESULTS/venv.log"
+
+      - name: Repeat the actual Meson bridge and verify preservation
+        run: |
+          python3 "$DIAGNOSTIC" meson-before-repeat
+          source "$CI_RUN_DIR/venv/bin/activate"
+          source "$(brew --prefix dimpase/tap/sagemath-docbuild-deps)/share/sagemath-docbuild-deps/python3.14-env.sh"
+          cd "$CI_SOURCE"
+          python -B "$CI_HELPERS/check.py" meson | tee "$CI_RESULTS/meson-package-repeat.json"
+          python -m pip check 2>&1 | tee "$CI_RESULTS/meson-repeat-pip-check.log"
+          python3 "$DIAGNOSTIC" meson-after-repeat
+
+      - name: Build Sage with all eleven native features
+        run: bash "$CI_HELPERS/run.sh" build 2>&1 | tee "$CI_RESULTS/build.log"
+
+      - name: Verify candidate imports and dependencies
+        id: verify
+        run: bash "$CI_HELPERS/run.sh" verify 2>&1 | tee "$CI_RESULTS/verify.log"
+
+      - name: Run full pytest
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' }}
+        run: bash "$CI_HELPERS/run.sh" pytest 2>&1 | tee "$CI_RESULTS/pytest.log"
+
+      - name: Run the unchanged helper smoke doctests
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' }}
+        run: bash "$CI_HELPERS/run.sh" doctest 2>&1 | tee "$CI_RESULTS/doctest.log"
+
+      - name: Recheck source, helper and bottle ownership
+        if: ${{ !cancelled() && steps.verify.outcome == 'success' }}
+        run: python3 "$DIAGNOSTIC" final
+
+      - name: Preserve build diagnostics and final installed inventory
+        if: ${{ always() && env.CI_RUN_DIR != '' }}
+        run: |
+          for directory in meson-logs meson-info; do
+            if [[ -d "$CI_RUN_DIR/build/$directory" ]]; then
+              cp -R "$CI_RUN_DIR/build/$directory" "$CI_RESULTS/"
+            fi
+          done
+          git -C "$CI_SOURCE" status --short > "$CI_RESULTS/source-status.txt"
+          git -C "$CI_SOURCE" diff > "$CI_RESULTS/source.diff"
+          brew info --json=v2 --installed > "$CI_RESULTS/final-installed-info.json"
+          df -h > "$CI_RESULTS/disk.txt"
+
+      - name: Upload logs, receipts and test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: homebrew-ci-compat-macos26-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ github.workspace }}/results
+          if-no-files-found: error
+          retention-days: 30
