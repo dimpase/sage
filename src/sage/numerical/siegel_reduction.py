@@ -108,8 +108,8 @@ def _siegel_big_period_matrix(big_omega):
 
     REFERENCES:
 
-    .. [DHBvHS2004]_
-    .. [AC2019]_
+    - [DHBvHS2004]_
+    - [AC2019]_
 
     AUTHORS:
 
@@ -198,8 +198,8 @@ def siegel_reduction(M):
 
     REFERENCES:
 
-    .. [DHBvHS2004]_
-    .. [AC2019]_
+    - [DHBvHS2004]_
+    - [AC2019]_
 
     AUTHORS:
 
