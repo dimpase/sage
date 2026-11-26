@@ -19,9 +19,7 @@ AUTHORS:
 
 REFERENCES:
 
-.. [JM06] \E. Jochemsz, A. May. A Strategy for Finding Roots of
-   Multivariate Polynomials with New Applications in Attacking RSA
-   Variants. ASIACRYPT 2006, LNCS 4284, pp. 267--282.
+- [JM06]_
 """
 
 # ****************************************************************************
