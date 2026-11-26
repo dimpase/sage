@@ -18,12 +18,9 @@ first entry of the row above.
 
 REFERENCES:
 
-- [KT1997]_ D. Krob and J.-Y. Thibon, *Noncommutative symmetric functions IV:
-  Quantum linear groups and Hecke algebras at q = 0*, J. Algebraic Combin. **6**
-  (1997), 339--376.
+- [KT1997]_
 
-- [Nov2000]_ J.-C. Novelli, *On the hypoplactic monoid*, Discrete Math. **217**
-  (2000), 315--336.
+- [Nov2000]_
 
 EXAMPLES::
 
