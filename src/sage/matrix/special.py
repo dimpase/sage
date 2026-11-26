@@ -63,7 +63,13 @@ matrices and Latin squares. See:
 # (at your option) any later version.
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
+from __future__ import annotations
+
 from copy import copy
+from typing import TYPE_CHECKING, Any, overload
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from sage.categories.rings import Rings
 from sage.matrix import matrix_space
@@ -76,6 +82,14 @@ from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
 from sage.structure.element import Matrix, RingElement, parent
 from sage.structure.sequence import Sequence
+
+
+@overload
+def matrix_method[F: Callable[..., Any]](func: F, name: str | None = None) -> F: ...
+
+
+@overload
+def matrix_method[F: Callable[..., Any]](func: None = None, name: str | None = None) -> Callable[[F], F]: ...
 
 
 def matrix_method(func=None, name=None):
@@ -2013,7 +2027,7 @@ def block_matrix(*args, **kwds):
         ...
         ValueError: an element of parent <class 'list'> was passed in,
          but only matrices, vectors and ring elements are accepted
-        sage: matrix.block([
+        sage: matrix.block([  # needs eclib
         ....:     [EllipticCurve('37a1').0],
         ....:     ])
         Traceback (most recent call last):
@@ -3551,7 +3565,7 @@ def random_diagonalizable_matrix(parent, eigenvalues=None, dimensions=None):
         ....:               eigenvalues=[2+I, 2-I, 2], dimensions=[1,1,1])
         Traceback (most recent call last):
         ...
-        TypeError: Unable to coerce I + 2 to a rational
+        TypeError: no conversion of this number field element to a rational
 
     Diagonal matrices must be square::
 

@@ -42,8 +42,8 @@ Python classes::
 
     sage: sage_getfile(BlockFinder)
     '.../sage/misc/sageinspect.py'
-    sage: sage_getdoc(BlockFinder).lstrip()[:50]                                        # needs sphinx
-    'Provide a "tokeneater()" method to detect the end '
+    sage: sage_getdoc(BlockFinder).lstrip()[:50]
+    'Provide a :meth:tokeneater method to detect the en'
     sage: sage_getsource(BlockFinder)
     'class BlockFinder:...'
 
@@ -1341,12 +1341,23 @@ def sage_getfile_relative(obj):
         True
         sage: sage_getfile_relative(range)
         ''
+
+    TESTS:
+
+    Test handling mixed relative and absolute paths::
+
+        sage: from sage.misc.sageinspect import sage_getfile, sage_getfile_relative
+        sage: def f():
+        ....:     pass
+        sage: f.__doc__ = "File: example.pyx (starting at line 1)\n"
+        sage: sage_getfile_relative(f)
+        'example.pyx'
     """
     filename = sage_getfile(obj)
     if not filename:
         return filename
 
-    from os.path import commonprefix, normpath, relpath
+    from os.path import commonpath, normpath, relpath, abspath
 
     def directories():
         try:
@@ -1360,7 +1371,7 @@ def sage_getfile_relative(obj):
         yield from sage.__path__
 
     for directory in directories():
-        if commonprefix([filename, directory]) == directory:
+        if commonpath([abspath(filename), directory]) == directory:
             return os.path.join('sage', relpath(filename, directory))
 
     return filename

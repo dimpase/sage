@@ -7609,6 +7609,20 @@ class GenericGraph(GenericGraph_pyx):
             ....:  for k in range(1, 8)]
             [0, 1, 2, 3, 4, 5, 6]
 
+        The Desrosiers-Langevin constraints of the MILP formulation are not
+        used for the pairs of vertices that contain the root, as they would
+        forbid a vertex adjacent to the root to be at depth `n - 1`. For
+        instance, the two spanning trees of `K_4` are paths, and the root is
+        an end of one of them::
+
+            sage: K4 = graphs.CompleteGraph(4)
+            sage: len(K4.edge_disjoint_spanning_trees(2, algorithm='MILP'))             # needs sage.numerical.mip
+            2
+            sage: D = DiGraph([(0, 1), (0, 2), (0, 3), (1, 0), (1, 3), (2, 0), (2, 1),
+            ....:              (3, 0), (3, 2)])
+            sage: len(D.edge_disjoint_spanning_trees(2, root=0, algorithm='MILP'))      # needs sage.numerical.mip
+            2
+
         The ``'Gabow'`` algorithm packs edge-disjoint spanning arborescences
         in directed graphs::
 
@@ -7820,13 +7834,16 @@ class GenericGraph(GenericGraph_pyx):
 
             # We use the Miller-Tucker-Zemlin subtour elimination constraints
             # combined with the Desrosiers-Langevin strengthening constraints
-            # (only when n is large enough to avoid corner cases). A tree uses
-            # at most one of the parallel arcs from u to v, so the sum of their
-            # variables plays the role of the variable of a simple graph.
+            # (only when n is large enough to avoid corner cases). The latter
+            # are not used for the pairs of vertices that contain the root:
+            # they would forbid a vertex adjacent to the root to be at depth
+            # n - 1 in a tree. A tree uses at most one of the parallel arcs
+            # from u to v, so the sum of their variables plays the role of the
+            # variable of a simple graph.
             for (u, v), parallel in arcs_between.items():
                 uv = p.sum(edge[a, c] for a in parallel)
                 back = arcs_between.get((v, u))
-                if n > 3 and back:
+                if n > 3 and back and root not in (u, v):
                     # DL
                     vu = p.sum(edge[a, c] for a in back)
                     p.add_constraint(pos[u, c] + (n - 1)*uv + (n - 3)*vu
@@ -10069,8 +10086,8 @@ class GenericGraph(GenericGraph_pyx):
             check_weight=check_weight)
 
         def tsp_from_edges(edges):
-            # Not self.subgraph(edges=edges): it hashes the edges, which fails
-            # on unhashable labels (e.g., dictionaries read by weight_function)
+            # Not self.subgraph(edges=edges): with multiple edges, it would also
+            # keep the other edges with the same endpoints and label
             answer = self.subgraph(edge_property=lambda e: False, immutable=False)
             answer.add_edges(edges)
             answer._name = "TSP from " + self.name()
@@ -14903,6 +14920,30 @@ class GenericGraph(GenericGraph_pyx):
             [3, 4, 5]
             sage: h.get_vertices()
             {3: 'v3', 4: 'v4', 5: 'v5'}
+
+        The edge labels need not be hashable::
+
+            sage: G = Graph([(0, 1, 'a'), (0, 1, 'b'), (0, 1, {'w': 1}), (0, 1, {'w': 2}),
+            ....:            (1, 2, {'w': 3})], multiedges=True)
+            sage: D = DiGraph([(0, 1, 'a'), (1, 0, {'w': 2}), (1, 2, {'w': 3})])
+            sage: edges = [(1, 2), (1, 0, 'a'), (1, 0, {'w': 2})]
+            sage: for H in [G, D]:
+            ....:     for algorithm in ['add', 'delete']:
+            ....:         S = H.subgraph(edges=edges, algorithm=algorithm)
+            ....:         print(sorted(S.edges(sort=False), key=str))
+            [(0, 1, 'a'), (0, 1, {'w': 2}), (1, 2, {'w': 3})]
+            [(0, 1, 'a'), (0, 1, {'w': 2}), (1, 2, {'w': 3})]
+            [(1, 0, {'w': 2}), (1, 2, {'w': 3})]
+            [(1, 0, {'w': 2}), (1, 2, {'w': 3})]
+
+        Edges can also be given as lists::
+
+            sage: G = Graph([(0, 1, 'a'), (1, 2, 'b'), (2, 3, 'c')])
+            sage: for algorithm in ['add', 'delete']:
+            ....:     S = G.subgraph(edges=[[0, 1, 'a'], [1, 2]], algorithm=algorithm)
+            ....:     print(S.edges(sort=True))
+            [(0, 1, 'a'), (1, 2, 'b')]
+            [(0, 1, 'a'), (1, 2, 'b')]
         """
         if vertices is None:
             vertices = self
@@ -15042,27 +15083,43 @@ class GenericGraph(GenericGraph_pyx):
             G.add_vertices(self if vertices is None else vertices)
 
             if edges is not None:
+                # The labels that are not hashable (e.g., dictionaries) are
+                # compared by equality
                 edges_to_keep_labeled = set()
+                unhashable_labels = {}
                 edges_to_keep_unlabeled = set()
                 for e in edges:
                     if len(e) == 3:
-                        edges_to_keep_labeled.add(e)
+                        try:
+                            edges_to_keep_labeled.add(tuple(e))
+                        except TypeError:
+                            unhashable_labels.setdefault((e[0], e[1]), []).append(e[2])
                     elif len(e) == 2:
-                        edges_to_keep_unlabeled.add(e)
+                        edges_to_keep_unlabeled.add(tuple(e))
 
                 edges_to_keep = []
                 if self._directed:
                     for u, v, l in self.edges(vertices=vertices, sort=False):
-                        if (v in G and ((u, v, l) in edges_to_keep_labeled
-                                        or (u, v) in edges_to_keep_unlabeled)):
+                        if v not in G:
+                            continue
+                        try:
+                            keep = (u, v, l) in edges_to_keep_labeled
+                        except TypeError:
+                            keep = l in unhashable_labels.get((u, v), ())
+                        if keep or (u, v) in edges_to_keep_unlabeled:
                             edges_to_keep.append((u, v, l))
                 else:
                     for u, v, l in self.edges(vertices=vertices, sort=False):
-                        if (u in G and v in G
-                            and ((u, v, l) in edges_to_keep_labeled
-                                 or (v, u, l) in edges_to_keep_labeled
-                                 or (u, v) in edges_to_keep_unlabeled
-                                 or (v, u) in edges_to_keep_unlabeled)):
+                        if u not in G or v not in G:
+                            continue
+                        try:
+                            keep = ((u, v, l) in edges_to_keep_labeled
+                                    or (v, u, l) in edges_to_keep_labeled)
+                        except TypeError:
+                            keep = (l in unhashable_labels.get((u, v), ())
+                                    or l in unhashable_labels.get((v, u), ()))
+                        if (keep or (u, v) in edges_to_keep_unlabeled
+                                or (v, u) in edges_to_keep_unlabeled):
                             edges_to_keep.append((u, v, l))
             else:
                 s_vertices = set(G.vertices()) if vertices is None else set(vertices)
@@ -15229,25 +15286,38 @@ class GenericGraph(GenericGraph_pyx):
 
         edges_to_delete = []
         if edges is not None:
+            # The labels that are not hashable (e.g., dictionaries) are
+            # compared by equality
             edges_to_keep_labeled = set()
+            unhashable_labels = {}
             edges_to_keep_unlabeled = set()
             for e in edges:
                 if len(e) == 3:
-                    edges_to_keep_labeled.add(e)
+                    try:
+                        edges_to_keep_labeled.add(tuple(e))
+                    except TypeError:
+                        unhashable_labels.setdefault((e[0], e[1]), []).append(e[2])
                 elif len(e) == 2:
-                    edges_to_keep_unlabeled.add(e)
+                    edges_to_keep_unlabeled.add(tuple(e))
             edges_to_delete = []
             if G._directed:
-                for e in G.edge_iterator():
-                    if (e not in edges_to_keep_labeled
-                            and e[:2] not in edges_to_keep_unlabeled):
-                        edges_to_delete.append(e)
+                for u, v, l in G.edge_iterator():
+                    try:
+                        keep = (u, v, l) in edges_to_keep_labeled
+                    except TypeError:
+                        keep = l in unhashable_labels.get((u, v), ())
+                    if not keep and (u, v) not in edges_to_keep_unlabeled:
+                        edges_to_delete.append((u, v, l))
             else:
                 for u, v, l in G.edge_iterator():
-                    if ((u, v, l) not in edges_to_keep_labeled
-                            and (v, u, l) not in edges_to_keep_labeled
-                            and (u, v) not in edges_to_keep_unlabeled
-                            and (v, u) not in edges_to_keep_unlabeled):
+                    try:
+                        keep = ((u, v, l) in edges_to_keep_labeled
+                                or (v, u, l) in edges_to_keep_labeled)
+                    except TypeError:
+                        keep = (l in unhashable_labels.get((u, v), ())
+                                or l in unhashable_labels.get((v, u), ()))
+                    if not (keep or (u, v) in edges_to_keep_unlabeled
+                            or (v, u) in edges_to_keep_unlabeled):
                         edges_to_delete.append((u, v, l))
         if edge_property is not None:
             # We might get duplicate edges, but this does handle the case of
@@ -17175,8 +17245,7 @@ class GenericGraph(GenericGraph_pyx):
 
             sage: # needs networkx
             sage: import numpy
-            sage: if int(numpy.version.short_version[0]) > 1:
-            ....:     numpy.set_printoptions(legacy="1.25")
+            sage: numpy.set_printoptions(legacy="1.25")
             sage: graphs.FruchtGraph().clustering_coeff(weight=True)
             {0: 0.3333333333333333, 1: 0.3333333333333333, 2: 0,
              3: 0.3333333333333333, 4: 0.3333333333333333,
@@ -19217,6 +19286,12 @@ class GenericGraph(GenericGraph_pyx):
             sage: d4 = g.shortest_path_lengths((0,0), algorithm='Bellman-Ford_Boost')
             sage: d1 == d2 == d3 == d4                                                  # needs networkx
             True
+
+        Single-vertex graphs return a length of 0, not a path list
+        (see :issue:`43186`)::
+
+            sage: Graph(1).shortest_path_lengths(0, algorithm='Dijkstra_NetworkX')      # needs networkx
+            {0: 0}
         """
         by_weight, weight_function = self._get_weight_function(by_weight=by_weight,
                                                                weight_function=weight_function,
@@ -19234,7 +19309,7 @@ class GenericGraph(GenericGraph_pyx):
             import networkx
             # If this is not present, an error might be raised by NetworkX
             if self.n_vertices() == 1 and next(self.vertex_iterator()) == u:
-                return {u: [u]}
+                return {u: 0}
             if by_weight:
                 if self.is_directed():
                     G = networkx.DiGraph([(e[0], e[1], {'weight': weight_function(e)}) for e in self.edge_iterator()])
@@ -19577,9 +19652,8 @@ class GenericGraph(GenericGraph_pyx):
                 M = self.adjacency_matrix(vertices=int_to_vertex)
 
             # We call the Floyd-Warshall method from SciPy
-            import numpy  # to ensure numpy 2.0 compatibility
-            if int(numpy.version.short_version[0]) > 1:
-                numpy.set_printoptions(legacy="1.25")
+            import numpy
+            numpy.set_printoptions(legacy="1.25")
             from numpy import array as np_array
             from scipy.sparse.csgraph import floyd_warshall
             dd, pp = floyd_warshall(np_array(M), directed=self.is_directed(),
@@ -25772,13 +25846,40 @@ class GenericGraph(GenericGraph_pyx):
             sage: R = graphs.RandomGNP(2000, .01)                                       # needs networkx
             sage: R.is_vertex_transitive()                                              # needs networkx
             False
+
+        The empty graph is vertex transitive, and an empty cell of the
+        partition is ignored::
+
+            sage: Graph().is_vertex_transitive()
+            True
+            sage: DiGraph().is_vertex_transitive()
+            True
+            sage: P.is_vertex_transitive(partition=[list(P), []])                       # needs sage.groups
+            True
+
+        A partition without any vertex doesn't cover the vertices of a graph
+        that has some, so the answer is ``False``::
+
+            sage: graphs.PathGraph(3).is_vertex_transitive(partition=[])
+            False
+            sage: graphs.CompleteGraph(3).is_vertex_transitive()                        # needs sage.groups
+            True
+            sage: graphs.CompleteGraph(3).is_vertex_transitive(partition=[[]])
+            False
         """
+        if not self.n_vertices():
+            return True
+
         if partition is None:
             partition = [self.vertices(sort=False)]
 
+        # An empty cell has no orbit, so it is left out of the comparison
+        # with the orbits below. It is trivially transitive.
+        partition = [p for p in partition if p]
+        if not partition:
+            return False
+
         for p in partition:
-            if not p:
-                continue
             d = self.degree(p[0])
             if not all(self.degree(x) == d for x in p):
                 return False
