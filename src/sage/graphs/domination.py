@@ -144,7 +144,7 @@ def is_redundant(G, dom, focus=None):
     #  - (2, None) if v has >= 2 neighbors in dom
 
     # Initialization
-    dominator = {v: (0, None) for v in focus}
+    dominator = dict.fromkeys(focus, (0, None))
 
     for x in dom:
         for v in G.neighbor_iterator(x, closed=True):
@@ -255,7 +255,7 @@ def dominating_sets(g, k=1, independent=False, total=False, connected=False,
     - ``independent`` -- boolean (default: ``False``); when ``True``, computes
       minimum independent dominating sets, that is minimum dominating sets that
       are also independent sets (see also
-      :meth:`~sage.graphs.graph.independent_set`)
+      :meth:`~sage.graphs.graph.Graph.independent_set`)
 
     - ``total`` -- boolean (default: ``False``); when ``True``, computes total
       dominating sets (see the See the :wikipedia:`Dominating_set`)
@@ -314,7 +314,6 @@ def dominating_sets(g, k=1, independent=False, total=False, connected=False,
 
     Independent distance-`k` dominating sets of a Path graph::
 
-        sage: # needs sage.numerical.mip
         sage: G = graphs.PathGraph(6)
         sage: sorted(sorted(d) for d in G.dominating_sets(k=1, independent=True))
         [[1, 4]]
@@ -326,7 +325,6 @@ def dominating_sets(g, k=1, independent=False, total=False, connected=False,
     The dominating set is calculated for both the directed and undirected graphs
     (modification introduced in :issue:`17905`)::
 
-        sage: # needs sage.numerical.mip
         sage: g = digraphs.Path(3)
         sage: g.dominating_set(value_only=True)
         2
@@ -508,7 +506,7 @@ def dominating_set(g, k=1, independent=False, total=False, connected=False, valu
     - ``independent`` -- boolean (default: ``False``); when ``True``, computes a
       minimum independent dominating set, that is a minimum dominating set that
       is also an independent set (see also
-      :meth:`~sage.graphs.graph.independent_set`)
+      :meth:`~sage.graphs.graph.Graph.independent_set`)
 
     - ``total`` -- boolean (default: ``False``); when ``True``, computes a total
       dominating set (see the See the :wikipedia:`Dominating_set`)
@@ -1280,8 +1278,7 @@ def greedy_dominating_set(G, k=1, vertices=None, ordering=None, return_sets=Fals
 
     if return_sets:
         return dom
-    else:
-        return list(dom)
+    return list(dom)
 
 
 def maximum_leaf_number(G, solver=None, verbose=0, integrality_tolerance=1e-3):
