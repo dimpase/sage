@@ -1,4 +1,3 @@
-# sage_setup: distribution = sagemath-objects
 """
 Metaclass for inheriting comparison functions
 
@@ -33,7 +32,7 @@ AUTHOR:
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
 from cpython.object cimport PyTypeObject
@@ -52,7 +51,6 @@ cdef class InheritComparisonMetaclass(type):
 
     EXAMPLES::
 
-        sage: # needs sage.misc.cython
         sage: cython(
         ....: '''
         ....: cimport cython
@@ -94,7 +92,7 @@ cdef class InheritComparisonMetaclass(type):
 
 class InheritComparisonClasscallMetaclass(ClasscallMetaclass, InheritComparisonMetaclass):
     """
-    Combine :class:`ClasscallMetaclass` with
+    Combine :class:`~sage.misc.classcall_metaclass.ClasscallMetaclass` with
     :class:`InheritComparisonMetaclass`.
 
     TESTS::

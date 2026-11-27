@@ -15,13 +15,13 @@ AUTHORS:
  - Alexander Galarraga (August 14th, 2020): initial implementation
 """
 
-#*****************************************************************************
+# ****************************************************************************
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.categories.number_fields import NumberFields
 from sage.dynamics.arithmetic_dynamics.affine_ds import DynamicalSystem_affine
@@ -469,7 +469,8 @@ class DynamicalSystem_Berkovich_projective(DynamicalSystem_Berkovich):
 
     INPUT:
 
-    - ``dynamical_system`` -- a :class:`DynamicalSystem_Projective`
+    - ``dynamical_system`` -- a
+      :class:`~sage.dynamics.arithmetic_dynamics.projective_ds.DynamicalSystem_projective`
       of relative dimension 1. If this input is not defined
       over a `p`-adic field, then ``domain`` MUST be specified.
 
@@ -513,7 +514,7 @@ class DynamicalSystem_Berkovich_projective(DynamicalSystem_Berkovich):
     @staticmethod
     def __classcall_private__(cls, dynamical_system, domain=None):
         """
-        Return the approapriate dynamical system on projective Berkovich space over ``Cp``.
+        Return the appropriate dynamical system on projective Berkovich space over ``Cp``.
 
         EXAMPLES::
 
@@ -894,11 +895,10 @@ class DynamicalSystem_Berkovich_projective(DynamicalSystem_Berkovich):
             inverse_map = field(x.prime()**power_of_p) * z + reduced_value
             if self.domain().is_padic_base():
                 return self.domain()(inverse_map(0), (inverse_map(1) - inverse_map(0)).abs())
-            else:
-                val = (inverse_map(1) - inverse_map(0)).valuation(ideal)
-                if val == Infinity:
-                    return self.domain()(inverse_map(0), 0)
-                return self.domain()(inverse_map(0), x.prime()**(-1 * val))
+            val = (inverse_map(1) - inverse_map(0)).valuation(ideal)
+            if val == Infinity:
+                return self.domain()(inverse_map(0), 0)
+            return self.domain()(inverse_map(0), x.prime()**(-1 * val))
         # point is now type III, so we compute using Proposition 7.6 [of Benedetto]
         affine_system = f.dehomogenize(1)
         dem = affine_system.defining_polynomials()[0].denominator().univariate_polynomial()
@@ -968,7 +968,8 @@ class DynamicalSystem_Berkovich_affine(DynamicalSystem_Berkovich):
 
     INPUT:
 
-    - ``dynamical_system`` -- a :class:`DynamicalSystem_affine`
+    - ``dynamical_system`` -- a
+      :class:`~sage.dynamics.arithmetic_dynamics.affine_ds.DynamicalSystem_affine`
       of relative dimension 1
 
     - ``domain`` -- (optional) affine or projective Berkovich space

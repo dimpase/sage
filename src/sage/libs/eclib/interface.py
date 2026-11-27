@@ -1,3 +1,4 @@
+# sage.doctest: needs eclib
 r"""
 Sage interface to Cremona's ``eclib`` library (also known as ``mwrank``)
 
@@ -6,7 +7,7 @@ arithmetic on elliptic curves.  The classes defined in this module
 give Sage interpreter-level access to some of the functionality of
 ``eclib``.  For most purposes, it is not necessary to directly use these
 classes. Instead, one can create an
-:class:`EllipticCurve <sage.schemes.elliptic_curves.constructor.EllipticCurve>`
+``EllipticCurve``
 and call methods that are implemented using this module.
 
 .. NOTE::
@@ -14,22 +15,11 @@ and call methods that are implemented using this module.
    This interface is a direct library-level interface to ``eclib``,
    including the 2-descent program ``mwrank``.
 
-TESTS:
-
-Check that ``eclib`` is imported as needed::
-
-    sage: [k for k in sys.modules if k.startswith("sage.libs.eclib")]
-    []
-    sage: EllipticCurve('11a1').mwrank_curve()
-    y^2 + y = x^3 - x^2 - 10 x - 20
-    sage: [k for k in sys.modules if k.startswith("sage.libs.eclib")]
-    ['...']
 """
 import sys
-from sage.structure.sage_object import SageObject
-from sage.rings.integer_ring import IntegerRing
 
-from .mwrank import _Curvedata, _two_descent, _mw, parse_point_list
+from sage.rings.integer_ring import IntegerRing
+from sage.structure.sage_object import SageObject
 
 
 class mwrank_EllipticCurve(SageObject):
@@ -116,6 +106,10 @@ class mwrank_EllipticCurve(SageObject):
         except (TypeError, ValueError):
             raise TypeError("ainvs must be a list or tuple of integers.")
         self.__ainvs = a_int
+
+        from sage.features.eclib import Eclib
+        Eclib().require()
+        from sage.libs.eclib.mwrank import _Curvedata
         self.__curve = _Curvedata(a_int[0], a_int[1], a_int[2],
                                   a_int[3], a_int[4])
 
@@ -155,7 +149,7 @@ class mwrank_EllipticCurve(SageObject):
             sage: E = mwrank_EllipticCurve([0, 0, 1, -1, 0])
             sage: E.saturate() # no output
             sage: E.gens()
-            [[0, -1, 1]]
+            ([0, -1, 1],)
 
             sage: E = mwrank_EllipticCurve([0, 0, 1, -1, 0])
             sage: E.set_verbose(1)
@@ -342,6 +336,9 @@ class mwrank_EllipticCurve(SageObject):
             sage: E.two_descent(verbose=False)
             True
         """
+        from sage.features.eclib import Eclib
+        Eclib().require()
+        from sage.libs.eclib.mwrank import _two_descent
         first_limit = int(first_limit)
         second_limit = int(second_limit)
         n_aux = int(n_aux)
@@ -551,10 +548,10 @@ class mwrank_EllipticCurve(SageObject):
 
             sage: E = mwrank_EllipticCurve([0, 0, 0, -1002231243161, 0])
             sage: E.gens()
-            [[-1001107, -4004428, 1]]
+            ([-1001107, -4004428, 1],)
             sage: E.saturate()
             sage: E.gens()
-            [[-1001107, -4004428, 1]]
+            ([-1001107, -4004428, 1],)
 
         Check that :issue:`18031` is fixed::
 
@@ -569,18 +566,21 @@ class mwrank_EllipticCurve(SageObject):
             self.__two_descent_data().saturate(bound, lower)
             self.__saturate = bound
 
-    def gens(self) -> list:
+    def gens(self) -> tuple:
         """
-        Return a list of the generators for the Mordell-Weil group.
+        Return a tuple of the generators for the Mordell-Weil group.
 
         EXAMPLES::
 
             sage: E = mwrank_EllipticCurve([0, 0, 1, -1, 0])
             sage: E.gens()
-            [[0, -1, 1]]
+            ([0, -1, 1],)
         """
+        from sage.features.eclib import Eclib
+        Eclib().require()
+        from sage.libs.eclib.mwrank import parse_point_list
         self.saturate()
-        return parse_point_list(self.__two_descent_data().getbasis())
+        return tuple(parse_point_list(self.__two_descent_data().getbasis()))
 
     def certain(self):
         r"""
@@ -810,6 +810,10 @@ class mwrank_MordellWeil(SageObject):
             verb = 1
         else:
             verb = 0
+
+        from sage.features.eclib import Eclib
+        Eclib().require()
+        from sage.libs.eclib.mwrank import _mw
         self.__mw = _mw(curve._curve_data(), verb, pp, maxr)
 
     def __reduce__(self):
@@ -869,7 +873,7 @@ class mwrank_MordellWeil(SageObject):
 
             sage: E = mwrank_EllipticCurve([0,0,1,-7,6])
             sage: E.gens()
-            [[1, -1, 1], [-2, 3, 1], [-14, 25, 8]]
+            ([1, -1, 1], [-2, 3, 1], [-14, 25, 8])
             sage: EQ = mwrank_MordellWeil(E)
             sage: EQ.process([[1, -1, 1], [-2, 3, 1], [-14, 25, 8]])
             P1 = [1:-1:1]         is generator number 1
@@ -1083,7 +1087,7 @@ class mwrank_MordellWeil(SageObject):
 
         - ``min_prime`` -- integer (default: 2); only do saturation at
           primes no less than this.  (For example, if the points have
-          been found via :meth:`two_descent` they should already be
+          been found via :meth:`~sage.libs.eclib.interface.mwrank_EllipticCurve.two_descent` they should already be
           2-saturated so a value of 3 is appropriate.)
 
         OUTPUT:

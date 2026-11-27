@@ -954,7 +954,7 @@ class BinaryQF(SageObject):
                                           'in Sage')
             return self._reduce_indef(transformation)
 
-        elif algorithm == 'pari':
+        if algorithm == 'pari':
             # Negative definite forms are not supported by PARI. We can
             # work around this by reducing [-a,b,-c] instead of [a,b,c].
             if self.is_negative_definite():
@@ -973,9 +973,8 @@ class BinaryQF(SageObject):
                 return BinaryQF(y), Matrix(ZZ, g)
             return BinaryQF(self.__pari__().qfbred())
 
-        else:
-            raise ValueError('unknown implementation for binary quadratic form '
-                             'reduction: %s' % algorithm)
+        raise ValueError('unknown implementation for binary quadratic form '
+                         'reduction: %s' % algorithm)
 
     # Buchmann/Vollmer cycle algorithm
     def _RhoTau(self):
@@ -1214,7 +1213,7 @@ class BinaryQF(SageObject):
             self._cycle_list = C
         return self._cycle_list
 
-    def is_positive_definite(self):
+    def is_positive_definite(self) -> bool:
         """
         Return ``True`` if ``self`` is positive definite, i.e., has
         negative discriminant with `a > 0`.
@@ -1232,7 +1231,7 @@ class BinaryQF(SageObject):
 
     is_posdef = is_positive_definite
 
-    def is_negative_definite(self):
+    def is_negative_definite(self) -> bool:
         """
         Return ``True`` if ``self`` is negative definite, i.e., has
         negative discriminant with `a < 0`.
@@ -1249,7 +1248,7 @@ class BinaryQF(SageObject):
 
     is_negdef = is_negative_definite
 
-    def is_indefinite(self):
+    def is_indefinite(self) -> bool:
         """
         Return whether ``self`` is indefinite, i.e., has positive discriminant.
 
@@ -1263,7 +1262,7 @@ class BinaryQF(SageObject):
 
     is_indef = is_indefinite
 
-    def is_singular(self):
+    def is_singular(self) -> bool:
         """
         Return whether ``self`` is singular, i.e., has zero discriminant.
 
@@ -1278,7 +1277,7 @@ class BinaryQF(SageObject):
         """
         return self.discriminant().is_zero()
 
-    def is_nonsingular(self):
+    def is_nonsingular(self) -> bool:
         """
         Return whether this form is nonsingular, i.e., has nonzero discriminant.
 
@@ -1293,7 +1292,7 @@ class BinaryQF(SageObject):
         """
         return not self.discriminant().is_zero()
 
-    def is_equivalent(self, other, proper=True):
+    def is_equivalent(self, other, proper=True) -> bool:
         """
         Return whether ``self`` is equivalent to ``other``.
 
@@ -1388,9 +1387,8 @@ class BinaryQF(SageObject):
                 is_properly_equiv = ((a-ao) % b == 0)
                 if proper:
                     return is_properly_equiv
-                else:
-                    g = gcd(a, b)
-                    return is_properly_equiv or ((gcd(ao, b) == g) and ((a*ao - g**2) % (b*g) == 0))
+                g = gcd(a, b)
+                return is_properly_equiv or ((gcd(ao, b) == g) and ((a*ao - g**2) % (b*g) == 0))
 
             proper_cycle = otherred.cycle(proper=True)
 
@@ -1423,7 +1421,7 @@ class BinaryQF(SageObject):
         return False
 
     @cached_method
-    def is_reduced(self):
+    def is_reduced(self) -> bool:
         r"""
         Return whether ``self`` is reduced.
 
@@ -1490,15 +1488,14 @@ class BinaryQF(SageObject):
         if D < 0 and a > 0:
             return ((-a < b <= a < c)
                     or (ZZ(0) <= b <= a == c))
-        elif D < 0 and a < 0:
+        if D < 0 and a < 0:
             return ((a < b <= -a < -c)
                     or (ZZ(0) <= b <= -a == -c))
 
         # Note that a = 0 implies D > 0 here
-        else:
-            return ((b > 0 and a*c < 0 and (a-c)**2 < D)
-                    or (0 == a and -b < 2*c <= b)
-                    or (0 == c and -b < 2*a <= b))
+        return ((b > 0 and a*c < 0 and (a-c)**2 < D)
+                or (0 == a and -b < 2*c <= b)
+                or (0 == c and -b < 2*a <= b))
 
     def complex_point(self):
         r"""

@@ -1,4 +1,4 @@
-# sage.doctest: needs sage.rings.polynomial.pbori
+# sage.doctest: needs brial
 """
 An ANF to CNF Converter using a Dense/Sparse Strategy
 
@@ -18,17 +18,18 @@ Classes and Methods
 -------------------
 """
 
-##############################################################################
+# ###########################################################################
 #  Copyright (C) 2008-2009 Martin Albrecht <martinralbrecht@googlemail.com>
 #  Copyright (C) 2009 Michael Brickenstein <brickenstein@mfo.de>
 #  Copyright (C) 2010 Mate Soos
 #  Copyright (C) 2012 Martin Albrecht <martinralbrecht@googlemail.com>
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  The full text of the GPL is available at:
-#                  http://www.gnu.org/licenses/
-##############################################################################
+#                  https://www.gnu.org/licenses/
+# ###########################################################################
 
 from random import Random
+
 from sage.rings.polynomial.pbori.pbori import if_then_else as ite
 from sage.rings.integer_ring import ZZ
 from sage.functions.other import ceil
@@ -63,7 +64,7 @@ class CNFEncoder(ANF2CNFConverter):
 
         - ``solver`` -- a SAT-solver instance
 
-        - ``ring`` -- a :class:`sage.rings.polynomial.pbori.BooleanPolynomialRing`
+        - ``ring`` -- a :class:`~sage.rings.polynomial.pbori.pbori.BooleanPolynomialRing`
 
         - ``max_vars_sparse`` -- maximum number of variables for direct conversion
 
@@ -255,7 +256,7 @@ class CNFEncoder(ANF2CNFConverter):
 
         INPUT:
 
-        - ``f`` -- a :class:`sage.rings.polynomial.pbori.BooleanPolynomial`
+        - ``f`` -- a :class:`~sage.rings.polynomial.pbori.pbori.BooleanPolynomial`
 
         EXAMPLES::
 
@@ -304,7 +305,7 @@ class CNFEncoder(ANF2CNFConverter):
 
         INPUT:
 
-        - ``f`` -- a :class:`sage.rings.polynomial.pbori.BooleanPolynomial`
+        - ``f`` -- a :class:`~sage.rings.polynomial.pbori.pbori.BooleanPolynomial`
 
         EXAMPLES::
 
@@ -489,7 +490,7 @@ class CNFEncoder(ANF2CNFConverter):
 
         INPUT:
 
-        - ``f`` -- a :class:`sage.rings.polynomial.pbori.BooleanPolynomial`
+        - ``f`` -- a :class:`~sage.rings.polynomial.pbori.pbori.BooleanPolynomial`
 
         EXAMPLES::
 
@@ -540,7 +541,7 @@ class CNFEncoder(ANF2CNFConverter):
 
         INPUT:
 
-        - ``F`` -- an iterable of :class:`sage.rings.polynomial.pbori.BooleanPolynomial`
+        - ``F`` -- an iterable of :class:`~sage.rings.polynomial.pbori.pbori.BooleanPolynomial`
 
         OUTPUT: an inverse map int -> variable
 
@@ -580,7 +581,7 @@ class CNFEncoder(ANF2CNFConverter):
 
     def to_polynomial(self, c):
         """
-        Convert clause to :class:`sage.rings.polynomial.pbori.BooleanPolynomial`.
+        Convert clause to :class:`~sage.rings.polynomial.pbori.pbori.BooleanPolynomial`.
 
         INPUT:
 
