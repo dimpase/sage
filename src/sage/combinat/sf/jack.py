@@ -526,7 +526,7 @@ class JackPolynomials_generic(sfa.SymmetricFunctionAlgebra_generic):
     def construction(self):
         """
         Return a pair ``(F, R)``, where ``F`` is a
-        :class:`SymmetricFunctionsFunctor` and `R` is a ring, such
+        :class:`~sage.combinat.sf.sfa.SymmetricFunctionsFunctor` and `R` is a ring, such
         that ``F(R)`` returns ``self``.
 
         EXAMPLES::
@@ -973,7 +973,7 @@ class JackPolynomials_p(JackPolynomials_generic):
         r"""
         Return the scalar product of `P(part1)` and `P(part2)`.
 
-        This is equation (10.16) of [Mc1995]_ on page 380.
+        This is equation (10.16) of [Mac1995]_ on page 380.
 
         INPUT:
 
@@ -987,10 +987,7 @@ class JackPolynomials_p(JackPolynomials_generic):
 
         REFERENCES:
 
-        .. [Mc1995] \I. G. Macdonald, Symmetric functions and Hall
-           polynomials, second ed., The Clarendon Press, Oxford
-           University Press, New York, 1995, With contributions by
-           A. Zelevinsky, Oxford Science Publications.
+        - [Mac1995]_
 
         EXAMPLES::
 

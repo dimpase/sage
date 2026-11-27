@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 from collections.abc import Iterator
 from typing import Any, NoReturn
@@ -7,15 +6,16 @@ from sage.categories.category import Category
 from sage.categories.commutative_rings import CommutativeRings
 from sage.categories.fields import Fields
 from sage.categories.rings import Rings
+from sage.rings.infinity import PlusInfinity
+from sage.rings.integer import Integer
 from sage.structure.category_object import NameSpec
 from sage.structure.parent import Parent
-from sage.structure.parent_gens import ParentWithGens
 
 _Rings: Rings
 _CommutativeRings: CommutativeRings
 _Fields: Fields
 
-class Ring(ParentWithGens):
+class Ring(Parent):
     def __init__(
         self,
         base: Parent[Any] | object,
@@ -31,7 +31,7 @@ class Ring(ParentWithGens):
     def __mul__(self, x: object) -> object: ...
     def zero(self) -> Any: ...
     def one(self) -> Any: ...
-    def order(self) -> int: ...
+    def order(self) -> Integer | PlusInfinity: ...
 
 class CommutativeRing(Ring):
     def __init__(self, *args, **kwds) -> None: ...
@@ -51,7 +51,7 @@ class PrincipalIdealDomain(Ring):
 def _is_Field(x: object) -> bool: ...
 
 class Field(Ring):
-    pass
+    ...
 
 class Algebra(Ring):
     def __init__(
