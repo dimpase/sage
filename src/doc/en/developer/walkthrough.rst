@@ -35,10 +35,10 @@ If you are in a hurry, you can skip the details and just follow these steps:
 
    .. code-block:: console
 
-       $ conda env create --file environment-3.12-linux.yml --name sage-dev
+       $ conda env create --file environment-3.13-linux.yml --name sage-dev
        $ conda activate sage-dev
 
-   Replace ``environment-3.12-linux.yml`` with the appropriate file for your system.
+   Replace ``environment-3.13-linux.yml`` with the appropriate file for your system.
 
 5. Build and install Sage
 
@@ -131,10 +131,10 @@ and a few additional developer tools
 
 .. code-block:: console
 
-    $ conda env create --file environment-3.12-linux.yml --name sage-dev
+    $ conda env create --file environment-3.13-linux.yml --name sage-dev
     $ conda activate sage-dev
 
-Replace ``environment-3.12-linux.yml`` with the appropriate file for your system.
+Replace ``environment-3.13-linux.yml`` with the appropriate file for your system.
 You can find the environment files in the root directory of the Sage repository.
 
 Now you can build and install Sage:
@@ -313,6 +313,17 @@ You can then continue working towards your next milestone, make
 another commit, repeat until finished. As long as you do not
 ``git checkout`` another branch, all commits that you make will be part of
 the branch that you created.
+
+.. tip::
+
+    Consider activating the pre-commit hook so that your code is automatically
+    checked before each commit:
+
+    .. code-block:: console
+
+        $ git config core.hooksPath git-hooks
+
+    This only needs to be done once after cloning the repository.
 
 Open pull request
 =================

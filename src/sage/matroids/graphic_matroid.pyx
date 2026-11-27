@@ -13,7 +13,7 @@ The recommended way to create a graphic matroid is by using the
 :func:`Matroid() <sage.matroids.constructor.Matroid>` function, with a
 graph `G` as input. This function can accept many different kinds of input
 to get a graphic matroid if the ``graph`` keyword is used, similar to the
-:func:`Graph() <sage.graphs.graph.Graph>` constructor. However,
+:class:`Graph() <sage.graphs.graph.Graph>` constructor. However,
 invoking the class directly is possible too. To get access to it, type::
 
     sage: from sage.matroids.advanced import *
@@ -24,8 +24,9 @@ Graphic matroids do not have a representation matrix or any of the
 functionality of regular matroids. It is possible to get an instance of the
 :class:`~sage.matroids.linear_matroid.RegularMatroid` class by using the
 ``regular`` keyword when constructing the matroid. It is also possible to cast
-a :class:`GraphicMatroid` as a :class:`RegularMatroid` with the
-:meth:`~sage.matroids.graphic_matroids.GraphicMatroid.regular_matroid`
+a :class:`~sage.matroids.graphic_matroid.GraphicMatroid` as a
+:class:`~sage.matroids.linear_matroid.RegularMatroid` with the
+:meth:`~sage.matroids.graphic_matroid.GraphicMatroid.regular_matroid`
 method::
 
     sage: M1 = Matroid(graphs.DiamondGraph(), regular=True)
@@ -274,7 +275,7 @@ cdef class GraphicMatroid(Matroid):
         """
         cdef DisjointSet_of_hashables DS_vertices
         cdef list edges = self.groundset_to_edges(X)
-        cdef set vertices = set([u for u, _, _ in edges]).union(
+        cdef set vertices = {u for u, _, _ in edges}.union(
             [v for _, v, _ in edges])
         # This counts components:
         DS_vertices = DisjointSet_of_hashables(vertices)
@@ -576,8 +577,7 @@ cdef class GraphicMatroid(Matroid):
             except ValueError:
                 if certificate:
                     return (False, None)
-                else:
-                    return False
+                return False
 
             if certificate:
                 # This is where it gets complicated.
@@ -755,7 +755,7 @@ cdef class GraphicMatroid(Matroid):
         """
         cdef DisjointSet_of_hashables DS_vertices
         cdef list edges = self.groundset_to_edges(X)
-        cdef set vertices = set([u for u, _, _ in edges])
+        cdef set vertices = {u for u, _, _ in edges}
         vertices.update([v for _, v, _ in edges])
 
         cdef set our_set = set()
@@ -850,7 +850,6 @@ cdef class GraphicMatroid(Matroid):
         """
         cdef list edges = self.groundset_to_edges(X)
         cdef set vertices = set()
-        cdef list leaves
         cdef tuple leaf
         cdef set edge_set = set()
         cdef DisjointSet_of_hashables DS_vertices
@@ -1793,11 +1792,9 @@ cdef class GraphicMatroid(Matroid):
 
         # Determine the vertices
         X_edges = self.groundset_to_edges(X)
-        X_vertices = set([e[0] for e in X_edges]).union(
-            [e[1] for e in X_edges])
+        X_vertices = {e[0] for e in X_edges}.union([e[1] for e in X_edges])
         Y_edges = self.groundset_to_edges(self.groundset().difference(set(X)))
-        Y_vertices = set([e[0] for e in Y_edges]).union(
-            [e[1] for e in Y_edges])
+        Y_vertices = {e[0] for e in Y_edges}.union([e[1] for e in Y_edges])
         vertices = X_vertices.intersection(Y_vertices)
         if len(vertices) != 2:
             raise ValueError("too many vertices in the intersection")
@@ -1927,13 +1924,11 @@ cdef class GraphicMatroid(Matroid):
 
         # Determine the vertex
         X_edges = self.groundset_to_edges(X)
-        X_vertices = set([e[0] for e in X_edges]).union(
-            [e[1] for e in X_edges])
+        X_vertices = {e[0] for e in X_edges}.union([e[1] for e in X_edges])
         if u not in X_vertices:
             raise ValueError("first vertex must be spanned by the input")
         Y_edges = self.groundset_to_edges(self.groundset().difference(set(X)))
-        Y_vertices = set([e[0] for e in Y_edges]).union(
-            [e[1] for e in Y_edges])
+        Y_vertices = {e[0] for e in Y_edges}.union([e[1] for e in Y_edges])
         if v not in Y_vertices:
             raise ValueError("second vertex must be spanned by the rest of the graph")
         vertices = X_vertices.intersection(Y_vertices)
@@ -1955,8 +1950,9 @@ cdef class GraphicMatroid(Matroid):
 
     cpdef regular_matroid(self):
         """
-        Return an instance of :class:`RegularMatroid` isomorphic to this
-        :class:`GraphicMatroid`.
+        Return an instance of
+        :class:`~sage.matroids.linear_matroid.RegularMatroid` isomorphic to
+        this :class:`~sage.matroids.graphic_matroid.GraphicMatroid`.
 
         EXAMPLES::
 
