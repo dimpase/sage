@@ -4,7 +4,7 @@ Hall-Littlewood polynomials
 
 Notation used in the definitions follows mainly [Mac1995]_.
 """
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>,
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
@@ -16,8 +16,8 @@ Notation used in the definitions follows mainly [Mac1995]_.
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 import sage.combinat.partition
 import sage.misc.persist
@@ -233,7 +233,7 @@ class HallLittlewood(UniqueRepresentation):
         Transitions between bases with the parameter `t` specialized::
 
             sage: Sym = SymmetricFunctions(FractionField(QQ['y','z']))
-            sage: (y,z) = Sym.base_ring().gens()
+            sage: y, z = Sym.base_ring().gens()
             sage: HLy = Sym.hall_littlewood(t=y)
             sage: HLz = Sym.hall_littlewood(t=z)
             sage: Qpy = HLy.Qp()
@@ -396,7 +396,7 @@ class HallLittlewood_generic(sfa.SymmetricFunctionAlgebra_generic):
     def construction(self):
         """
         Return a pair ``(F, R)``, where ``F`` is a
-        :class:`SymmetricFunctionsFunctor` and `R` is a ring, such
+        :class:`~sage.combinat.sf.sfa.SymmetricFunctionsFunctor` and `R` is a ring, such
         that ``F(R)`` returns ``self``.
 
         EXAMPLES::
@@ -749,7 +749,7 @@ class HallLittlewood_p(HallLittlewood_generic):
         t = self.t
         coeff = (1-t)**len(m)
         for i in m.to_exp():
-            for j in range(1,i+1):
+            for j in range(1, i+1):
                 coeff *= (1-t**j)/(1-t)
         return coeff
 
@@ -782,8 +782,7 @@ class HallLittlewood_p(HallLittlewood_generic):
         t = QQt.gen()
         zero = self.base_ring().zero()
         res_dict = schur_to_hl(part, t)
-        f = lambda part2: res_dict.get(part2,zero)
-        return f
+        return lambda part2: res_dict.get(part2, zero)
 
     def _s_cache(self, n):
         r"""
@@ -896,10 +895,10 @@ class HallLittlewood_q(HallLittlewood_generic):
             1/(t^2 - 2*t + 1)
         """
         t = self.t
-        coeff = 1/(1-t)**len(m)
+        coeff = 1 / (1 - t)**len(m)
         for i in m.to_exp():
-            for j in range(1,i+1):
-                coeff *= (1-t)/(1-t**j)
+            for j in range(1, i + 1):
+                coeff *= (1 - t) / (1 - t**j)
         return coeff
 
 
@@ -915,7 +914,7 @@ class HallLittlewood_qp(HallLittlewood_generic):
     def __init__(self, hall_littlewood):
         r"""
         The Hall-Littlewood `Qp` basis is calculated through the symmetrica
-        library (see the function :meth:`HallLittlewood_qp._to_s`).
+        library (see the function ``HallLittlewood_qp._to_s``).
 
         INPUT:
 

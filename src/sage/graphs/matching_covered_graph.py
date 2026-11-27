@@ -90,11 +90,8 @@ AUTHORS:
         :widths: 30, 70
         :delim: |
 
-        ``bricks_and_braces()`` | Return the list of (underlying simple graph of) the bricks and braces of the (matching covered) graph.
-        ``number_of_braces()`` | Return the number of braces.
-        ``number_of_bricks()`` | Return the number of bricks.
-        ``number_of_petersen_bricks()`` | Return the number of Petersen bricks.
-        ``tight_cut_decomposition()`` | Return a maximal set of laminar nontrivial tight cuts and a corresponding vertex set partition.
+        :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.is_brace` | Check if the matching covered graph is a brace.
+        :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.is_brick` | Check if the matching covered graph is a brick.
 
     **Removability and ear decomposition**
 
@@ -113,7 +110,7 @@ AUTHORS:
         ``removable_double_ears()`` | Return a list of removable double ears.
         ``removable_doubletons()`` | Return a list of removable doubletons.
         ``removable_ears()`` | Return a list of removable ears.
-        ``removable_edges()`` | Return a :class:`~EdgesView` of removable edges.
+        ``removable_edges()`` | Return a :class:`~sage.graphs.views.EdgesView` of removable edges.
         ``retract()`` | Compute the retract of the (matching covered) graph.
 
     **Generating bricks and braces**
@@ -249,7 +246,6 @@ class MatchingCoveredGraph(Graph):
         sage: sorted(H.get_matching())
         [(0, 5, None), (1, 2, None), (3, 4, None)]
 
-        sage: # needs sage.modules
         sage: M = Matrix([(0,1,0,0,1,1,0,0,0,0),
         ....:             (1,0,1,0,0,0,1,0,0,0),
         ....:             (0,1,0,1,0,0,0,1,0,0),
@@ -278,7 +274,6 @@ class MatchingCoveredGraph(Graph):
         sage: sorted(H.get_matching())
         [(0, 5, None), (1, 6, None), (2, 7, None), (3, 8, None), (4, 9, None)]
 
-        sage: # needs sage.modules
         sage: M = Matrix([(-1, 0, 0, 0, 1, 0, 0, 0, 0, 0,-1, 0, 0, 0, 0),
         ....:             ( 1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1, 0, 0, 0),
         ....:             ( 0, 1,-1, 0, 0, 0, 0, 0, 0, 0, 0, 0,-1, 0, 0),
@@ -388,7 +383,7 @@ class MatchingCoveredGraph(Graph):
 
         sage: G = graphs.CycleGraph(4)
         sage: G += graphs.CycleGraph(6)
-        sage: G.connected_components_number()
+        sage: G.number_of_connected_components()
         2
         sage: H = MatchingCoveredGraph(G)
         Traceback (most recent call last):
@@ -476,7 +471,6 @@ class MatchingCoveredGraph(Graph):
         ...
         ValueError: input graph is not matching covered
 
-        sage: # needs sage.modules
         sage: M = Matrix([(0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0),
         ....:             (1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
         ....:             (0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -516,7 +510,6 @@ class MatchingCoveredGraph(Graph):
         ...
         ValueError: input graph is not matching covered
 
-        sage: # needs sage.modules
         sage: M = Matrix([(1, 1, 0, 0, 0, 0),
         ....:             (0, 0, 1, 1, 0, 0),
         ....:             (0, 0, 1, 0, 1, 0),
@@ -837,21 +830,20 @@ class MatchingCoveredGraph(Graph):
 
                 return G
 
-            else:
-                # Check if all existent vertices are there
-                all_existent_vertices = True
-                for vertex in self:
-                    if vertex not in vertices:
-                        all_existent_vertices = False
-                        break
+            # Check if all existent vertices are there
+            all_existent_vertices = True
+            for vertex in self:
+                if vertex not in vertices:
+                    all_existent_vertices = False
+                    break
 
-                if all_existent_vertices:
-                    G = self.copy()
-                    G.name('Matching covered subgraph of ({})'.format(self.name()))
-                    if immutable:
-                        G = G.copy(immutable=True)
+            if all_existent_vertices:
+                G = self.copy()
+                G.name('Matching covered subgraph of ({})'.format(self.name()))
+                if immutable:
+                    G = G.copy(immutable=True)
 
-                    return G
+                return G
 
         G = Graph(self, weighted=self._weighted, loops=self.allows_loops(),
                   multiedges=self.allows_multiple_edges())
@@ -1456,7 +1448,7 @@ class MatchingCoveredGraph(Graph):
                 M.add_edges(self.get_matching())
 
                 # Check if M is a perfect matching of the resulting graph
-                if (G.order() != 2*M.size()):
+                if (G.order() != 2 * M.size()):
                     M = None
 
                 self.__init__(data=G, matching=M)
@@ -1974,7 +1966,7 @@ class MatchingCoveredGraph(Graph):
             # must be a valid perfect matching of the resulting graph obtained
             # after the removal of the vertices
 
-            if (G.order() != 2*M.size()):
+            if (G.order() != 2 * M.size()):
                 M = None
 
             self.__init__(data=G, matching=M)
@@ -1986,11 +1978,11 @@ class MatchingCoveredGraph(Graph):
     @doc_index('Miscellaneous methods')
     def get_matching(self):
         r"""
-        Return an :class:`~EdgesView` of ``self._matching``.
+        Return an :class:`~sage.graphs.views.EdgesView` of ``self._matching``.
 
         OUTPUT:
 
-        - This method returns :class:`EdgesView` of the edges of a
+        - This method returns :class:`~sage.graphs.views.EdgesView` of the edges of a
           perfect matching of the (matching covered) graph.
 
         EXAMPLES:
@@ -2043,7 +2035,7 @@ class MatchingCoveredGraph(Graph):
 
         And in order to find the vertices that do not lie in the maximal
         barrier containing the provided vertex in linear time we take
-        inspiration of the `M` alternating tree seach method [LR2004]_.
+        inspiration of the `M` alternating tree search method [LR2004]_.
 
         INPUT:
 
@@ -2387,8 +2379,8 @@ class MatchingCoveredGraph(Graph):
         .. NOTE::
 
             This method overwrites the
-            :meth:`~sage.graphs.graph.Graph.is_biconnected` method
-            in order to return ``True`` as matching covered graphs are
+            :meth:`~sage.graphs.generic_graph.GenericGraph.is_biconnected`
+            method in order to return ``True`` as matching covered graphs are
             biconnected.
 
         EXAMPLES:
@@ -2410,7 +2402,7 @@ class MatchingCoveredGraph(Graph):
 
         .. SEEALSO::
 
-            - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.is_connected`
+            - :meth:`~sage.graphs.generic_graph.GenericGraph.is_connected`
         """
         return True
 
@@ -2540,7 +2532,7 @@ class MatchingCoveredGraph(Graph):
         The nonplanar `K_{3, 3}`-free brace Heawood graph is the unique cubic
         graph of girth six with the fewest number of vertices (that is 14).
         Note that by `K_{3, 3}`-free, it shows that the Heawood graph does not
-        contain a subgraph that is isomophic to a graph obtained by
+        contain a subgraph that is isomorphic to a graph obtained by
         bisubdivision of `K_{3, 3}`::
 
             sage: K = graphs.CompleteBipartiteGraph(3, 3)
@@ -2617,7 +2609,7 @@ class MatchingCoveredGraph(Graph):
 
         For a brace `G[A, B]` of order six or more, `|N(X)| \geq |X| + 2`, for
         all `X \subset A` such that `0 < |X| <|A| - 1`, where
-        `N(S) := \{b | (a, b) \in E \^ a \in S\}` is called the neighboring set
+        `N(S) := \{b | (a, b) \in E \wedge a \in S\}` is called the neighboring set
         of `S`::
 
             sage: H = graphs.MoebiusLadderGraph(15)
@@ -2739,8 +2731,6 @@ class MatchingCoveredGraph(Graph):
         .. SEEALSO::
 
             - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.is_brick`
-            - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.bricks_and_braces`
-            - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.number_of_braces`
         """
         if not self.is_bipartite():
             raise ValueError('the input graph is not bipartite')
@@ -2825,8 +2815,8 @@ class MatchingCoveredGraph(Graph):
 
                 # Compute the nontrivial tight cut C := ∂(Y)
                 C = [(x, y, w) if x in X else (y, x, w)
-                    for x, y, w in self.edge_iterator(sort_vertices=True)
-                    if (x in X) ^ (y in X)]
+                     for x, y, w in self.edge_iterator(sort_vertices=True)
+                     if (x in X) ^ (y in X)]
 
                 # Obtain the barrier Z
                 Z = None
@@ -3130,9 +3120,6 @@ class MatchingCoveredGraph(Graph):
 
             - :meth:`~sage.graphs.graph.Graph.is_bicritical`
             - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.is_brace`
-            - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.bricks_and_braces`
-            - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.number_of_bricks`
-            - :meth:`~sage.graphs.matching_covered_graph.MatchingCoveredGraph.number_of_petersen_bricks`
         """
         if self.is_bipartite():
             raise ValueError('the input graph is bipartite')

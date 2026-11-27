@@ -2,29 +2,59 @@ if not get_option('build-docs')
   subdir_done()
 endif
 
-sphinx_check = py_module.find_installation(required: false, modules: ['sphinx'])
+warning(
+  'Documentation building enabled, generating targets may be slow. To disable this, pass -Dbuild-docs=false.',
+)
+
+sphinx_check = py_module.find_installation(
+  required: false,
+  modules: ['sphinx', 'sphinxcontrib.bibtex'],
+)
 if not sphinx_check.found()
   warning(
-    'Python package "sphinx" is not installed. Documentation build not enabled.',
+    'Sphinx or sphinxcontrib-bibtex is not installed. Install the docs dependencies to build documentation.',
   )
   subdir_done()
 endif
 
-
 doc_src = []
-subdir('en/reference/repl')
+subdir('references')
+subdir('el')
+subdir('ca')
+subdir('zh')
+subdir('it')
+subdir('common')
+subdir('hu')
+subdir('de')
+subdir('en')
+subdir('pt')
+subdir('ru')
+subdir('tr')
+subdir('es')
+subdir('fr')
+subdir('ja')
+
 # TODO: Migrate this completely to meson
-doc_src += custom_target(
-  'doc-src',
+doc_bootstrap = custom_target(
+  'bootstrap',
   output: ['autogen'],
-  command: [files('bootstrap')],
-  env: {'SAGE_ROOT': root},
+  command: [
+    py,
+    files('../../tools/bootstrap-docs.py'),
+    meson.current_build_dir(),
+  ],
+  env: {'SAGE_ROOT': meson.global_source_root()},
+  # doc_src is not really a dependency of the bootstrap, but we want to make sure
+  # that all the source files are present before running the actual doc build
+  # so let's collect all source-related targets here.
+  depends: doc_src,
 )
 
 references = run_command(
   py,
   [
     src / 'build-docs.py',
+    '--no-prune-empty-dirs',
     '--all-documents',
     'reference',
     '--source',
@@ -45,7 +75,10 @@ foreach type : ['inventory', 'html', 'pdf']
       short_ref = ref
     endif
     deps = []
-    deps += doc_src
+    deps += [doc_bootstrap, doc_bibliographies]
+    if short_ref == 'repl'
+      deps += doc_src_repl
+    endif
     if type == 'html' or type == 'pdf'
       deps += reference_inventory
     endif
@@ -66,13 +99,14 @@ foreach type : ['inventory', 'html', 'pdf']
       command: [
         py,
         src / 'build-docs.py',
+        '--no-prune-empty-dirs',
         '--no-pdf-links',
         ref,
         type,
         '-o',
         '@OUTDIR@',
         '--source',
-        meson.current_source_dir(),
+        meson.current_build_dir(),
       ],
       depends: deps,
     )
@@ -93,6 +127,7 @@ other_documents = run_command(
   py,
   [
     src / 'build-docs.py',
+    '--no-prune-empty-dirs',
     '--all-documents',
     'all',
     '--source',
@@ -100,6 +135,30 @@ other_documents = run_command(
   ],
   check: true,
 ).stdout().strip()
+other_documents_inventory = []
+foreach doc : other_documents.splitlines()
+  if doc in ['en/developer', 'en/installation']
+    short_doc = doc.replace('/', '-')
+    target = custom_target(
+      'doc-inventory-other-' + short_doc,
+      output: ['inventory' + short_doc],
+      command: [
+        py,
+        src / 'build-docs.py',
+        '--no-prune-empty-dirs',
+        '--no-pdf-links',
+        doc,
+        'inventory',
+        '-o',
+        '@OUTDIR@',
+        '--source',
+        meson.current_build_dir(),
+      ],
+      depends: reference_inventory + [doc_bibliographies],
+    )
+    other_documents_inventory += target
+  endif
+endforeach
 other_documents_html = []
 other_documents_pdf = []
 foreach type : ['html', 'pdf']
@@ -111,15 +170,16 @@ foreach type : ['html', 'pdf']
       command: [
         py,
         src / 'build-docs.py',
+        '--no-prune-empty-dirs',
         '--no-pdf-links',
         doc,
         type,
         '-o',
         '@OUTDIR@',
         '--source',
-        meson.current_source_dir(),
+        meson.current_build_dir(),
       ],
-      depends: reference_inventory,
+      depends: reference_inventory + other_documents_inventory + [doc_bibliographies],
     )
     if type == 'html'
       other_documents_html += target

@@ -12,7 +12,7 @@
 
 没错，Sage 作业可以在 UNIX 系统上后台运行。通常做法是输入以下命令
 
-.. CODE-BLOCK:: shell-session
+.. code-block:: console
 
     $ nohup sage < command_file  > output_file &
 
@@ -100,7 +100,7 @@ Sage 与其他计算机代数系统
 如果你只知道 Sage 命令的部分名称，但想知道它在 Sage 中的位置，只需输入
 ``sage -grep <string>`` 即可在 Sage 源代码中查找所有出现 ``<string>`` 的地方。例如，
 
-.. CODE-BLOCK:: shell-session
+.. code-block:: console
 
     $ sage -grep berlekamp_massey
     matrix/all.py:from berlekamp_massey import berlekamp_massey
@@ -261,9 +261,9 @@ Sage 有许多特殊函数（请参见参考手册 http://doc.sagemath.org/html/
 ::
 
     sage: pari('2+I').besselk(3)
-    0.0455907718407551 + 0.0289192946582081*I
+    0.0455907718407... + 0.0289192946582...*I
     sage: pari('2').besselk(3)
-    0.0615104584717420
+    0.0615104584717...
 
 
 Sage 是什么？

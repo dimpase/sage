@@ -9,3 +9,8 @@
 #
 # Everything on a line after a # character is ignored.
 pkgconfig
+zlib
+boost
+autoconf
+automake
+libtool

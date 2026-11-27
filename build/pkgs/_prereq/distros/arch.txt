@@ -20,3 +20,5 @@ bzip2
 which
 patch
 pkgconf
+zlib
+boost

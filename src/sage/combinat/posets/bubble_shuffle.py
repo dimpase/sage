@@ -14,15 +14,20 @@ two words `X = (x_1,x_2,\ldots,x_{m})` and `Y = (y_1,y_2,\ldots,y_n)`.
     In the implementation here, the underlying set is the set of all shuffles
     of subsets of `\{-m,\ldots,-1\}` with subsets of `\{1,\ldots,n\}`.
 """
-from typing import Iterator
+from __future__ import annotations
 
-from sage.combinat.posets.lattices import LatticePoset
+from sage.categories.finite_lattice_posets import FiniteLatticePosets
+from sage.combinat.posets.lattices import LatticePoset, FiniteLatticePoset
 from sage.combinat.subset import subsets
 from sage.combinat.shuffle import ShuffleProduct
 from sage.graphs.digraph import DiGraph
 from sage.graphs.graph import Graph
-from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sage.rings.integer import Integer
+    from collections.abc import Iterator
 
 
 def bubble_cardinality(m, n) -> Integer:
@@ -141,7 +146,7 @@ def bubble_coverings(m, n, mot, transpose=True) -> Iterator[tuple[int, ...]]:
             yield tuple(mot2)
 
 
-def BubblePoset(m, n) -> LatticePoset:
+def BubblePoset(m, n) -> FiniteLatticePoset:
     r"""
     Return the Bubble lattice `B_{m,n}`.
 
@@ -156,7 +161,8 @@ def BubblePoset(m, n) -> LatticePoset:
 
     .. SEEALSO::
 
-        :func:`ShufflePoset`, :func:`noncrossing_bipartite_complex`
+        :func:`ShufflePoset`,
+        :func:`sage.combinat.posets.bubble_shuffle.noncrossing_bipartite_complex`
 
     EXAMPLES::
 
@@ -169,10 +175,11 @@ def BubblePoset(m, n) -> LatticePoset:
 
     dg = DiGraph([(x, y) for x in bubbles for y in bubble_coverings(m, n, x)])
     # here we have more than just the cover relations
-    return LatticePoset(dg)
+    cat = FiniteLatticePosets().CongruenceUniform().Extremal()
+    return LatticePoset(dg, category=cat)
 
 
-def ShufflePoset(m, n) -> LatticePoset:
+def ShufflePoset(m, n) -> FiniteLatticePoset:
     r"""
     Return the Shuffle lattice `S_{m,n}`.
 
@@ -199,7 +206,8 @@ def ShufflePoset(m, n) -> LatticePoset:
     dg = DiGraph([(x, y) for x in bubbles
                   for y in bubble_coverings(m, n, x, transpose=False)])
     # here we just have the cover relations
-    return LatticePoset(dg, cover_relations=True)
+    cat = FiniteLatticePosets().ChainGraded()
+    return LatticePoset(dg, cover_relations=True, check=False, category=cat)
 
 
 def noncrossing_bipartite_complex(m, n):

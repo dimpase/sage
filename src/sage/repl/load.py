@@ -1,4 +1,3 @@
-# sage_setup: distribution = sagemath-repl
 """
 Load Python, Sage, Cython, Fortran and Magma files in Sage
 """
@@ -17,7 +16,7 @@ from pathlib import Path
 from sage.cpython.string import str_to_bytes, bytes_to_str, FS_ENCODING
 
 
-def is_loadable_filename(filename):
+def is_loadable_filename(filename) -> bool:
     """
     Return whether a file can be loaded into Sage.
 
@@ -29,7 +28,7 @@ def is_loadable_filename(filename):
 
     INPUT:
 
-    - ``filename`` -- string or :class:`Path` object
+    - ``filename`` -- string or :class:`~pathlib.Path` object
 
     OUTPUT: boolean
 
@@ -97,7 +96,7 @@ def load(filename, globals, attach=False):
 
     INPUT:
 
-    - ``filename`` -- string (denoting a filename or URL) or a :class:`Path` object
+    - ``filename`` -- string (denoting a filename or URL) or a :class:`~pathlib.Path` object
 
     - ``globals`` -- string:object dictionary; the context in which
       to execute the file contents
@@ -146,7 +145,7 @@ def load(filename, globals, attach=False):
         sage: with NamedTemporaryFile(mode='w', suffix='.pyx') as file:
         ....:     _ = file.write("print(('hi', 2^3)); z = -2^7")
         ....:     _ = file.seek(0)
-        ....:     sage.repl.load.load(file.name, context)                                         # needs sage.misc.cython
+        ....:     sage.repl.load.load(file.name, context)
         Compiling ...
         ('hi', 1)
         sage: context["z"]
@@ -312,7 +311,7 @@ def load_wrap(filename, attach=False):
 
     INPUT:
 
-    - ``filename`` -- string or :class:`Path` object; the argument
+    - ``filename`` -- string or :class:`~pathlib.Path` object; the argument
       to the load or attach command
 
     - ``attach`` -- boolean (default: ``False``); whether to attach

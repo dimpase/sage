@@ -16,14 +16,19 @@ For `n \geq 1`, the cardinality of the Hochschild lattice `H_n` is
 The underlying set of `H_n` consists of some words in the alphabet
 `(0,1,2)`, whose precise description can be found in [Com2021]_.
 """
-from typing import Iterator
+from __future__ import annotations
 
-from sage.combinat.posets.lattices import LatticePoset
+from sage.categories.finite_lattice_posets import FiniteLatticePosets
+from sage.combinat.posets.lattices import FiniteLatticePoset, LatticePoset
 from sage.graphs.digraph import DiGraph
 from sage.topology.simplicial_complex import SimplicialComplex
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
-def hochschild_lattice(n) -> LatticePoset:
+def hochschild_lattice(n) -> FiniteLatticePoset:
     r"""
     Return the Hochschild lattice `H_n`.
 
@@ -101,7 +106,8 @@ def hochschild_lattice(n) -> LatticePoset:
 
     dg = DiGraph({a: list(cover_relations(a)) for a in verts},
                  format="dict_of_lists")
-    return LatticePoset(dg.reverse(), cover_relations=True, check=False)
+    return LatticePoset(dg.reverse(), cover_relations=True, check=False,
+                        category=FiniteLatticePosets().CongruenceUniform())
 
 
 def hochschild_fan(n):
@@ -113,7 +119,8 @@ def hochschild_fan(n):
 
     .. SEEALSO::
 
-        :func:`hochschild_simplicial_complex`, :func:`hochschild_lattice`
+        :func:`hochschild_simplicial_complex`,
+        :func:`sage.combinat.posets.hochschild_lattice.hochschild_lattice`
 
     EXAMPLES::
 
@@ -151,7 +158,8 @@ def hochschild_simplicial_complex(n) -> SimplicialComplex:
     This is a pure spherical simplicial complex, whose flip graph
     is isomorphic to the Hasse diagram of `H_n`.
 
-    .. SEEALSO:: :func:`hochschild_fan`, :func:`hochschild_lattice`
+    .. SEEALSO:: :func:`hochschild_fan`,
+        :func:`sage.combinat.posets.hochschild_lattice.hochschild_lattice`
 
     EXAMPLES::
 
