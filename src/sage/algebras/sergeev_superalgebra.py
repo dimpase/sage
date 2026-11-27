@@ -73,7 +73,7 @@ class SergeevSuperalgebra(CombinatorialFreeModule_Tensor):
         \tau_{i,j} = (c_i - c_) \sigma_{i,j},
 
     where `\sigma_{i,j} = (i \; j)` is the transposition swapping `i` and `j`.
-    (See, e.g., :arxiv:`math/9810148` with rescaling the generators by
+    (See, e.g., [Sergeev1998]_ with rescaling the generators by
     `(\sqrt{2}a)^{-1}`.) In particular, this decomposition means that `A_k`
     supercommutes with all Clifford algebra generators. The relations satisfy
 
