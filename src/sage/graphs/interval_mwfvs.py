@@ -5,11 +5,7 @@ Minimum Weighted Feedback Vertex Set on Interval Graphs
 This module implements a dynamic programming algorithm for computing a
 Minimum Weighted Feedback Vertex Set (MWFVS) on interval graphs.
 
-The algorithm is based on:
-
-    Lu & Tang (1997),
-    "A linear-time algorithm for the weighted feedback vertex problem
-    on interval graphs", Information Processing Letters 61.
+The algorithm is based on [LT1997]_.
 
 NOTE:
     This implementation uses an explicit dynamic programming formulation
