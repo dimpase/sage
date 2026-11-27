@@ -1,7 +1,7 @@
 r"""
 Multiple `\ZZ`-graded filtrations of a single vector space
 
-See :mod:`filtered_vector_space` for simply graded vector spaces. This
+See :mod:`~sage.modules.filtered_vector_space` for simply graded vector spaces. This
 module implements the analog but for a collection of filtrations of
 the same vector space.
 
@@ -51,7 +51,7 @@ from sage.modules.filtered_vector_space import FilteredVectorSpace
 
 def MultiFilteredVectorSpace(arg, base_ring=None, check=True):
     """
-    Contstruct a multi-filtered vector space.
+    Construct a multi-filtered vector space.
 
     INPUT:
 
