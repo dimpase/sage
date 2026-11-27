@@ -43,7 +43,7 @@ If `X` is moreover projective, then there is a well defined *degree* morphism
 `\int:A^{\dim(X)}(X)\rightarrow\ZZ` given by `\int(\sum m_i P_i)=\sum m_i`,
 allowing to define intersection numbers of cycles in complementary dimension.
 
-The basic reference on Intersection Theory is William Fulton's book [F]_.
+The basic reference on Intersection Theory is William Fulton's book [Fulton1998]_.
 
 The Chow package provides methods for working with *rational*
 Chow rings of non singular varieties:
@@ -150,7 +150,7 @@ defined bundles over `\mathbb{P}^n`
 Remark from the above universal bundles that :class:`chow.library.proj.Proj`
 uses Grothendieck's convention of linear rank `1` *quotients* of a vector space
 of dimension `n+1`.
-For the classical convention of *subspaces* as in Fulton's book [F]_, simply use
+For the classical convention of *subspaces* as in Fulton's book [Fulton1998]_, simply use
 
 ::
 
@@ -223,7 +223,7 @@ as Betti numbers for B)::
     [1, 2, 4, 7, 8, 7, 4, 2, 1]
 
 As another example, consider the twisted cubic in `\mathbb{P}^3`, as worked out
-in great detail for example in the expository note [K]_ (from which we use the
+in great detail for example in the expository note [KassChow]_ (from which we use the
 notations for this example)::
 
     sage: X = Proj(3)
@@ -275,9 +275,9 @@ variety. It admits a natural compactification as the component `H` of the
 Hilbert scheme `Hilb^{3m+1}(\mathbb{P}^3)` containing the points corresponding
 to twisted cubics. Ellingsrud, Piene and Strømme have shown that `H` can be
 obtained as the blowup of the variety of nets of quadrics `X` defined by twisted
-cubics along the incidence variety `I` ([EPS]_, [ES]_) and they have
+cubics along the incidence variety `I` ([EPS1987]_, [ES1995]_) and they have
 also shown how the Chow ring of `H` can be computed. This has been used in
-[ES]_ in the relative case over `\mathbb{P}^4` and for the computation of
+[ES1995]_ in the relative case over `\mathbb{P}^4` and for the computation of
 the Euler number of the holomorphically symplectic manifolds constructed in
 [LLSvS]_ in the relative case to `Grass(6,4)`.
 
@@ -290,7 +290,7 @@ methods to compute `H`, `I` and the morphism `f:I\rightarrow H`::
     sage: I = f.domain()
     sage: X = f.codomain()
 
-Now we check Fulton [1], Prop. 9.1.2 (NIX is the normal bundle):
+Now we check [Fulton1998]_, Prop. 9.1.2 (NIX is the normal bundle):
 
 .. link
 
@@ -303,7 +303,7 @@ Now we check Fulton [1], Prop. 9.1.2 (NIX is the normal bundle):
     38860
 
 The next number is Schubert's number of twisted cubics intersecting 12
-general lines in `\mathbb{P}^3` ([S]_, pp. 178--179).
+general lines in `\mathbb{P}^3` ([Schubert1879]_, pp. 178--179).
 
 .. link
 
@@ -328,7 +328,7 @@ Use :mod:`chow.Blowup` to compute `H`:
     sage: top.integral() == H.euler_number()
     True
 
-Finally, compute some values in table 1 of [ES]_:
+Finally, compute some values in table 1 of [ES1995]_:
 
 .. link
 
@@ -348,7 +348,7 @@ Twisted cubics on quintic threefolds
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A more challenging example is the computation of the number of twisted cubics
-on a general quintic threefold following [ES]_.
+on a general quintic threefold following [ES1995]_.
 
 Let `\mathcal{H}` be the component of the Hilbert scheme compactifiying
 twisted cubics in `\mathbb{P}^4`.
@@ -402,7 +402,7 @@ it is enough to use the exact sequence (6-1)
     0\to g_*\mathcal{A}_{Exc}\to\sigma^*\mathcal{A}_X
     \to p_*\mathcal{O}_\mathcal{C}(5)\to 0
 
-of [ES]_ and the explicit
+of [ES1995]_ and the explicit
 description of `\mathcal{A}_{Exc}` and `\mathcal{A}_X` given there to
 compute as follows:
 
@@ -561,63 +561,25 @@ completely differently: Chow, except from written from scratch in Python,
 makes essential use of Singular through Sage's libsingular interface.
 
 Note that there is also a package for *Macaulay2* [GSE]_, called
-*Schubert2* [GSSEC]_, written by Daniel R. Grayson, Michael E. Stillman,
+*Schubert2* [Schubert2]_, written by Daniel R. Grayson, Michael E. Stillman,
 Stein A. Strømme, David Eisenbud and Charley Crissman, equally based on the
 above Maple package.
 
 
-..  [EPS]
+- [EPS1987]_
 
-    Ellingsrud, Geir and Piene, Ragni and Strømme, Stein Arild:
-    *On the variety of nets of quadrics defining twisted cubics*,
-    Space curves (Rocca di Papa, 1985), Springer (1987),
-    Lecture Notes in Math. 1266, pp. 84--96
-    :doi:`10.1007/BFb0078179`
+- [ES1995]_
 
-..  [ES]
+- [Fulton1998]_
 
-    Ellingsrud, Geir and Strømme, Stein Arild:
-    *The number of twisted cubics on the general quintic threefold*,
-    Math. Scand. 76 (1995) 5-34
+- [GSE]_
 
-..  [F]
+- [Schubert2]_
 
-    Fulton, William: Intersection theory, 2nd edition (1998)
-    Ergebnisse der Mathematik und ihrer Grenzgebiete.
-    Springer Verlag
+- [KassChow]_
 
-..  [GSE]
+- [KS]_
 
-    `Macaulay2 --- a software system for research in algebraic geometry.
-    <https://macaulay2.com/>`_
-    by Daniel R. Grayson, Michael E. Stillman, David Eisenbud
+- [LLSvS]_
 
-..  [GSSEC]
-
-    `Schubert2 --- computation in intersection theory.
-    <https://macaulay2.com/doc/Macaulay2/share/doc/Macaulay2/Schubert2/html/index.html>`_
-    by Daniel R. Grayson, Michael E. Stillman, Stein A. Strømme, David Eisenbud
-    and Charley Crissman
-
-..  [K]
-
-    Kass, Jesse Leo: *The Chow ring of the blow-up of P3 along the twisted cubic*.
-    `PDF <https://people.ucsc.edu/~jelkass/files/ChowRing.pdf>`_
-
-..  [KS]
-
-    `Schubert --- a Maple package for Intersection Theory <http://stromme.uib.no/schubert/>`_
-    by Sheldon Katz and Stein Arild Stromme
-
-..  [LLSvS]
-
-    *Twisted cubics on cubic fourfolds*,
-    by Christian Lehn, Manfred Lehn, Christoph Sorger and Duco van Straten
-    :doi:`https://doi.org/10.1515/crelle-2014-0144`
-
-..  [S]
-
-    Schubert, Hermann:
-    `Kalkül der abzählenden Geometrie
-    <http://archive.org/details/kalklderabzh00schuuoft>`_
-    Teubner Verlag (1879)
+- [Schubert1879]_
