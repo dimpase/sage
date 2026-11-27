@@ -33,9 +33,9 @@ class AffineCipher(SymmetricKeyCipher):
 
         INPUT:
 
-        - ``parent`` -- an ``AffineCryptosystem`` object.
+        - ``parent`` -- an ``AffineCryptosystem`` object
 
-        - ``key`` -- a secret key. Let `N` be the size of the cipher domain.
+        - ``key`` -- a secret key; let `N` be the size of the cipher domain.
           A key of this affine cipher is an ordered pair
           `(a, b) \in \ZZ_N \times \ZZ_N` such that `\gcd(a, N) = 1`.
 
@@ -58,12 +58,10 @@ class AffineCipher(SymmetricKeyCipher):
 
         INPUT:
 
-        - ``other`` -- another object to compare with.
+        - ``other`` -- another object to compare with
 
-        OUTPUT:
-
-        - ``True`` if ``self`` and ``other`` are the same ``AffineCipher``
-          object; ``False`` otherwise.
+        OUTPUT: ``True`` if ``self`` and ``other`` are the same
+        ``AffineCipher`` object; ``False`` otherwise
 
         EXAMPLES::
 
@@ -89,15 +87,13 @@ class AffineCipher(SymmetricKeyCipher):
           behaviour is that the plaintext and ciphertext alphabets are the
           same alphabet.
 
-        - ``algorithm`` -- (default ``"encrypt"``) whether to use the
-          encryption or decryption algorithm on ``M``. The flag ``"encrypt"``
-          signifies using the encryption algorithm, while ``"decrypt"``
+        - ``algorithm`` -- (default: ``'encrypt'``) whether to use the
+          encryption or decryption algorithm on ``M``. The flag ``'encrypt'``
+          signifies using the encryption algorithm, while ``'decrypt'``
           signifies using the decryption algorithm. The only acceptable
-          values for ``algorithm`` are: ``"encrypt"`` and ``"decrypt"``.
+          values for ``algorithm`` are: ``'encrypt'`` and ``'decrypt'``.
 
-        OUTPUT:
-
-        - The ciphertext or plaintext corresponding to ``M``.
+        OUTPUT: the ciphertext or plaintext corresponding to ``M``
 
         EXAMPLES::
 
@@ -120,10 +116,19 @@ class AffineCipher(SymmetricKeyCipher):
             True
             sage: D(C) == P == D(E(P))
             True
+
+        TESTS:
+
+        Check that :issue:`33658` is fixed::
+
+            sage: E("HELLO")
+            Traceback (most recent call last):
+            ...
+            TypeError: Argument M must be a string in the plaintext/ciphertext space.
         """
         # sanity check
         D = self.domain()  # = plaintext_space = ciphertext_space
-        if M.parent() != D:
+        if not (isinstance(M, StringMonoidElement) and M.parent() == D):
             raise TypeError("Argument M must be a string in the plaintext/ciphertext space.")
 
         from sage.rings.finite_rings.integer_mod import Mod
@@ -165,8 +170,6 @@ class HillCipher(SymmetricKeyCipher):
         """
         Create a Hill cipher.
 
-        INPUT: Parent and key
-
         EXAMPLES::
 
             sage: # needs sage.modules
@@ -198,7 +201,7 @@ class HillCipher(SymmetricKeyCipher):
 
     def __call__(self, M):
         S = self.domain() # = plaintext_space = ciphertext_space
-        if not isinstance(M, StringMonoidElement) and M.parent() == S:
+        if not (isinstance(M, StringMonoidElement) and M.parent() == S):
             raise TypeError("Argument M (= %s) must be a string in the plaintext space." % M)
         m = self.parent().block_length()
         if len(M) % m != 0:
@@ -238,6 +241,7 @@ class HillCipher(SymmetricKeyCipher):
             raise ValueError("Argument\n\n%s\n\nmust be an invertible cipher." % self)
         return E(B)
 
+
 class ShiftCipher(SymmetricKeyCipher):
     r"""
     Shift cipher class. This is the class that does the actual work of
@@ -254,9 +258,9 @@ class ShiftCipher(SymmetricKeyCipher):
 
         INPUT:
 
-        - ``parent`` -- a ``ShiftCryptosystem`` object.
+        - ``parent`` -- a ``ShiftCryptosystem`` object
 
-        - ``key`` -- a secret key.
+        - ``key`` -- a secret key
 
         EXAMPLES::
 
@@ -283,12 +287,10 @@ class ShiftCipher(SymmetricKeyCipher):
 
         INPUT:
 
-        - ``other`` -- another object to compare with.
+        - ``other`` -- another object to compare with
 
-        OUTPUT:
-
-        - ``True`` if ``self`` and ``other`` are the same ``ShiftCipher``
-          object; ``False`` otherwise.
+        OUTPUT: ``True`` if ``self`` and ``other`` are the same ``ShiftCipher``
+        object; ``False`` otherwise.
 
         EXAMPLES::
 
@@ -316,9 +318,7 @@ class ShiftCipher(SymmetricKeyCipher):
           behaviour is that the plaintext and ciphertext alphabets are the
           same alphabet.
 
-        OUTPUT:
-
-        - The ciphertext or plaintext corresponding to ``M``.
+        OUTPUT: the ciphertext or plaintext corresponding to ``M``
 
         EXAMPLES:
 
@@ -339,7 +339,7 @@ class ShiftCipher(SymmetricKeyCipher):
             1011000010110100110100111101111110011010100100011001000010001010100110001001011111011111100011001001011110010110100110011000101110010110100100011001100011010001
         """
         dom = self.domain()  # = plaintext_space = ciphertext_space
-        if not isinstance(M, StringMonoidElement) and M.parent() == dom:
+        if not (isinstance(M, StringMonoidElement) and M.parent() == dom):
             raise TypeError("Argument M (= %s) must be a string in the plaintext/ciphertext space." % M)
         from sage.rings.finite_rings.integer_mod import Mod
         A = list(dom.alphabet())   # plaintext/ciphertext alphabet as a list
@@ -384,6 +384,7 @@ class ShiftCipher(SymmetricKeyCipher):
         # as the alphabet used for the plaintext and ciphertext spaces.
         return "Shift cipher on %s" % self.parent().cipher_domain()
 
+
 class SubstitutionCipher(SymmetricKeyCipher):
     """
     Substitution cipher class
@@ -391,8 +392,6 @@ class SubstitutionCipher(SymmetricKeyCipher):
     def __init__(self, parent, key):
         """
         Create a substitution cipher.
-
-        INPUT: Parent and key
 
         EXAMPLES::
 
@@ -422,7 +421,7 @@ class SubstitutionCipher(SymmetricKeyCipher):
 
     def __call__(self, M):
         S = self.domain() # = plaintext_space = ciphertext_space
-        if not isinstance(M, StringMonoidElement) and M.parent() == S:
+        if not (isinstance(M, StringMonoidElement) and M.parent() == S):
             raise TypeError("Argument M (= %s) must be a string in the plaintext space." % M)
         A = list(S.alphabet())
         K = str(self.key()) # K is a string, while we want the indices:
@@ -459,6 +458,7 @@ class SubstitutionCipher(SymmetricKeyCipher):
         K = E.inverse_key(self.key())
         return E(K)
 
+
 class TranspositionCipher(SymmetricKeyCipher):
     """
     Transition cipher class
@@ -466,8 +466,6 @@ class TranspositionCipher(SymmetricKeyCipher):
     def __init__(self, parent, key):
         """
         Create a transposition cipher.
-
-        INPUT: Parent and key
 
         EXAMPLES::
 
@@ -508,9 +506,9 @@ class TranspositionCipher(SymmetricKeyCipher):
             raise ValueError("key (= %s) must have block length %s" % (key, n))
         SymmetricKeyCipher.__init__(self, parent, key)
 
-    def __call__(self, M, mode="ECB"):
+    def __call__(self, M, mode='ECB'):
         S = self.domain() # = plaintext_space = ciphertext_space
-        if not isinstance(M, StringMonoidElement) and M.parent() == S:
+        if not (isinstance(M, StringMonoidElement) and M.parent() == S):
             raise TypeError("Argument M (= %s) must be a string in the plaintext space." % M)
         if not mode == "ECB":
             raise NotImplementedError("Enciphering not implemented for mode (= %s) other than 'ECB'." % mode)
@@ -531,6 +529,7 @@ class TranspositionCipher(SymmetricKeyCipher):
         K = E.inverse_key(self.key())
         return E(K)
 
+
 class VigenereCipher(SymmetricKeyCipher):
     """
     Vigenere cipher class
@@ -538,8 +537,6 @@ class VigenereCipher(SymmetricKeyCipher):
     def __init__(self, parent, key):
         """
         Create a Vigenere cipher.
-
-        INPUT: Parent and key
 
         EXAMPLES::
 
@@ -557,12 +554,19 @@ class VigenereCipher(SymmetricKeyCipher):
             sage: E = VigenereCryptosystem(S,11)
             sage: E == loads(dumps(E))
             True
+
+        Check that :issue:`33658` is fixed::
+
+            sage: e(BinaryStrings()("0101"))
+            Traceback (most recent call last):
+            ...
+            TypeError: Argument M (= 0101) must be a string in the plaintext space.
         """
         SymmetricKeyCipher.__init__(self, parent, key)
 
-    def __call__(self, M, mode="ECB"):
+    def __call__(self, M, mode='ECB'):
         S = self.domain() # = plaintext_space = ciphertext_space
-        if not isinstance(M, StringMonoidElement) and M.parent() == S:
+        if not (isinstance(M, StringMonoidElement) and M.parent() == S):
             raise TypeError("Argument M (= %s) must be a string in the plaintext space." % M)
         if not mode == "ECB":
             raise NotImplementedError("Enciphering not implemented for mode (= %s) other than 'ECB'." % mode)

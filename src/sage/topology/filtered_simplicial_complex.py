@@ -1,4 +1,3 @@
-# sage.doctest: needs sage.graphs
 r"""
 Finite filtered complexes
 
@@ -22,20 +21,20 @@ EXAMPLES::
 Sage can compute persistent homology of simplicial complexes::
 
     sage: X = FilteredSimplicialComplex([([0], 0), ([1], 0), ([0, 1], 1)])
-    sage: X.persistence_intervals(0)                                                    # needs sage.modules
+    sage: X.persistence_intervals(0)
     [(0, 1), (0, +Infinity)]
 
 FilteredSimplicialComplex objects are mutable. Filtration values can be
 set with the ``filtration`` method as follows::
 
     sage: X = FilteredSimplicialComplex() # returns an empty complex
-    sage: X.persistence_intervals(1)                                                    # needs sage.modules
+    sage: X.persistence_intervals(1)
     []
     sage: X.filtration(Simplex([0, 2]), 0) # recursively adds faces
     sage: X.filtration(Simplex([0, 1]), 0)
     sage: X.filtration(Simplex([1, 2]), 0)
     sage: X.filtration(Simplex([0, 1, 2]), 1) # closes the circle
-    sage: X.persistence_intervals(1)                                                    # needs sage.modules
+    sage: X.persistence_intervals(1)
     [(0, 1)]
 
 The filtration value of a simplex can be accessed as well with the
@@ -101,7 +100,7 @@ class FilteredSimplicialComplex(SageObject):
     INPUT:
 
     - ``simplices`` -- list of simplices and filtration values
-    - ``verbose`` -- (default: ``False``) if ``True``, any change to
+    - ``verbose`` -- boolean (default: ``False``); if ``True``, any change to
       the filtration value of a simplex will be printed
 
     ``simplices`` should be a list of tuples ``(l, v)``, where
@@ -203,8 +202,7 @@ class FilteredSimplicialComplex(SageObject):
         """
         if s in self._filtration_dict:
             return self._filtration_dict[s]
-        else:
-            return None
+        return None
 
     __call__ = _get_value
     __getitem__ = _get_value
@@ -339,8 +337,7 @@ class FilteredSimplicialComplex(SageObject):
         s = Simplex(s)
         if filtration_value is None:
             return self._get_value(s)
-        else:
-            self._insert(s, filtration_value)
+        self._insert(s, filtration_value)
 
     def prune(self, threshold):
         r"""
@@ -381,9 +378,9 @@ class FilteredSimplicialComplex(SageObject):
 
         - ``field`` -- (default: 2) prime number modulo which the homology
           is computed
-        - ``strict`` -- (default: ``True``) if ``False``, takes into account
+        - ``strict`` -- boolean (default: ``True``); if ``False``, takes into account
             intervals of persistence 0
-        - ``verbose`` -- (default: ``False``) if ``True``, prints the
+        - ``verbose`` -- boolean (default: ``False``); if ``True``, prints the
           progress of computation
 
         This method is called whenever Betti numbers or intervals are
@@ -398,7 +395,7 @@ class FilteredSimplicialComplex(SageObject):
         EXAMPLES::
 
             sage: X = FilteredSimplicialComplex([([0], 0), ([1], 0), ([0,1], 2)])
-            sage: X._persistent_homology()[0]                                           # needs sage.modules
+            sage: X._persistent_homology()[0]
             [(0, 2), (0, +Infinity)]
 
         Some homology elements may have a lifespan or persistence of 0.
@@ -406,7 +403,7 @@ class FilteredSimplicialComplex(SageObject):
 
             sage: X = FilteredSimplicialComplex()
             sage: X.insert([0,1],1) # opens a hole and closes it instantly
-            sage: X._persistent_homology(strict=False)[0]                               # needs sage.modules
+            sage: X._persistent_homology(strict=False)[0]
             [(1, 1), (1, +Infinity)]
 
         REFERENCES:
@@ -421,11 +418,11 @@ class FilteredSimplicialComplex(SageObject):
             ....:      ([1, 2], 1), ([0, 3], 2), ([2, 3], 2), ([0, 2], 3),
             ....:      ([0, 1, 2], 4), ([0, 2, 3], 5)]
             sage: X = FilteredSimplicialComplex(l)
-            sage: X.persistence_intervals(0)                                            # needs sage.modules
+            sage: X.persistence_intervals(0)
             [(0, 1), (1, 2), (0, +Infinity)]
-            sage: X.persistence_intervals(1)                                            # needs sage.modules
+            sage: X.persistence_intervals(1)
             [(3, 4), (2, 5)]
-            sage: X.persistence_intervals(0, strict=False)                              # needs sage.modules
+            sage: X.persistence_intervals(0, strict=False)
             [(0, 1), (1, 1), (1, 2), (0, +Infinity)]
         """
         # first, order the simplices in lexico order
@@ -510,7 +507,6 @@ class FilteredSimplicialComplex(SageObject):
 
         TESTS::
 
-            sage: # needs sage.modules
             sage: X = FilteredSimplicialComplex([([0], 0), ([1, 2], 10)])
             sage: int_list = X._persistent_homology()
             sage: int_list[0]
@@ -522,7 +518,7 @@ class FilteredSimplicialComplex(SageObject):
         Infinite interval::
 
             sage: int_list2 = [[],[]]
-            sage: X._add_interval(Simplex([1, 2]), None, int_list2)                     # needs sage.modules
+            sage: X._add_interval(Simplex([1, 2]), None, int_list2)
             sage: int_list2[1]
             [(10, +Infinity)]
         """
@@ -557,12 +553,12 @@ class FilteredSimplicialComplex(SageObject):
             sage: l = [([0], 0), ([1], 0), ([2], 1), ([3], 1), ([0, 1], 1), ([1, 2], 1),
             ....:      ([0, 3], 2), ([2, 3], 2), ([0, 2], 3), ([0, 1, 2], 4)]
             sage: X = FilteredSimplicialComplex(l)
-            sage: X._persistent_homology()                                              # needs sage.modules
+            sage: X._persistent_homology()
             [[(0, 1), (1, 2), (0, +Infinity)], [(3, 4), (2, +Infinity)], []]
-            sage: X._remove_pivot_rows(Simplex([0,1,2]), list(X._filtration_dict))      # needs sage.modules
+            sage: X._remove_pivot_rows(Simplex([0,1,2]), list(X._filtration_dict))
             0
             sage: X.insert([0,2,3],5)
-            sage: X._remove_pivot_rows(Simplex([0,2,3]), list(X._filtration_dict))      # needs sage.modules
+            sage: X._remove_pivot_rows(Simplex([0,2,3]), list(X._filtration_dict))
             B[(2, 3)]
         """
         d = self._chaingroup()
@@ -582,7 +578,7 @@ class FilteredSimplicialComplex(SageObject):
 
         # Reduce d until it is empty or until the simplex
         # with maximum index in the complex among all
-        # non-zero terms is not in T.
+        # nonzero terms is not in T.
         while d != 0:
             max_index = self._max_index(d)
             t = simplices[max_index]
@@ -607,7 +603,6 @@ class FilteredSimplicialComplex(SageObject):
 
         TESTS::
 
-            sage: # needs sage.modules
             sage: X = FilteredSimplicialComplex([([0], 0), ([1], 5), ([0, 1], 18), ([0, 2, 3], 32)])
             sage: X._persistent_homology()
             [[(5, 18), (0, +Infinity)], [], []]
@@ -620,8 +615,7 @@ class FilteredSimplicialComplex(SageObject):
         currmax = -1
         for s, x_s in d:
             j = self._index_of_simplex[s]
-            if j > currmax:
-                currmax = j
+            currmax = max(j, currmax)
         return currmax
 
     def persistence_intervals(self, dimension, field=2, strict=True, verbose=None):
@@ -634,7 +628,7 @@ class FilteredSimplicialComplex(SageObject):
           return intervals
         - ``field`` -- prime number (default: 2); modulo which persistent
           homology is computed
-        - ``strict`` -- (default: ``True``) if ``False``, takes into account
+        - ``strict`` -- boolean (default: ``True``); if ``False``, takes into account
           intervals of persistence 0
         - ``verbose`` -- (optional) if ``True``, print the steps of the
           persistent homology computation; the default is the verbosity
@@ -643,7 +637,7 @@ class FilteredSimplicialComplex(SageObject):
         EXAMPLES::
 
             sage: X = FilteredSimplicialComplex([([0], 0), ([1], 1), ([0,1], 2)])
-            sage: X.persistence_intervals(0)                                            # needs sage.modules
+            sage: X.persistence_intervals(0)
             [(1, 2), (0, +Infinity)]
         """
         if verbose is None:
@@ -651,8 +645,7 @@ class FilteredSimplicialComplex(SageObject):
         intervals = self._persistent_homology(field, strict, verbose=verbose)
         if dimension < len(intervals):
             return intervals[dimension][:]
-        else:
-            return []
+        return []
 
     def betti_number(self, k, a, b, field=2, strict=True, verbose=None):
         r"""
@@ -665,7 +658,7 @@ class FilteredSimplicialComplex(SageObject):
         - ``b`` -- the size of the interval
         - ``field`` -- prime number (default: 2); modulo which persistent
           homology is computed
-        - ``strict`` -- (default: ``True``) if ``False``, takes into account
+        - ``strict`` -- boolean (default: ``True``); if ``False``, takes into account
           intervals of persistence 0
         - ``verbose`` -- (optional) if ``True``, print the steps of the
           persistent homology computation; the default is the verbosity
@@ -678,16 +671,16 @@ class FilteredSimplicialComplex(SageObject):
         EXAMPLES::
 
             sage: X = FilteredSimplicialComplex([([0], 0), ([1], 0), ([0,1], 2)])
-            sage: X.betti_number(0, 0.5, 1)                                             # needs sage.modules
+            sage: X.betti_number(0, 0.5, 1)
             2
-            sage: X.betti_number(0, 1.5, 1)                                             # needs sage.modules
+            sage: X.betti_number(0, 1.5, 1)
             1
 
         If an element vanishes at time ``a + b`` exactly,
         it does not count towards the Betti number::
 
             sage: X = FilteredSimplicialComplex([([0], 0), ([1], 0), ([0,1], 2)])
-            sage: X.betti_number(0, 1.5, 0.5)                                           # needs sage.modules
+            sage: X.betti_number(0, 1.5, 0.5)
             1
         """
         if verbose is None:

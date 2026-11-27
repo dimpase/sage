@@ -46,40 +46,34 @@ cdef void binary_tree_insert(binary_tree_node *self, int key, object value) noex
         else:
             binary_tree_insert(self.right, key, value)
 
-cdef object binary_tree_get(binary_tree_node *self, int key) noexcept:
+cdef object binary_tree_get(binary_tree_node *self, int key):
     if self.key == key:
         return <object>self.value
-    elif self.key > key:
+    if self.key > key:
         if self.left == NULL:
             return None
-        else:
-            return binary_tree_get(self.left, key)
-    else:
-        if self.right == NULL:
-            return None
-        else:
-            return binary_tree_get(self.right, key)
+        return binary_tree_get(self.left, key)
+    if self.right == NULL:
+        return None
+    return binary_tree_get(self.right, key)
 
-cdef object binary_tree_delete(binary_tree_node *self, int key) noexcept:
+cdef object binary_tree_delete(binary_tree_node *self, int key):
     cdef object t
     if self.key > key:
         if self.left == NULL:
             return None
-        elif self.left.key == key:
+        if self.left.key == key:
             t = <object>self.left.value
             self.left = binary_tree_left_excise(self.left)
             return t
-        else:
-            return binary_tree_delete(self.left, key)
-    else:
-        if self.right == NULL:
-            return None
-        elif self.right.key == key:
-            t = <object>self.right.value
-            self.right = binary_tree_right_excise(self.right)
-            return t
-        else:
-            return binary_tree_delete(self.right, key)
+        return binary_tree_delete(self.left, key)
+    if self.right == NULL:
+        return None
+    if self.right.key == key:
+        t = <object>self.right.value
+        self.right = binary_tree_right_excise(self.right)
+        return t
+    return binary_tree_delete(self.right, key)
 
 cdef binary_tree_node *binary_tree_left_excise(binary_tree_node *self) noexcept:
     cdef binary_tree_node *left
@@ -96,7 +90,6 @@ cdef binary_tree_node *binary_tree_left_excise(binary_tree_node *self) noexcept:
         cur.right = self.left.right
     free_binary_tree_node(self)
     return left
-
 
 
 cdef binary_tree_node *binary_tree_right_excise(binary_tree_node *self) noexcept:
@@ -146,13 +139,13 @@ cdef binary_tree_node *binary_tree_head_excise(binary_tree_node *self) noexcept:
 
 
 cdef int LIST_PREORDER, LIST_POSTORDER, LIST_INORDER, LIST_KEYS, LIST_VALUES
-LIST_PREORDER  = 1
+LIST_PREORDER = 1
 LIST_INORDER = 2
 LIST_POSTORDER = 4
 LIST_KEYS = 8
 LIST_VALUES = 16
 
-cdef object binary_tree_list(binary_tree_node *cur, int behavior) noexcept:
+cdef object binary_tree_list(binary_tree_node *cur, int behavior):
     if behavior & LIST_KEYS:
         item = int(cur.key)
     else:
@@ -178,7 +171,6 @@ cdef object binary_tree_list(binary_tree_node *cur, int behavior) noexcept:
     return arry
 
 
-
 cdef class BinaryTree:
     """
     A simple binary tree with integer keys.
@@ -190,7 +182,7 @@ cdef class BinaryTree:
         """
         TESTS:
 
-        We test that :trac:`18897` is fixed::
+        We test that :issue:`18897` is fixed::
 
             sage: def test():
             ....:     from sage.rings.polynomial.polynomial_compiled import CompiledPolynomialFunction
@@ -290,9 +282,9 @@ cdef class BinaryTree:
 
             sage: from sage.misc.binary_tree import BinaryTree
             sage: t = BinaryTree()
-            sage: t.insert(0, Matrix([[0,0], [1,1]]))                                   # needs sage.modules
+            sage: t.insert(0, Matrix([[0,0], [1,1]]))
             sage: t.insert(0, 1)
-            sage: t.get(0)                                                              # needs sage.modules
+            sage: t.get(0)
             [0 0]
             [1 1]
         """
@@ -310,7 +302,7 @@ cdef class BinaryTree:
             sage: t = BinaryTree()
             sage: t.contains(1)
             False
-            sage: t.insert(1,1)
+            sage: t.insert(1, 1)
             sage: t.contains(1)
             True
         """
@@ -440,7 +432,7 @@ cdef class BinaryTree:
         """
         return self.head == NULL
 
-    def keys(BinaryTree self, order="inorder"):
+    def keys(BinaryTree self, order='inorder'):
         """
         Return the keys sorted according to "order" parameter.
 
@@ -459,7 +451,7 @@ cdef class BinaryTree:
 
         return binary_tree_list(self.head, LIST_KEYS + o)
 
-    def values(BinaryTree self, order="inorder"):
+    def values(BinaryTree self, order='inorder'):
         """
         Return the keys sorted according to "order" parameter.
 
@@ -493,7 +485,7 @@ class Test:
     def random(self):
         self.binary_tree()
 
-    def binary_tree(self, values = 100, cycles = 100000):
+    def binary_tree(self, values=100, cycles=100000):
         """
         Perform a sequence of random operations, given random inputs
         to stress test the binary tree structure.

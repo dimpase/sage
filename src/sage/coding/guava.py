@@ -1,4 +1,4 @@
-# sage.doctest: optional - sage.libs.gap sage.modules sage.rings.finite_rings
+# sage.doctest: needs sage.libs.gap sage.modules sage.rings.finite_rings
 r"""
 Constructions of generator matrices using the GUAVA package for GAP
 
@@ -52,11 +52,9 @@ def QuasiQuadraticResidueCode(p):
 
     INPUT:
 
-    - ``p`` -- a prime `>2`.
+    - ``p`` -- a prime `>2`
 
-    OUTPUT:
-
-    Returns a QQR code of length `2p`.
+    OUTPUT: a QQR code of length `2p`
 
     EXAMPLES::
 
@@ -67,8 +65,8 @@ def QuasiQuadraticResidueCode(p):
 
     AUTHOR: David Joyner (11-2005)
     """
-    GapPackage("guava", spkg="gap_packages").require()
-    libgap.load_package("guava")
+    GapPackage('guava', spkg='gap_packages').require()
+    libgap.load_package('guava')
     C = libgap.QQRCode(p)
     G = C.GeneratorMat()
     MS = MatrixSpace(GF(2), len(G), len(G[0]))
@@ -85,11 +83,9 @@ def RandomLinearCodeGuava(n, k, F):
 
     INPUT:
 
-    - ``n,k`` -- integers with `n>k>1`.
+    - ``n``, ``k`` -- integers with `n>k>1`
 
-    OUTPUT:
-
-    Returns a "random" linear code with length `n`, dimension `k` over field `F`.
+    OUTPUT: a "random" linear code with length `n`, dimension `k` over field `F`
 
     EXAMPLES::
 
@@ -98,12 +94,25 @@ def RandomLinearCodeGuava(n, k, F):
         sage: C = codes.RandomLinearCodeGuava(10,5,GF(4,'a')); C   # optional - gap_package_guava
         [10, 5] linear code over GF(4)
 
+    TESTS:
+
+    Sage's random seed controls the GAP generator used by GUAVA, without
+    relying on the pexpect GAP interface::
+
+        sage: from unittest.mock import patch
+        sage: with patch('sage.interfaces.gap.gap', None), seed(123):  # optional - gap_package_guava
+        ....:     G1 = codes.RandomLinearCodeGuava(12, 6, GF(4, 'a')).generator_matrix()
+        sage: with seed(123):                                   # optional - gap_package_guava
+        ....:     G2 = codes.RandomLinearCodeGuava(12, 6, GF(4, 'a')).generator_matrix()
+        sage: G1 == G2                                          # optional - gap_package_guava
+        True
+
     AUTHOR: David Joyner (11-2005)
     """
-    current_randstate().set_seed_gap()
+    current_randstate().set_seed_libgap()
 
-    GapPackage("guava", spkg="gap_packages").require()
-    libgap.load_package("guava")
+    GapPackage('guava', spkg='gap_packages').require()
+    libgap.load_package('guava')
     C = libgap.RandomLinearCode(n,k,F)
     G = C.GeneratorMat()
     MS = MatrixSpace(F, len(G), len(G[0]))

@@ -1,12 +1,18 @@
 
-from .free_monoid import FreeMonoid
-from .string_monoid import (BinaryStrings, OctalStrings, HexadecimalStrings,
-                            Radix64Strings, AlphabeticStrings)
+from sage.monoids.free_monoid import FreeMonoid
+from sage.monoids.string_monoid import (BinaryStrings, OctalStrings, HexadecimalStrings,
+                                        Radix64Strings, AlphabeticStrings)
 
-from .free_abelian_monoid import FreeAbelianMonoid
+from sage.monoids.free_abelian_monoid import FreeAbelianMonoid
 
-from .string_ops import (
+from sage.monoids.string_ops import (
     strip_encoding,
     frequency_distribution,
     coincidence_index,
     coincidence_discriminant)
+
+# Plactic monoid
+from sage.monoids.plactic_monoid import PlacticMonoid
+
+#Hypoplactic monoid
+from sage.monoids.hypoplactic_monoid import HypoplacticMonoid

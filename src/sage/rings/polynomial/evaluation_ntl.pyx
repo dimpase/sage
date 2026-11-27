@@ -20,15 +20,15 @@ For appropriate testing see
     Integrate these functions into
     :mod:`~sage.rings.polynomial.polynomial_compiled`
 """
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2016 Vincent Delecroix <20100.delecroix@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.libs.mpfr cimport *
 from sage.libs.mpfi cimport *
@@ -38,7 +38,7 @@ from sage.libs.ntl.ZZ cimport *
 from sage.libs.ntl.ZZX cimport *
 
 
-cdef ZZX_evaluation_mpfr(mpfr_t res, ZZX_c poly, const mpfr_t a) noexcept:
+cdef ZZX_evaluation_mpfr(mpfr_t res, ZZX_c poly, const mpfr_t a):
     cdef mpz_t c
     cdef long i
 
@@ -53,7 +53,7 @@ cdef ZZX_evaluation_mpfr(mpfr_t res, ZZX_c poly, const mpfr_t a) noexcept:
 
     mpz_clear(c)
 
-cdef ZZX_evaluation_mpfi(mpfi_t res, ZZX_c poly, const mpfi_t a) noexcept:
+cdef ZZX_evaluation_mpfi(mpfi_t res, ZZX_c poly, const mpfi_t a):
     cdef mpz_t c
     cdef long i
 

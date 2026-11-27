@@ -1,15 +1,15 @@
 """
 Declarations for pynac, a Python frontend for ginac
 
-Check that we can externally cimport this (:trac:`18825`)::
+Check that we can externally cimport this (:issue:`18825`)::
 
-    sage: cython(                                                                       # needs sage.misc.cython
+    sage: cython(
     ....: '''
     ....: cimport sage.symbolic.expression
     ....: ''')
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2008 William Stein <wstein@gmail.com>
 #       Copyright (C) 2008 Burcin Erocal
 #       Copyright (C) 2017 Jeroen Demeyer <jdemeyer@cage.ugent.be>
@@ -18,14 +18,63 @@ Check that we can externally cimport this (:trac:`18825`)::
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from cpython.object cimport PyObject
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.string cimport string as stdstring
 from sage.libs.gmp.types cimport mpz_t, mpq_t, mpz_ptr, mpq_ptr
+from cysignals.signals cimport sig_on, sig_off
+
+
+cdef extern from *:
+    """
+    inline void rethrow_current_exception() { throw; }
+    """
+    void rethrow_current_exception() except+
+
+
+cdef inline int sig_off_then_raise() except *:
+    """
+    A custom exception handler, defined to fix https://github.com/sagemath/sage/issues/40978,
+    as suggested in https://github.com/cython/cython/issues/7189.
+
+    This is used as follows. In the definition below, there will be some functions with the
+    ``_sig`` suffix, such as::
+
+        GEx g_hold2_wrapper "HOLD2" (GEx (GEx, GEx) except+, GEx ex, GEx ex,
+                bint) except +
+        GEx g_hold2_wrapper_sig "HOLD2" (GEx (GEx, GEx) except+, GEx ex, GEx ex,
+                bint) except +sig_off_then_raise
+
+    The declarations are identical, except that the latter has ``+sig_off_then_raise``.
+    The effect is that in the second version, if a C++ exception is raised, ``sig_off()``
+    will be called first.
+
+    As such, the second version **must** be used as follows::
+
+        sig_on()
+        g_hold2_wrapper_sig(...)
+        sig_off()
+
+    This is almost equivalent to the following::
+
+        sig_on()
+        try:
+            g_hold2_wrapper(...)
+        finally:
+            sig_off()
+
+    but the non-``_sig`` version requires Python API for the ``try...finally``,
+    which means there is a potential for the garbage collector to run,
+    leading to arbitrary Python code being executed between the ``sig_on()``
+    and the ``sig_off()``.
+    """
+    sig_off()
+    rethrow_current_exception()  # equivalently, `delegate_to_exception_handlers()` after https://github.com/cython/cython/pull/7390
+
 
 cdef extern from "pynac_wrap.h":
     void ginac_pyinit_Integer(object)
@@ -65,10 +114,18 @@ cdef extern from "pynac_wrap.h":
         const char* get_name "get_name().c_str" ()
 
     cdef cppclass GExPair "std::pair<ex, ex>":
-        pass
+        GEx first
+        GEx second
+
+    cdef cppclass GExMapIter "GiNaC::exmap::const_iterator":
+        void inc "operator++" ()
+        GExPair pair "operator*" ()
+        bint operator!=(GExMapIter i)
 
     cdef cppclass GExMap "exmap":
         void insert(GExPair e)
+        GExMapIter begin()
+        GExMapIter end()
 
     cdef cppclass GExListIter "GiNaC::lst::const_iterator":
         void inc "operator++" ()
@@ -311,6 +368,8 @@ cdef extern from "pynac_wrap.h":
             bint) except +
     GEx g_hold2_wrapper "HOLD2" (GEx (GEx, GEx) except+, GEx ex, GEx ex,
             bint) except +
+    GEx g_hold2_wrapper_sig "HOLD2" (GEx (GEx, GEx) except+, GEx ex, GEx ex,
+            bint) except +sig_off_then_raise
     void g_set_state "GiNaC::set_state" (stdstring & s, bint b) except +
 
     GSymbol ginac_symbol "GiNaC::symbol" (char* s, char* t, unsigned d) except +
@@ -322,7 +381,6 @@ cdef extern from "pynac_wrap.h":
         void archive_ex(GEx e, char* name) except +
         GEx unarchive_ex(GExList sym_lst, unsigned ind) except +
         void printraw "printraw(std::cout); " (int t)
-
 
     GEx g_abs "GiNaC::abs" (GEx x)                      except + # absolute value
     GEx g_step "GiNaC::unit_step" (GEx x)               except + # step function
@@ -415,10 +473,9 @@ cdef extern from "pynac_wrap.h":
 
     void g_foptions_assign "ASSIGN_WRAP" (GFunctionOpt, GFunctionOpt)
 
-    GFunctionOpt g_function_options "GiNaC::function_options" \
-            (char *m)
+    GFunctionOpt g_function_options "GiNaC::function_options" (char *m)
     GFunctionOpt g_function_options_args "GiNaC::function_options" \
-            (char *m, unsigned nargs)
+        (char *m, unsigned nargs)
     unsigned g_register_new "GiNaC::function::register_new" (GFunctionOpt opt)
 
     unsigned find_function "GiNaC::function::find_function" (char* name,
@@ -428,7 +485,7 @@ cdef extern from "pynac_wrap.h":
     bint has_symbol_or_function "GiNaC::has_symbol_or_function" (GEx ex)
 
     GFunctionOptVector g_registered_functions \
-            "GiNaC::function::registered_functions" ()
+        "GiNaC::function::registered_functions" ()
 
     # these serials allow us to map pynac function objects to
     # Sage special functions for the .operator() method of expressions
@@ -456,7 +513,7 @@ cdef extern from "pynac_wrap.h":
     unsigned Li2_serial "GiNaC::Li2_SERIAL::serial" # dilogarithm
     unsigned Li_serial "GiNaC::Li_SERIAL::serial" # classical polylogarithm as well as multiple polylogarithm
     unsigned G_serial "GiNaC::G_SERIAL::serial" # multiple polylogarithm
-    #unsigned G2_serial "GiNaC::G_SERIAL::serial" # multiple polylogarithm with explicit signs for the imaginary parts
+    # unsigned G2_serial "GiNaC::G_SERIAL::serial" # multiple polylogarithm with explicit signs for the imaginary parts
     unsigned S_serial "GiNaC::S_SERIAL::serial" # Nielsen's generalized polylogarithm
     unsigned H_serial "GiNaC::H_SERIAL::serial" # harmonic polylogarithm
     unsigned zeta1_serial "GiNaC::zeta1_SERIAL::serial" # Riemann's zeta function as well as multiple zeta value
@@ -467,7 +524,7 @@ cdef extern from "pynac_wrap.h":
     unsigned lgamma_serial "GiNaC::lgamma_SERIAL::serial" # logarithm of gamma function
     unsigned beta_serial "GiNaC::beta_SERIAL::serial" # beta function (tgamma(x)*tgamma(y)/tgamma(x+y))
     unsigned psi_serial "GiNaC::psi_SERIAL::serial" # psi (digamma) function
-    #unsigned psi2_serial "GiNaC::psi_SERIAL::serial" # derivatives of psi function (polygamma functions)
+    # unsigned psi2_serial "GiNaC::psi_SERIAL::serial" # derivatives of psi function (polygamma functions)
     unsigned factorial_serial "GiNaC::factorial_SERIAL::serial" # factorial function n!
     unsigned binomial_serial "GiNaC::binomial_SERIAL::serial" # binomial coefficients
     unsigned Order_serial "GiNaC::Order_SERIAL::serial" # order term function in truncated power series
@@ -499,7 +556,6 @@ cdef extern from "pynac_wrap.h":
         mpq_ptr py_mpq_from_rational(x)
 
         py_float(a, PyObject* kwds)
-        py_RDF_from_double(double x)
 
         py_factorial(x)
         py_doublefactorial(x)
@@ -567,6 +623,6 @@ cdef extern from "pynac_wrap.h":
 
 cdef extern from "ginac/order.h":
     bint print_order_compare "GiNaC::print_order().compare" \
-            (GEx left, GEx right) except +
+        (GEx left, GEx right) except +
     bint print_order_compare_mul "GiNaC::print_order_mul().compare" \
-            (GEx left, GEx right) except +
+        (GEx left, GEx right) except +

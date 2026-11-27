@@ -17,7 +17,7 @@ AUTHORS:
 
 from sage.misc.cachefunc import cached_method
 from sage.misc.functional import sqrt
-from sage.structure.element cimport Element, parent
+from sage.structure.element cimport Element, parent as _parent
 from sage.structure.parent cimport Parent
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.richcmp cimport richcmp
@@ -56,7 +56,7 @@ cdef class Octonion_generic(AlgebraElement):
         self.vec = v
         super().__init__(parent)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -86,9 +86,32 @@ cdef class Octonion_generic(AlgebraElement):
         data = [p for p in enumerate(self.vec) if p[1]]
         return repr_from_monomials(data, self._parent._repr_term, True)
 
+    def __getitem__(self, m):
+        r"""
+        Return the ``m``-th coordinate of ``self``.
+
+        EXAMPLES::
+
+            sage: O = OctonionAlgebra(QQ)
+            sage: elt = sum(i * b for i, b in enumerate(O.basis()))
+            sage: elt
+            i + 2*j + 3*k + 4*l + 5*li + 6*lj + 7*lk
+            sage: elt[2]
+            2
+            sage: elt.coefficient(4)
+            4
+            sage: elt[6]
+            6
+            sage: elt.leading_coefficient()
+            7
+            sage: elt.dense_coefficient_list()
+            [0, 1, 2, 3, 4, 5, 6, 7]
+        """
+        return self.vec[m]
+
     def __bool__(self):
         r"""
-        Return if ``self`` is non-zero or not.
+        Return if ``self`` is nonzero or not.
 
         EXAMPLES::
 
@@ -116,7 +139,7 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return (self.__class__, (self._parent, self.vec))
 
-    cpdef _richcmp_(self, other, int op) noexcept:
+    cpdef _richcmp_(self, other, int op):
         r"""
         Compare ``self`` to ``other`` with type ``op``.
 
@@ -147,7 +170,7 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return hash(self.vec)
 
-    cpdef _add_(self, other) noexcept:
+    cpdef _add_(self, other):
         r"""
         Return ``self`` plus ``other``.
 
@@ -161,7 +184,7 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return self.__class__(self._parent, self.vec + (<Octonion_generic> other).vec)
 
-    cpdef _sub_(self, other) noexcept:
+    cpdef _sub_(self, other):
         r"""
         Return ``self`` minus ``other``.
 
@@ -191,7 +214,7 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return self.__class__(self._parent, -self.vec)
 
-    cpdef _lmul_(self, Element other) noexcept:
+    cpdef _lmul_(self, Element other):
         r"""
         Return ``self * other`` for a scalar ``other``.
 
@@ -205,7 +228,7 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return self.__class__(self._parent, self.vec * other)
 
-    cpdef _rmul_(self, Element other) noexcept:
+    cpdef _rmul_(self, Element other):
         r"""
         Return ``self * other`` for a scalar ``other``.
 
@@ -219,7 +242,7 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return self.__class__(self._parent, other * self.vec)
 
-    cpdef _mul_(self, other) noexcept:
+    cpdef _mul_(self, other):
         r"""
         Return ``self`` multiplied by ``other``.
 
@@ -267,7 +290,7 @@ cdef class Octonion_generic(AlgebraElement):
                 ret[k] += cl * cr * coeff
         return self.__class__(P, P._module(ret))
 
-    cpdef _div_(self, other) noexcept:
+    cpdef _div_(self, other):
         """
         Return ``self`` divided by ``other``.
 
@@ -287,7 +310,7 @@ cdef class Octonion_generic(AlgebraElement):
         qf = (<Octonion_generic> other).quadratic_form()
         return self.__class__(self._parent, temp.vec / qf)
 
-    def is_unit(self):
+    def is_unit(self) -> bool:
         r"""
         Return if ``self`` is a unit or not.
 
@@ -356,7 +379,7 @@ cdef class Octonion_generic(AlgebraElement):
             raise ZeroDivisionError
         return self.quadratic_form().inverse_of_unit() * self.conjugate()
 
-    cpdef Octonion_generic conjugate(self) noexcept:
+    cpdef Octonion_generic conjugate(self):
         r"""
         Return the conjugate of ``self``.
 
@@ -372,12 +395,12 @@ cdef class Octonion_generic(AlgebraElement):
         v.set_unsafe(0, -v.get_unsafe(0))
         return self.__class__(self._parent, v)
 
-    cpdef quadratic_form(self) noexcept:
+    cpdef quadratic_form(self):
         r"""
         Return the quadratic form of ``self``.
 
         The octonion algebra has a distinguished quadratic form given
-        by `N(x) = x x^*`, where `x^*` is the :meth:`conjugate` of `x`.
+        by `N(x) = x x^*`, where `x^*` is the :meth:`~sage.algebras.octonion_algebra.Octonion_generic.conjugate` of `x`.
 
         EXAMPLES::
 
@@ -395,12 +418,12 @@ cdef class Octonion_generic(AlgebraElement):
             ret += -(<tuple> table[i])[i][1] * self.vec.get_unsafe(i) ** 2
         return ret
 
-    cpdef norm(self) noexcept:
+    cpdef norm(self):
         r"""
         Return the norm of ``self``.
 
         The norm of an octonion `x` is `\lVert x \rVert = \sqrt{x x^*}`,
-        where `x^*` is the :meth:`conjugate` of `x`.
+        where `x^*` is the :meth:`~sage.algebras.octonion_algebra.Octonion_generic.conjugate` of `x`.
 
         .. SEEALSO::
 
@@ -423,7 +446,7 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return sqrt(self.quadratic_form())
 
-    cpdef abs(self) noexcept:
+    cpdef abs(self):
         r"""
         Return the absolute value of ``self``.
 
@@ -446,13 +469,11 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return self.norm()
 
-    cpdef real_part(self) noexcept:
+    cpdef real_part(self):
         r"""
         Return the real part of ``self``.
 
-        OUTPUT:
-
-        The real part of ``self`` as an element in the base ring.
+        OUTPUT: the real part of ``self`` as an element in the base ring
 
         EXAMPLES::
 
@@ -466,13 +487,11 @@ cdef class Octonion_generic(AlgebraElement):
         """
         return self.vec.get_unsafe(0)
 
-    cpdef Octonion_generic imag_part(self) noexcept:
+    cpdef Octonion_generic imag_part(self):
         r"""
         Return the imginary part of ``self``.
 
-        OUTPUT:
-
-        The imaginary part of ``self`` as an element in the octonion algebra.
+        OUTPUT: the imaginary part of ``self`` as an element in the octonion algebra
 
         EXAMPLES::
 
@@ -542,12 +561,12 @@ cdef class Octonion(Octonion_generic):
     This is an element of the octonion algebra with parameters
     `a = b = c = -1`, which is a classical octonion number.
     """
-    cpdef quadratic_form(self) noexcept:
+    cpdef quadratic_form(self):
         r"""
         Return the quadratic form of ``self``.
 
         The octonion algebra has a distinguished quadratic form given
-        by `N(x) = x x^*`, where `x^*` is the :meth:`conjugate` of `x`.
+        by `N(x) = x x^*`, where `x^*` is the :meth:`~sage.algebras.octonion_algebra.Octonion_generic.conjugate` of `x`.
 
         EXAMPLES::
 
@@ -561,12 +580,12 @@ cdef class Octonion(Octonion_generic):
         """
         return self.vec * self.vec
 
-    cpdef norm(self) noexcept:
+    cpdef norm(self):
         r"""
         Return the norm of ``self``.
 
         The norm of an octonion `x` is `\lVert x \rVert = \sqrt{x x^*}`,
-        where `x^*` is the :meth:`conjugate` of `x`.
+        where `x^*` is the :meth:`~sage.algebras.octonion_algebra.Octonion_generic.conjugate` of `x`.
 
         .. SEEALSO::
 
@@ -596,7 +615,8 @@ class OctonionAlgebra(UniqueRepresentation, Parent):
     were originally constructed by Graves and independently discovered by
     Cayley (due to being published first, these are sometimes called
     the Cayley numbers) and can also be built from the Cayley-Dickson
-    construction with the :class:`quaternions <QuaternionAlgebra>`.
+    construction with the
+    :class:`quaternions <sage.algebras.quatalg.quaternion_algebra.QuaternionAlgebraFactory>`.
 
     We use the multiplication table from [Scha1996]_. The octonion
     algebra `\mathbf{O}_{a,b,c}(R)` is a composition (Hurwitz) algebra,
@@ -701,6 +721,14 @@ class OctonionAlgebra(UniqueRepresentation, Parent):
         0
         sage: (1 + l) * (1 + l).conjugate()
         0
+
+    TESTS:
+
+    Random elements work::
+
+        sage: O = OctonionAlgebra(QQ)
+        sage: O.random_element() in O
+        True
 
     REFERENCES:
 
@@ -829,7 +857,7 @@ class OctonionAlgebra(UniqueRepresentation, Parent):
         for x, y in some_tuples(S, 2, tester._max_runs):
             tester.assertEqual((x * y).quadratic_form(), x.quadratic_form() * y.quadratic_form())
 
-    def _repr_term(self, m):
+    def _repr_term(self, m) -> str:
         r"""
         Return a string representation of the term indexed by ``m``.
 
@@ -842,7 +870,7 @@ class OctonionAlgebra(UniqueRepresentation, Parent):
         data = ['1', 'i', 'j', 'k', 'l', 'li', 'lj', 'lk']
         return data[m]
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -906,7 +934,7 @@ class OctonionAlgebra(UniqueRepresentation, Parent):
         """
         if isinstance(x, Octonion_generic):
             v = self._module((<Octonion_generic> x).vec)
-        elif self.base_ring().has_coerce_map_from(parent(x)):
+        elif self.base_ring().has_coerce_map_from(_parent(x)):
             R = self.base_ring()
             v = self._module([R(x)] + [R.zero()]*7)
         else:
@@ -955,7 +983,7 @@ class OctonionAlgebra(UniqueRepresentation, Parent):
         return 0
 
     @cached_method
-    def gens(self):
+    def gens(self) -> tuple:
         r"""
         Return the generators of ``self``.
 

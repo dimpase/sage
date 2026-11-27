@@ -30,7 +30,7 @@ If there is a coercion (see below) from one of the parents to the other,
 the operation is always performed in the codomain of that coercion. Otherwise
 a reasonable attempt to create a new parent with coercion maps from both
 original parents is made. The results of these discoveries are cached.
-On failure, a :class:`TypeError` is always raised.
+On failure, a :exc:`TypeError` is always raised.
 
 Some arithmetic operations (such as multiplication) can indicate an action
 rather than arithmetic in a common parent. For example::
@@ -61,7 +61,7 @@ always explicitly invoked, and never used by the coercion model to resolve
 binary operations.
 
 For more information on how to specify coercions, conversions, and actions,
-see the documentation for :class:`Parent`.
+see the documentation for :class:`~sage.structure.parent.Parent`.
 """
 
 # ****************************************************************************
@@ -77,7 +77,7 @@ see the documentation for :class:`Parent`.
 from cpython.object cimport (PyTypeObject, PyObject_CallObject,
                              PyObject_RichCompare, Py_TYPE,
                              Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT)
-from cpython.weakref cimport PyWeakref_GET_OBJECT, PyWeakref_NewRef
+from cpython.weakref cimport PyWeakref_NewRef
 from libc.string cimport strncmp
 cimport gmpy2
 
@@ -100,10 +100,10 @@ import traceback
 from fractions import Fraction
 cdef type FractionType = <type>Fraction
 
-cpdef py_scalar_parent(py_type) noexcept:
+cpdef py_scalar_parent(py_type):
     """
-    Returns the Sage equivalent of the given python type, if one exists.
-    If there is no equivalent, return None.
+    Return the Sage equivalent of the given python type, if one exists.
+    If there is no equivalent, return ``None``.
 
     EXAMPLES::
 
@@ -143,6 +143,12 @@ cpdef py_scalar_parent(py_type) noexcept:
         Real Double Field
         sage: py_scalar_parent(gmpy2.mpc)                                               # needs sage.rings.complex_double
         Complex Double Field
+
+        sage: import mpmath
+        sage: py_scalar_parent(mpmath.mpf)
+        Real Double Field
+        sage: py_scalar_parent(mpmath.mpc)                                              # needs sage.rings.complex_double
+        Complex Double Field
     """
     if issubclass(py_type, int):
         import sage.rings.integer_ring
@@ -150,41 +156,48 @@ cpdef py_scalar_parent(py_type) noexcept:
     if py_type is FractionType:
         import sage.rings.rational_field
         return sage.rings.rational_field.QQ
-    elif issubclass(py_type, float):
+    if issubclass(py_type, float):
         import sage.rings.real_double
         return sage.rings.real_double.RDF
-    elif issubclass(py_type, complex):
+    if issubclass(py_type, complex):
         import sage.rings.complex_double
         return sage.rings.complex_double.CDF
-    elif is_numpy_type(py_type):
+    if is_numpy_type(py_type):
         import numpy
         if issubclass(py_type, numpy.integer):
             import sage.rings.integer_ring
             return sage.rings.integer_ring.ZZ
-        elif issubclass(py_type, numpy.floating):
+        if issubclass(py_type, numpy.floating):
             import sage.rings.real_double
             return sage.rings.real_double.RDF
-        elif issubclass(py_type, numpy.complexfloating):
+        if issubclass(py_type, numpy.complexfloating):
             import sage.rings.complex_double
             return sage.rings.complex_double.CDF
-        else:
-            return None
-    elif issubclass(py_type, gmpy2.mpz):
+        return None
+    if issubclass(py_type, gmpy2.mpz):
         import sage.rings.integer_ring
         return sage.rings.integer_ring.ZZ
-    elif issubclass(py_type, gmpy2.mpq):
+    if issubclass(py_type, gmpy2.mpq):
         import sage.rings.rational_field
         return sage.rings.rational_field.QQ
-    elif issubclass(py_type, gmpy2.mpfr):
+    if issubclass(py_type, gmpy2.mpfr):
         import sage.rings.real_double
         return sage.rings.real_double.RDF
-    elif issubclass(py_type, gmpy2.mpc):
+    if issubclass(py_type, gmpy2.mpc):
         import sage.rings.complex_double
         return sage.rings.complex_double.CDF
-    else:
+    if is_mpmath_type(py_type):
+        import mpmath
+        if issubclass(py_type, mpmath.mpf):
+            from sage.rings.real_double import RDF
+            return RDF
+        if issubclass(py_type, mpmath.mpc):
+            from sage.rings.complex_double import CDF
+            return CDF
         return None
+    return None
 
-cpdef py_scalar_to_element(x) noexcept:
+cpdef py_scalar_to_element(x):
     """
     Convert ``x`` to a Sage :class:`~sage.structure.element.Element` if possible.
 
@@ -331,7 +344,7 @@ cpdef bint parent_is_integers(P) except -1:
         sage: parent_is_integers(gmpy2.mpq)
         False
 
-    Ensure (:trac:`27893`) is fixed::
+    Ensure (:issue:`27893`) is fixed::
 
         sage: K.<f> = QQ[]
         sage: gmpy2.mpz(2) * f
@@ -340,16 +353,15 @@ cpdef bint parent_is_integers(P) except -1:
     if isinstance(P, type):
         if issubclass(P, int):
             return True
-        elif is_numpy_type(P):
+        if is_numpy_type(P):
             from numpy import integer
             return issubclass(P, integer)
-        elif issubclass(P, gmpy2.mpz):
+        if issubclass(P, gmpy2.mpz):
             return True
-        else:
-            return False
-    else:
-        from sage.rings.integer_ring import ZZ
-        return P is ZZ
+        return False
+    from sage.rings.integer_ring import ZZ
+    return P is ZZ
+
 
 def parent_is_numerical(P):
     r"""
@@ -380,6 +392,7 @@ def parent_is_numerical(P):
         if P is None:
             return False
     return P._is_numerical()
+
 
 def parent_is_real_numerical(P):
     r"""
@@ -446,7 +459,7 @@ cpdef bint is_numpy_type(t) noexcept:
 
     TESTS:
 
-    This used to crash Sage (:trac:`20715`)::
+    This used to crash Sage (:issue:`20715`)::
 
         sage: is_numpy_type(object)
         False
@@ -466,14 +479,13 @@ cpdef bint is_numpy_type(t) noexcept:
         return True
     return False
 
+
 cpdef bint is_mpmath_type(t) noexcept:
     r"""
-    Check whether the type ``t`` is a type whose name starts with either
-    ``mpmath.`` or ``sage.libs.mpmath.``.
+    Check whether the type ``t`` is a type whose name starts with ``mpmath.``
 
     EXAMPLES::
 
-        sage: # needs mpmath
         sage: from sage.structure.coerce import is_mpmath_type
         sage: is_mpmath_type(int)
         False
@@ -486,12 +498,12 @@ cpdef bint is_mpmath_type(t) noexcept:
         True
     """
     return isinstance(t, type) and \
-           strncmp((<PyTypeObject*>t).tp_name, "sage.libs.mpmath.", 17) == 0
+           t.__module__.startswith("mpmath.")
 
 
 cdef class CoercionModel:
     """
-    See also sage.categories.pushout
+    See also :mod:`sage.categories.pushout`
 
     EXAMPLES::
 
@@ -514,9 +526,12 @@ cdef class CoercionModel:
 
     TESTS:
 
-    Check that :trac:`8426` is fixed (see also :trac:`18076`)::
+    Check that :issue:`8426` is fixed (see also :issue:`18076`)::
 
         sage: import numpy                                                              # needs numpy
+        sage: __ = numpy.set_printoptions(legacy="1.25")                                # needs numpy
+
+        sage: # needs sage.rings.real_mpfr
         sage: x = polygen(RR)
         sage: numpy.float32('1.5') * x                                                  # needs numpy
         1.50000000000000*x
@@ -528,7 +543,7 @@ cdef class CoercionModel:
         sage: p(int('2'))
         11.0000000000000
 
-    This used to fail (see :trac:`18076`)::
+    This used to fail (see :issue:`18076`)::
 
         sage: 1/3 + numpy.int8('12')                                                    # needs numpy
         37/3
@@ -543,9 +558,8 @@ cdef class CoercionModel:
 
         sage: numpy.uint8('2') + 3                                                      # needs numpy
         5
-        sage: type(_)                                                                   # needs numpy
-        <class 'numpy.int32'>  # 32-bit
-        <class 'numpy.int64'>  # 64-bit
+        sage: type(_) in [numpy.int32, numpy.int64]                                     # needs numpy
+        True
 
         sage: numpy.int8('12') + 1/3                                                    # needs numpy
         12.333333333333334
@@ -614,7 +628,7 @@ cdef class CoercionModel:
 
             sage: left_morphism_ref, right_morphism_ref = maps[ZZ, QQ]
 
-        Note that by :trac:`14058` the coercion model only stores a weak
+        Note that by :issue:`14058` the coercion model only stores a weak
         reference to the coercion maps in this case::
 
             sage: left_morphism_ref
@@ -678,7 +692,7 @@ cdef class CoercionModel:
             sage: cm.record_exceptions()
             sage: cm._test_exception_stack()
             sage: cm.exception_stack()
-            ['Traceback (most recent call last):\n  File "sage/structure/coerce.pyx", line ...TypeError: just a test']
+            ['Traceback (most recent call last):\n  File "...coerce.pyx", line ...TypeError: just a test']
             sage: cm.record_exceptions(False)
             sage: cm._test_exception_stack()
             sage: cm.exception_stack()
@@ -688,9 +702,9 @@ cdef class CoercionModel:
         self._exceptions_cleared = True
         self._exception_stack = []
 
-    cpdef _record_exception(self) noexcept:
+    cpdef _record_exception(self):
         r"""
-        Pushes the last exception that occurred onto the stack for later reference,
+        Push the last exception that occurred onto the stack for later reference,
         for internal use.
 
         If the stack has not yet been flagged as cleared, we clear it now (rather
@@ -706,7 +720,7 @@ cdef class CoercionModel:
             []
             sage: cm._test_exception_stack()
             sage: cm.exception_stack()
-            ['Traceback (most recent call last):\n  File "sage/structure/coerce.pyx", line ...TypeError: just a test']
+            ['Traceback (most recent call last):\n  File "...coerce.pyx", line ...TypeError: just a test']
 
         The function _test_exception_stack is executing the following code::
 
@@ -736,7 +750,7 @@ cdef class CoercionModel:
             []
             sage: cm._test_exception_stack()
             sage: cm.exception_stack()
-            ['Traceback (most recent call last):\n  File "sage/structure/coerce.pyx", line ...TypeError: just a test']
+            ['Traceback (most recent call last):\n  File "...coerce.pyx", line ...TypeError: just a test']
         """
         try:
             raise TypeError("just a test")
@@ -745,14 +759,14 @@ cdef class CoercionModel:
 
     def exception_stack(self):
         r"""
-        Returns the list of exceptions that were caught in the course of
+        Return the list of exceptions that were caught in the course of
         executing the last binary operation. Useful for diagnosis when
         user-defined maps or actions raise exceptions that are caught in
         the course of coercion detection.
 
         If all went well, this should be the empty list. If things aren't
         happening as you expect, this is a good place to check. See also
-        :func:`coercion_traceback`.
+        :func:`~sage.structure.element.coercion_traceback`.
 
         EXAMPLES::
 
@@ -779,7 +793,8 @@ cdef class CoercionModel:
             TypeError: no common canonical parent for objects with parents:
             'Rational Field' and 'Finite Field of size 3'
 
-        This is typically accessed via the :func:`coercion_traceback` function.
+        This is typically accessed via the
+        :func:`~sage.structure.element.coercion_traceback` function.
 
         ::
 
@@ -794,13 +809,15 @@ cdef class CoercionModel:
             self._exceptions_cleared = True
         return self._exception_stack
 
-
     def explain(self, xp, yp, op=mul, int verbosity=2):
         """
         This function can be used to understand what coercions will happen
         for an arithmetic operation between xp and yp (which may be either
         elements or parents). If the parent of the result can be determined
         then it will be returned.
+
+        For programmatic usages, use :meth:`canonical_coercion` and
+        :meth:`common_parent` instead.
 
         EXAMPLES::
 
@@ -923,7 +940,7 @@ cdef class CoercionModel:
                 print("Result lives in {}".format(res))
         return res
 
-    cpdef analyse(self, xp, yp, op=mul) noexcept:
+    cpdef analyse(self, xp, yp, op=mul):
         """
         Emulate the process of doing arithmetic between xp and yp, returning
         a list of steps and the parent that the result will live in.
@@ -931,6 +948,9 @@ cdef class CoercionModel:
         The :meth:`explain` method is easier to use, but if one wants access to
         the actual morphism and action objects (rather than their string
         representations), then this is the function to use.
+
+        For programmatic usages, use :meth:`canonical_coercion` and
+        :meth:`common_parent` instead.
 
         EXAMPLES::
 
@@ -959,7 +979,7 @@ cdef class CoercionModel:
 
         all = []
         if xp is yp:
-            all.append("Identical parents, arithmetic performed immediately." % xp)
+            all.append("Identical parents, arithmetic performed immediately.")
             if op is truediv and isinstance(xp, Parent):
                 xp = self.division_parent(xp)
             return all, xp
@@ -1029,12 +1049,13 @@ cdef class CoercionModel:
 
         INPUT:
 
-        - ``args`` -- a set of elements and/or parents
+        - ``args`` -- set of elements and/or parents
 
         OUTPUT:
 
-        A :class:`Parent` into which each input should coerce, or raises a
-        :class:`TypeError` if no such :class:`Parent` can be found.
+        A :class:`~sage.structure.parent.Parent` into which each input should
+        coerce, or raises a :exc:`TypeError` if no such
+        :class:`~sage.structure.parent.Parent` can be found.
 
         EXAMPLES::
 
@@ -1088,7 +1109,7 @@ cdef class CoercionModel:
                 base = parent(self.canonical_coercion(a, b)[0])
         return base
 
-    cpdef division_parent(self, Parent P) noexcept:
+    cpdef division_parent(self, Parent P):
         r"""
         Deduces where the result of division in ``P`` lies by
         calculating the inverse of ``P.one()`` or ``P.an_element()``.
@@ -1127,7 +1148,7 @@ cdef class CoercionModel:
         self._division_parents.set(P, None, None, ret)
         return ret
 
-    cpdef bin_op(self, x, y, op) noexcept:
+    cpdef bin_op(self, x, y, op):
         """
         Execute the operation ``op`` on `x` and `y`.
 
@@ -1135,7 +1156,7 @@ cdef class CoercionModel:
         corresponding to ``op``, and failing that, it tries to coerce `x` and `y`
         into a common parent and calls ``op`` on them.
 
-        If it cannot make sense of the operation, a :class:`TypeError` is raised.
+        If it cannot make sense of the operation, a :exc:`TypeError` is raised.
 
         INPUT:
 
@@ -1220,8 +1241,7 @@ cdef class CoercionModel:
         if action is not None:
             if (<Action>action)._is_left:
                 return (<Action>action)._act_(x, y)
-            else:
-                return (<Action>action)._act_(y, x)
+            return (<Action>action)._act_(y, x)
 
         # Now coerce to a common parent and do the operation there
         try:
@@ -1265,7 +1285,7 @@ cdef class CoercionModel:
 
         if not isinstance(y, Element):
             op_name = op.__name__
-            mul_method = getattr(y, '__r%s__'%op_name, None)
+            mul_method = getattr(y, '__r%s__' % op_name, None)
             if mul_method is not None:
                 res = mul_method(x)
                 if res is not None and res is not NotImplemented:
@@ -1275,7 +1295,7 @@ cdef class CoercionModel:
         # This causes so much headache.
         raise bin_op_exception(op, x, y)
 
-    cpdef canonical_coercion(self, x, y) noexcept:
+    cpdef canonical_coercion(self, x, y):
         r"""
         Given two elements `x` and `y`, with parents `S` and `R` respectively,
         find a common parent `Z` such that there are coercions
@@ -1381,8 +1401,7 @@ cdef class CoercionModel:
                 sage_parent = py_scalar_parent(type(x))
                 if sage_parent is None or sage_parent.has_coerce_map_from(yp):
                     return x, x.__class__(y)
-                else:
-                    return self.canonical_coercion(sage_parent(x), y)
+                return self.canonical_coercion(sage_parent(x), y)
             except (TypeError, ValueError):
                 self._record_exception()
 
@@ -1391,8 +1410,7 @@ cdef class CoercionModel:
                 sage_parent = py_scalar_parent(type(y))
                 if sage_parent is None or sage_parent.has_coerce_map_from(xp):
                     return y.__class__(x), y
-                else:
-                    return self.canonical_coercion(x, sage_parent(y))
+                return self.canonical_coercion(x, sage_parent(y))
             except (TypeError, ValueError):
                 self._record_exception()
 
@@ -1419,9 +1437,9 @@ cdef class CoercionModel:
             except Exception:
                 self._record_exception()
 
-        raise TypeError("no common canonical parent for objects with parents: '%s' and '%s'"%(xp, yp))
+        raise TypeError("no common canonical parent for objects with parents: '%s' and '%s'" % (xp, yp))
 
-    cpdef coercion_maps(self, R, S) noexcept:
+    cpdef coercion_maps(self, R, S):
         r"""
         Give two parents `R` and `S`, return a pair of coercion maps
         `f: R \rightarrow Z` and `g: S \rightarrow Z` , if such a `Z`
@@ -1436,7 +1454,7 @@ cdef class CoercionModel:
 
         .. NOTE::
 
-            By :trac:`14711`, coerce maps should be copied when using them
+            By :issue:`14711`, coerce maps should be copied when using them
             outside of the coercion system, because they may become defunct
             by garbage collection.
 
@@ -1500,7 +1518,7 @@ cdef class CoercionModel:
 
         TESTS:
 
-        We check that with :trac:`14058`, parents are still eligible for
+        We check that with :issue:`14058`, parents are still eligible for
         garbage collection after being involved in binary operations::
 
             sage: # needs sage.libs.pari
@@ -1519,7 +1537,6 @@ cdef class CoercionModel:
             sage: N2 = len(list(o for o in gc.get_objects() if type(o) is T))
             sage: N2 - N0
             0
-
         """
         try:
             refs = self._coercion_maps.get(R, S, None)
@@ -1527,16 +1544,16 @@ cdef class CoercionModel:
                 return None
             R_map_ref, S_map_ref = refs
             if R_map_ref is None:
-                S_map = <object>PyWeakref_GET_OBJECT(S_map_ref)
+                S_map = S_map_ref()
                 if S_map is not None:
                     return None, S_map
             elif S_map_ref is None:
-                R_map = <object>PyWeakref_GET_OBJECT(R_map_ref)
+                R_map = R_map_ref()
                 if R_map is not None:
                     return R_map, None
             else:
-                R_map = <object>PyWeakref_GET_OBJECT(R_map_ref)
-                S_map = <object>PyWeakref_GET_OBJECT(S_map_ref)
+                R_map = R_map_ref()
+                S_map = S_map_ref()
                 if R_map is not None and S_map is not None:
                     return R_map, S_map
         except KeyError:
@@ -1570,7 +1587,7 @@ cdef class CoercionModel:
         self._coercion_maps.set(S, R, None, swap)
         return homs
 
-    cpdef verify_coercion_maps(self, R, S, homs, bint fix=False) noexcept:
+    cpdef verify_coercion_maps(self, R, S, homs, bint fix=False):
         """
         Make sure this is a valid pair of homomorphisms from `R` and `S` to a common parent.
         This function is used to protect the user against buggy parents.
@@ -1595,7 +1612,7 @@ cdef class CoercionModel:
         """
         if homs is None:
             return None
-        cdef Map x_map, y_map
+        cdef Map R_map, S_map
         R_map, S_map = homs
         if isinstance(R, type):
             R = Set_PythonType(R)
@@ -1638,8 +1655,7 @@ cdef class CoercionModel:
             S_map = None
         return R_map, S_map
 
-
-    cpdef discover_coercion(self, R, S) noexcept:
+    cpdef discover_coercion(self, R, S):
         """
         This actually implements the finding of coercion maps as described in
         the :meth:`coercion_maps` method.
@@ -1671,13 +1687,13 @@ cdef class CoercionModel:
             sage: ZZxy = ZZ['x,y']
             sage: cm.discover_coercion(ZZxy, RDF)
             ((map internal to coercion system -- copy before use)
-            Call morphism:
-              From: Multivariate Polynomial Ring in x, y over Integer Ring
-              To:   Multivariate Polynomial Ring in x, y over Real Double Field,
+             Coercion map:
+               From: Multivariate Polynomial Ring in x, y over Integer Ring
+               To:   Multivariate Polynomial Ring in x, y over Real Double Field,
              (map internal to coercion system -- copy before use)
              Polynomial base injection morphism:
-              From: Real Double Field
-              To:   Multivariate Polynomial Ring in x, y over Real Double Field)
+               From: Real Double Field
+               To:   Multivariate Polynomial Ring in x, y over Real Double Field)
 
         Sometimes there is a reasonable "cover," but no canonical coercion::
 
@@ -1718,7 +1734,7 @@ cdef class CoercionModel:
 
         return None
 
-    cpdef get_action(self, R, S, op=mul, r=None, s=None) noexcept:
+    cpdef get_action(self, R, S, op=mul, r=None, s=None):
         """
         Get the action of R on S or S on R associated to the operation op.
 
@@ -1759,7 +1775,7 @@ cdef class CoercionModel:
         self._action_maps.set(R, S, op, action)
         return action
 
-    cpdef verify_action(self, action, R, S, op, bint fix=True) noexcept:
+    cpdef verify_action(self, action, R, S, op, bint fix=True):
         r"""
         Verify that ``action`` takes an element of R on the left and S
         on the right, raising an error if not.
@@ -1818,19 +1834,17 @@ cdef class CoercionModel:
 
         return action
 
-    cpdef discover_action(self, R, S, op, r=None, s=None) noexcept:
+    cpdef discover_action(self, R, S, op, r=None, s=None):
         """
         INPUT:
 
-        - ``R`` -- the left :class:`Parent` (or type)
-        - ``S`` -- the right :class:`Parent` (or type)
+        - ``R`` -- the left :class:`~sage.structure.parent.Parent` (or type)
+        - ``S`` -- the right :class:`~sage.structure.parent.Parent` (or type)
         - ``op`` -- the operand, typically an element of the :mod:`operator` module
         - ``r`` -- (optional) element of `R`
-        - ``s`` -- (optional) element of `S`.
+        - ``s`` -- (optional) element of `S`
 
-        OUTPUT:
-
-        - An action `A` such that `s` ``op`` `r` is given by `A(s,r)`.
+        OUTPUT: an action `A` such that `s` ``op`` `r` is given by `A(s,r)`
 
         The steps taken are illustrated below.
 
@@ -1844,7 +1858,8 @@ cdef class CoercionModel:
             True
             sage: cm = sage.structure.element.get_coercion_model()
 
-        If `R` or `S` is a :class:`Parent`, ask it for an action by/on `R`::
+        If `R` or `S` is a :class:`~sage.structure.parent.Parent`, ask it
+        for an action by/on `R`::
 
             sage: cm.discover_action(ZZ, P, operator.mul)
             Left scalar multiplication by Integer Ring on
@@ -1869,7 +1884,7 @@ cdef class CoercionModel:
               From: Integer Ring
               To:   Rational Field
 
-        Check that :trac:`17740` is fixed::
+        Check that :issue:`17740` is fixed::
 
             sage: R = GF(5)['x']
             sage: cm.discover_action(R, ZZ, operator.truediv)
@@ -1881,7 +1896,7 @@ cdef class CoercionModel:
             sage: cm.bin_op(R.gen(), 7, operator.truediv).parent()
             Univariate Polynomial Ring in x over Finite Field of size 5
 
-        Check that :trac:`18221` is fixed::
+        Check that :issue:`18221` is fixed::
 
             sage: # needs sage.combinat sage.modules
             sage: F.<x> = FreeAlgebra(QQ)
@@ -1889,7 +1904,7 @@ cdef class CoercionModel:
             1/2*x
             sage: cm.discover_action(F, ZZ, operator.truediv)
             Right inverse action by Rational Field on
-             Free Algebra on 1 generators (x,) over Rational Field
+             Free Algebra on 1 generator (x,) over Rational Field
              with precomposition on right by Natural morphism:
               From: Integer Ring
               To:   Rational Field
@@ -1956,7 +1971,7 @@ cdef class CoercionModel:
 
         return None
 
-    cpdef richcmp(self, x, y, int op) noexcept:
+    cpdef richcmp(self, x, y, int op):
         """
         Given two arbitrary objects ``x`` and ``y``, coerce them to
         a common parent and compare them using rich comparison operator

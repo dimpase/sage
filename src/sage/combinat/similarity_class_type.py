@@ -101,7 +101,7 @@ similarity classes of `k`-tuples of `n\times n` matrices with entries in
 
     sage: from sage.combinat.similarity_class_type import order_of_general_linear_group, centralizer_algebra_dim
     sage: q = ZZ['q'].gen()
-    sage: def simultaneous_similarity_classes(n,k):
+    sage: def simultaneous_similarity_classes(n, k):
     ....:     return SimilarityClassTypes(n).sum(lambda la: q**(k*centralizer_algebra_dim(la)), invertible = True)/order_of_general_linear_group(n)
     sage: simultaneous_similarity_classes(3, 2)
     q^10 + q^8 + 2*q^7 + 2*q^6 + 2*q^5 + q^4
@@ -145,24 +145,15 @@ classes which are selftranspose can also be counted::
 
 REFERENCES:
 
-.. [Green55] Green, J. A.  *The characters of the finite general linear groups*.
-   Trans. Amer. Math. Soc.  80  (1955), 402--447.
-   :doi:`10.1090/S0002-9947-1955-0072878-2`
+- [Green55]_
 
-.. [Morrison06] Morrison, Kent E.
-   *Integer sequences and matrices over finite fields*.
-   J. Integer Seq. 9 (2006), no. 2, Article 06.2.1, 28 pp.
-   https://cs.uwaterloo.ca/journals/JIS/VOL9/Morrison/morrison37.html
+- [Morrison06]_
 
-.. [PSS13] Prasad, A., Singla, P., and Spallone, S., *Similarity of matrices
-   over local rings of length two*. :arxiv:`1212.6157`
+- [PSS13]_
 
-.. [PR22] Prasad, A., Ram, S., *Splitting subspaces and a finite field
-   interpretation of the Touchard-Riordan formula*. :arxiv:`2205.11076`
+- [PR22]_
 
-.. [R17] Ramaré, O., *Rationality of the zeta function of the subgroups of
-   abelian p-groups*. Publ. Math. Debrecen 90.1-2.
-   :doi:`10.5486/PMD.2017.7466`
+- [R17]_
 
 AUTHOR:
 
@@ -203,7 +194,7 @@ from sage.rings.fraction_field import FractionField
 from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.rings.rational_field import QQ
-from sage.structure.element import Element, is_Matrix
+from sage.structure.element import Element, Matrix
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
 
@@ -215,13 +206,11 @@ def fq(n, q=None):
 
     INPUT:
 
-    - ``n`` -- a non-negative integer
+    - ``n`` -- nonnegative integer
 
-    - ``q`` -- an integer or an indeterminate
+    - ``q`` -- integer or an indeterminate
 
-    OUTPUT:
-
-    A rational function in ``q``.
+    OUTPUT: a rational function in ``q``
 
     EXAMPLES::
 
@@ -253,15 +242,13 @@ def primitives(n, invertible=False, q=None):
 
     INPUT:
 
-    - ``n`` -- a positive integer
+    - ``n`` -- positive integer
 
-    - ``invertible`` -- boolean; if set, only number of non-zero classes is returned
+    - ``invertible`` -- boolean; if set, only number of nonzero classes is returned
 
-    - ``q`` -- an integer or an indeterminate
+    - ``q`` -- integer or an indeterminate
 
-    OUTPUT:
-
-    - a rational function of the variable ``q``
+    OUTPUT: a rational function of the variable ``q``
 
     EXAMPLES::
 
@@ -280,8 +267,7 @@ def primitives(n, invertible=False, q=None):
     p = sum(moebius(n // d) * q**d for d in divisors(n)) / n
     if invertible and n == 1:
         return p - 1
-    else:
-        return p
+    return p
 
 
 @cached_function
@@ -292,9 +278,9 @@ def order_of_general_linear_group(n, q=None):
 
     INPUT:
 
-    - ``n`` -- a non-negative integer
+    - ``n`` -- nonnegative integer
 
-    - ``q`` -- an integer or an indeterminate
+    - ``q`` -- integer or an indeterminate
 
     EXAMPLES::
 
@@ -340,9 +326,7 @@ def centralizer_group_cardinality(la, q=None):
 
     - ``q`` -- an integer or an indeterminate
 
-    OUTPUT:
-
-    A polynomial function of ``q``.
+    OUTPUT: a polynomial function of ``q``
 
     EXAMPLES::
 
@@ -367,9 +351,7 @@ def invariant_subspace_generating_function(la, q=None, t=None):
     - ``q`` -- (optional) an integer or an inderminate
     - ``t`` -- (optional) an indeterminate
 
-    OUTPUT:
-
-    A polynomial in ``t`` whose coefficients are polynomials in ``q``.
+    OUTPUT: a polynomial in ``t`` whose coefficients are polynomials in ``q``
 
     EXAMPLES::
 
@@ -588,7 +570,7 @@ class PrimarySimilarityClassType(Element,
 
         INPUT:
 
-        - ``q`` -- an integer or an indeterminate
+        - ``q`` -- integer or an indeterminate
 
         EXAMPLES::
 
@@ -637,7 +619,7 @@ class PrimarySimilarityClassTypes(UniqueRepresentation, Parent):
 
     INPUT:
 
-    - ``n`` -- a positive integer
+    - ``n`` -- positive integer
     - ``min`` -- a primary matrix type of size ``n``
 
     EXAMPLES:
@@ -767,7 +749,7 @@ class SimilarityClassType(CombinatorialElement):
 
     INPUT:
 
-    - ``tau`` -- a list of primary similarity class types or a square matrix
+    - ``tau`` -- list of primary similarity class types or a square matrix
       over a finite field
 
     EXAMPLES::
@@ -807,7 +789,7 @@ class SimilarityClassType(CombinatorialElement):
             sage: tau.parent().size()
             24
         """
-        if is_Matrix(tau):
+        if isinstance(tau, Matrix):
             n = tau.nrows()
             F = tau.base_ring()
             R = PolynomialRing(F, 't')
@@ -817,16 +799,15 @@ class SimilarityClassType(CombinatorialElement):
             f = [dict(list(p.factor())) for p in L]
             d = {p: Partition([h[p] for h in f if p in h]) for p in f[0]}
             return SimilarityClassType([[p.degree(), d[p]] for p in d])
-        else:
-            ret = []
-            for l in tau:
-                if isinstance(l, PrimarySimilarityClassType):
-                    ret.append(l)
-                else:
-                    ret.append(PrimarySimilarityClassType(*l))
-            n = sum([PT.size() for PT in ret])
-            T = SimilarityClassTypes(n)
-            return T(tau)
+        ret = []
+        for l in tau:
+            if isinstance(l, PrimarySimilarityClassType):
+                ret.append(l)
+            else:
+                ret.append(PrimarySimilarityClassType(*l))
+        n = sum([PT.size() for PT in ret])
+        T = SimilarityClassTypes(n)
+        return T(tau)
 
     def __init__(self, parent, tau):
         """
@@ -872,7 +853,7 @@ class SimilarityClassType(CombinatorialElement):
 
         INPUT:
 
-        - ``q`` -- an integer or an indeterminate
+        - ``q`` -- integer or an indeterminate
 
         EXAMPLES::
 
@@ -908,10 +889,10 @@ class SimilarityClassType(CombinatorialElement):
 
         INPUT:
 
-        - ``invertible`` -- Boolean; return number of invertible classes if set
+        - ``invertible`` -- boolean; return number of invertible classes if set
           to ``True``
 
-        - ``q`` -- An integer or an indeterminate
+        - ``q`` -- integer or an indeterminate
 
         EXAMPLES::
 
@@ -927,11 +908,11 @@ class SimilarityClassType(CombinatorialElement):
         maximum_degree = max(list_of_degrees)
         numerator = prod([prod([primitives(d+1, invertible=invertible, q=q)-i for i in range(list_of_degrees.count(d+1))]) for d in range(maximum_degree)])
         tau_list = list(self)
-        D = dict((i, tau_list.count(i)) for i in tau_list)
+        D = {i: tau_list.count(i) for i in tau_list}
         denominator = prod(factorial(D[primary_type]) for primary_type in D)
         return numerator / denominator
 
-    def is_semisimple(self):
+    def is_semisimple(self) -> bool:
         """
         Return ``True`` if every primary similarity class type in ``self`` has
         all parts equal to ``1``.
@@ -947,7 +928,7 @@ class SimilarityClassType(CombinatorialElement):
         """
         return all(PT.partition().get_part(0) == 1 for PT in self)
 
-    def is_regular(self):
+    def is_regular(self) -> bool:
         """
         Return ``True`` if every primary type in ``self`` has partition with one
         part.
@@ -990,7 +971,7 @@ class SimilarityClassType(CombinatorialElement):
 
         INPUT:
 
-        - ``q`` -- an integer or an indeterminate
+        - ``q`` -- integer or an indeterminate
 
         EXAMPLES::
 
@@ -1011,7 +992,7 @@ class SimilarityClassType(CombinatorialElement):
 
         INPUT:
 
-        - ``invertible`` -- A boolean; return the number of invertible
+        - ``invertible`` -- a boolean; return the number of invertible
           matrices if set
 
         EXAMPLES::
@@ -1031,7 +1012,7 @@ class SimilarityClassType(CombinatorialElement):
 
     def statistic(self, func, q=None):
         r"""
-        Return
+        Return.
 
         .. MATH::
 
@@ -1044,7 +1025,7 @@ class SimilarityClassType(CombinatorialElement):
 
         - ``func`` -- a function that takes a partition to a polynomial in ``q``
 
-        - ``q`` -- an integer or an indeterminate
+        - ``q`` -- integer or an indeterminate
 
         EXAMPLES::
 
@@ -1064,16 +1045,15 @@ class SimilarityClassType(CombinatorialElement):
         r"""
         Return the invariant subspace generating function of ``self``.
 
-        The invariant subspace generating function is the function is the
-        polynomial
+        The invariant subspace generating function is the polynomial
 
         .. MATH::
 
             \sum_{j\geq 0} a_j(q) t^j,
 
-        where `a_j(q)` denotes the number of `j`-dimensional invariant subspaces
-        of dimensiona `j` for any matrix with the similarity class type ``self``
-        with entries in a field of order `q`.
+        where `a_j(q)` denotes the number of `j`-dimensional invariant
+        subspaces for any matrix with the similarity class type
+        ``self`` with entries in a field of order `q`.
 
         EXAMPLES::
 
@@ -1100,7 +1080,7 @@ class SimilarityClassTypes(UniqueRepresentation, Parent):
 
     INPUT:
 
-    - ``n`` -- a non-negative integer
+    - ``n`` -- nonnegative integer
     - ``min`` -- a primary similarity class type
 
     EXAMPLES:
@@ -1168,7 +1148,7 @@ class SimilarityClassTypes(UniqueRepresentation, Parent):
 
         INPUT:
 
-        - ``tau`` -- a list of primary similarity class types
+        - ``tau`` -- list of primary similarity class types
 
         EXAMPLES::
 
@@ -1238,7 +1218,7 @@ class SimilarityClassTypes(UniqueRepresentation, Parent):
         """
         return self._n
 
-    def sum(self, stat, sumover="matrices", invertible=False, q=None):
+    def sum(self, stat, sumover='matrices', invertible=False, q=None):
         r"""
         Return the sum of a local statistic over all types.
 
@@ -1256,10 +1236,10 @@ class SimilarityClassTypes(UniqueRepresentation, Parent):
             \sum n_{\tau(g)}(q)
 
         where `\tau(g)` denotes the type of a matrix `g`, and the sum is over
-        all `n \times n` matrices if ``sumover`` is set to ``"matrices"``, is
+        all `n \times n` matrices if ``sumover`` is set to ``'matrices'``, is
         over all `n \times n` similarity classes if ``sumover`` is set to
-        ``"classes"``, and over all `n \times n` types if ``sumover`` is set
-        to ``"types"``. If ``invertible`` is set to ``True``, then the sum is
+        ``'classes'``, and over all `n \times n` types if ``sumover`` is set
+        to ``'types'``. If ``invertible`` is set to ``True``, then the sum is
         only over invertible matrices or classes.
 
         INPUT:
@@ -1268,15 +1248,13 @@ class SimilarityClassTypes(UniqueRepresentation, Parent):
           of ``q``
         - ``sumover`` -- can be one of the following:
 
-          * ``"matrices"``
-          * ``"classes"``
-          * ``"types"``
+          * ``'matrices'``
+          * ``'classes'``
+          * ``'types'``
 
-        - ``q`` -- an integer or an indeterminate
+        - ``q`` -- integer or an indeterminate
 
-        OUTPUT:
-
-        A function of ``q``.
+        OUTPUT: a function of ``q``
 
         EXAMPLES::
 
@@ -1300,12 +1278,11 @@ class SimilarityClassTypes(UniqueRepresentation, Parent):
         """
         if sumover == "matrices":
             return sum([tau.statistic(stat, q=q)*tau.number_of_matrices(invertible=invertible, q=q) for tau in self])
-        elif sumover == "classes":
+        if sumover == "classes":
             return sum([tau.statistic(stat, q=q)*tau.number_of_classes(invertible=invertible, q=q) for tau in self])
-        elif sumover == "types":
+        if sumover == "types":
             return sum([tau.statistic(stat, invertible=invertible, q=q) for tau in self])
-        else:
-            raise ValueError("invalid parameter %s" % (sumover))
+        raise ValueError("invalid parameter %s" % (sumover))
 
 ################################################################################
 #                 Similarity over rings of length two                          #
@@ -1335,8 +1312,9 @@ def dictionary_from_generator(gen):
         high.
     """
     L = list(gen)
-    setofkeys = list(set(item[0] for item in L))
-    return dict((key, sum(entry[1] for entry in (pair for pair in L if pair[0] == key))) for key in setofkeys)
+    setofkeys = set(item[0] for item in L)
+    return {key: sum(pair[1] for pair in L if pair[0] == key)
+            for key in setofkeys}
 
 
 def matrix_similarity_classes(n, q=None, invertible=False):
@@ -1445,8 +1423,8 @@ def ext_orbits(input_data, q=None, selftranspose=False):
 
     - ``input_data`` -- input for :func:`input_parsing()`
     - ``q`` -- (default: `q`) an integer or an indeterminate
-    - ``selftranspose`` -- (default: ``False``) boolean stating if we only want
-      selftranspose type
+    - ``selftranspose`` -- boolean (default: ``False``); stating if we only
+      want selftranspose type
 
     TESTS::
 
@@ -1487,24 +1465,21 @@ def ext_orbits(input_data, q=None, selftranspose=False):
             return q.parent()(1)
         if max(la) == 1:
             return matrix_similarity_classes(len(la), q=q)
-        elif len(la) == 1:
+        if len(la) == 1:
             return q**la.size()
-        elif len(la) == 2 and list(la).count(1) == 1:  # see Table 3
+        if len(la) == 2 and list(la).count(1) == 1:  # see Table 3
             m = max(la) - 1
             if selftranspose:
                 return q**(m + 2) + q**(m + 1) - q**m
-            else:
-                return q**(m + 2) + q**(m + 1) + q**m
-        elif len(la) == 3 and list(la).count(1) == 2:  # see Table 4
+            return q**(m + 2) + q**(m + 1) + q**m
+        if len(la) == 3 and list(la).count(1) == 2:  # see Table 4
             m = max(la) - 1
             if not selftranspose:
                 return q**m*(q**3 + 2*q**2 + 2*q + 2)
-            else:
-                return q**m*(q**3 + 2*q**2)
-        elif min(la) == 2 and max(la) == 2:
+            return q**m*(q**3 + 2*q**2)
+        if min(la) == 2 and max(la) == 2:
             return matrix_similarity_classes_length_two(len(la), q=q, selftranspose=selftranspose)
-        else:
-            raise ValueError('partition %s not implemented for ExtOrbitClasses.orbits' % (la))
+        raise ValueError('partition %s not implemented for ExtOrbitClasses.orbits' % (la))
     elif case == 'pri':
         tau = data
         return ext_orbits(tau.partition(), q=q, selftranspose=selftranspose).substitute(q=q**tau.degree())
@@ -1522,9 +1497,9 @@ def matrix_similarity_classes_length_two(n, q=None, selftranspose=False, inverti
 
     - ``n`` -- the order
     - ``q`` -- (default: `q`) an integer or an indeterminate
-    - ``selftranspose`` -- (default: ``False``) boolean stating if we only want
+    - ``selftranspose`` -- boolean (default: ``False``); stating if we only want
       selftranspose type
-    - ``invertible`` -- (default: ``False``) boolean stating if we only want
+    - ``invertible`` -- boolean (default: ``False``); stating if we only want
       invertible type
 
     EXAMPLES:
@@ -1575,7 +1550,7 @@ def ext_orbit_centralizers(input_data, q=None, selftranspose=False):
 
     - ``input_data`` -- input for :func:`input_parsing()`
     - ``q`` -- (default: `q`) an integer or an indeterminate
-    - ``selftranspose`` -- (default: ``False``) boolean stating if we only want
+    - ``selftranspose`` -- boolean (default: ``False``); stating if we only want
       selftranspose type
 
     TESTS::
@@ -1700,9 +1675,9 @@ def matrix_centralizer_cardinalities_length_two(n, q=None, selftranspose=False, 
 
     - ``n`` -- the order
     - ``q`` -- (default: `q`) an integer or an indeterminate
-    - ``selftranspose`` -- (default: ``False``) boolean stating if we only want
+    - ``selftranspose`` -- boolean (default: ``False``); stating if we only want
       selftranspose type
-    - ``invertible`` -- (default: ``False``) boolean stating if we only want
+    - ``invertible`` -- boolean (default: ``False``); stating if we only want
       invertible type
 
     TESTS::

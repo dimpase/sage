@@ -16,6 +16,7 @@ from .cuspidal_submodule import CuspidalSubmodule_R
 from sage.rings.integer_ring import ZZ
 from sage.misc.cachefunc import cached_method
 
+
 class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
     def __init__(self, M, base_ring):
         """
@@ -23,7 +24,7 @@ class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
 
         EXAMPLES::
 
-            sage: M = ModularForms(23,2,base_ring=GF(7)) # indirect doctest
+            sage: M = ModularForms(23, 2, base_ring=GF(7)) # indirect doctest
             sage: M
             Modular Forms space of dimension 3 for Congruence Subgroup Gamma0(23)
              of weight 2 over Finite Field of size 7
@@ -37,8 +38,8 @@ class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
             self.__R_character = None
         ambient.ModularFormsAmbient.__init__(self, M.group(), M.weight(), base_ring, M.character(), M._eis_only)
 
-    @cached_method(key=lambda self,sign: ZZ(sign)) # convert sign to an Integer before looking this up in the cache
-    def modular_symbols(self,sign=0):
+    @cached_method(key=lambda self, sign: ZZ(sign))  # convert sign to an Integer before looking this up in the cache
+    def modular_symbols(self, sign=0):
         r"""
         Return the space of modular symbols attached to this space, with the given sign (default 0).
 
@@ -46,9 +47,10 @@ class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
 
             sage: # needs sage.rings.number_field
             sage: K.<i> = QuadraticField(-1)
-            sage: chi = DirichletGroup(5, base_ring = K).0
+            sage: chi = DirichletGroup(5, base_ring=K).0
+            sage: x = polygen(ZZ, 'x')
             sage: L.<c> = K.extension(x^2 - 402*i)
-            sage: M = ModularForms(chi, 7, base_ring = L)
+            sage: M = ModularForms(chi, 7, base_ring=L)
             sage: symbs = M.modular_symbols()
             sage: symbs.character() == chi
             True
@@ -81,7 +83,7 @@ class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
 
     def _compute_q_expansion_basis(self, prec=None):
         """
-        Compute q-expansions for a basis of self to precision prec.
+        Compute `q`-expansions for a basis of ``self`` to precision ``prec``.
 
         EXAMPLES::
 
@@ -93,7 +95,7 @@ class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
 
         TESTS:
 
-        This checks that :trac:`13445` is fixed::
+        This checks that :issue:`13445` is fixed::
 
             sage: M = ModularForms(Gamma0(11), base_ring=GF(11))
             sage: S = M.cuspidal_subspace()
@@ -110,7 +112,7 @@ class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
         if c == 0:
             B = self.__M.q_expansion_basis(prec)
             return [R(f) for f in B]
-        elif c.is_prime_power():
+        if c.is_prime_power():
             K = self.base_ring()
             p = K.characteristic().prime_factors()[0]
             from sage.rings.finite_rings.finite_field_constructor import GF
@@ -130,14 +132,13 @@ class ModularFormsAmbient_R(ambient.ModularFormsAmbient):
                 raise RuntimeError("The dimension of the space is %s but the basis we computed has %s elements" % (self.dimension(), len(newB)))
             lst = [R(f) for f in newB]
             return [f/f[f.valuation()] for f in lst]
-        else:
-            # this returns a basis of q-expansions, without guaranteeing that
-            # the first vectors form a basis of the cuspidal subspace
-            # TODO: bring this in line with the other cases
-            # simply using the above code fails because free modules over
-            # general rings do not have a .span() method
-            B = self.__M.q_integral_basis(prec)
-            return [R(f) for f in B]
+        # this returns a basis of q-expansions, without guaranteeing that
+        # the first vectors form a basis of the cuspidal subspace
+        # TODO: bring this in line with the other cases
+        # simply using the above code fails because free modules over
+        # general rings do not have a .span() method
+        B = self.__M.q_integral_basis(prec)
+        return [R(f) for f in B]
 
     def cuspidal_submodule(self):
         r"""

@@ -7,8 +7,8 @@ is a chain complex of free `R`-modules
 
 .. MATH::
 
-    R^{n_1} \xleftarrow{d_1}  R^{n_1} \xleftarrow{d_2}
-    \cdots \xleftarrow{d_k} R^{n_k} \xleftarrow{d_{k+1}} 0
+    0 \rightarrow R^{n_k} \xrightarrow{d_k}
+    \cdots \xrightarrow{d_2} R^{n_1} \xrightarrow{d_1} R^{n_0}
 
 terminating with a zero module at the end that is exact (all homology groups
 are zero) such that the image of `d_1` is `M`.
@@ -63,17 +63,16 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from sage.misc.lazy_attribute import lazy_attribute
+from sage.categories.principal_ideal_domains import PrincipalIdealDomains
 from sage.misc.abstract_method import abstract_method
 from sage.misc.classcall_metaclass import ClasscallMetaclass
-from sage.structure.sage_object import SageObject
-from sage.structure.element import Matrix
-from sage.categories.principal_ideal_domains import PrincipalIdealDomains
-from sage.categories.integral_domains import IntegralDomains
-from sage.modules.free_module_element import vector
+from sage.misc.lazy_attribute import lazy_attribute
 from sage.modules.free_module import FreeModule
-from sage.modules.free_module import Module_free_ambient, FreeModule_generic
+from sage.modules.free_module import Module_free_ambient
+from sage.modules.free_module_element import vector
 from sage.rings.ideal import Ideal_generic
+from sage.structure.element import Matrix
+from sage.structure.sage_object import SageObject
 
 from copy import copy
 
@@ -87,8 +86,8 @@ class FreeResolution(SageObject, metaclass=ClasscallMetaclass):
 
     .. MATH::
 
-        R^{n_1} \xleftarrow{d_1}  R^{n_1} \xleftarrow{d_2}
-        \cdots \xleftarrow{d_k} R^{n_k} \xleftarrow{d_{k+1}} \cdots
+        \cdots \rightarrow R^{n_k} \xrightarrow{d_k}
+        \cdots \xrightarrow{d_2} R^{n_1} \xrightarrow{d_1} R^{n_0}
 
     that is exact (all homology groups are zero) such that the image
     of `d_1` is `M`.
@@ -180,7 +179,7 @@ class FreeResolution(SageObject, metaclass=ClasscallMetaclass):
             return module.graded_free_resolution(*args, **kwds)
         return module.free_resolution(*args, **kwds)
 
-    def __init__(self, module, name='S', **kwds):
+    def __init__(self, module, name='S', **kwds) -> None:
         """
         Initialize ``self``.
 
@@ -206,7 +205,7 @@ class FreeResolution(SageObject, metaclass=ClasscallMetaclass):
         self._name = name
         self._module = module
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -224,13 +223,13 @@ class FreeResolution(SageObject, metaclass=ClasscallMetaclass):
             return f"Free resolution of the row space of the matrix:\n{self._module}"
         return f"Free resolution of {self._module}"
 
-    def _repr_module(self, i):
+    def _repr_module(self, i) -> str:
         r"""
         Return the string form of the `i`-th free module.
 
         INPUT:
 
-        - ``i`` -- a positive integer
+        - ``i`` -- positive integer
 
         EXAMPLES::
 
@@ -242,12 +241,23 @@ class FreeResolution(SageObject, metaclass=ClasscallMetaclass):
             'S^2'
             sage: r  # indirect doctest
             S^1 <-- S^3 <-- S^2 <-- 0
+
+        TESTS::
+
+            sage: S.<x,y,z> = PolynomialRing(QQ)
+            sage: I = S.ideal(0)
+            sage: C = I.free_resolution()
+            sage: C
+            S^1 <-- 0
         """
         if i == 0:
-            r = self._maps[0].nrows()
+            if self._length > 0:
+                r = self._maps[0].nrows()
+            else:
+                r = self._initial_differential.domain().dimension()
             s = f'{self._name}^{r}'
             return s
-        elif i > self._length:
+        if i > self._length:
             s = '0'
         else:
             r = self._maps[i - 1].ncols()
@@ -260,11 +270,11 @@ class FreeResolution(SageObject, metaclass=ClasscallMetaclass):
     @abstract_method
     def differential(self, i):
         r"""
-        Return the ``i``-th differential map.
+        Return the `i`-th differential map.
 
         INPUT:
 
-        - ``i`` -- a positive integer
+        - ``i`` -- positive integer
 
         TESTS::
 
@@ -358,13 +368,13 @@ class FiniteFreeResolution(FreeResolution):
         """
         return len(self._maps)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         """
         Return the string form of this resolution.
 
         INPUT:
 
-        - ``i`` -- a positive integer
+        - ``i`` -- positive integer
 
         EXAMPLES::
 
@@ -398,11 +408,11 @@ class FiniteFreeResolution(FreeResolution):
 
     def __getitem__(self, i):
         r"""
-        Return the ``i``-th free module of this resolution.
+        Return the `i`-th free module of this resolution.
 
         INPUT:
 
-        - ``i`` -- a positive integer
+        - ``i`` -- positive integer
 
         EXAMPLES::
 
@@ -422,6 +432,8 @@ class FiniteFreeResolution(FreeResolution):
             raise IndexError('invalid index')
         elif i > self._length:
             F = FreeModule(self._base_ring, 0)
+        elif i == 0:
+            F = self.differential(0).domain()
         elif i == self._length:
             F = FreeModule(self._base_ring, self._maps[i - 1].ncols())
         else:
@@ -430,11 +442,11 @@ class FiniteFreeResolution(FreeResolution):
 
     def differential(self, i):
         r"""
-        Return the ``i``-th differential map.
+        Return the `i`-th differential map.
 
         INPUT:
 
-        - ``i`` -- a positive integer
+        - ``i`` -- positive integer
 
         EXAMPLES::
 
@@ -444,11 +456,12 @@ class FiniteFreeResolution(FreeResolution):
             sage: r
             S(0) <-- S(-2)⊕S(-2)⊕S(-2) <-- S(-3)⊕S(-3) <-- 0
             sage: r.differential(3)
-            Free module morphism defined by the matrix []
-              Domain:   Ambient free module of rank 0 over the integral domain
-                        Multivariate Polynomial Ring in x, y, z, w over Rational Field
-              Codomain: Ambient free module of rank 2 over the integral domain
-                        Multivariate Polynomial Ring in x, y, z, w over Rational Field
+            Free module morphism defined as left-multiplication by the matrix
+             []
+             Domain:   Ambient free module of rank 0 over the integral domain
+                       Multivariate Polynomial Ring in x, y, z, w over Rational Field
+             Codomain: Ambient free module of rank 2 over the integral domain
+                       Multivariate Polynomial Ring in x, y, z, w over Rational Field
             sage: r.differential(2)
             Free module morphism defined as left-multiplication by the matrix
               [-y  x]
@@ -476,6 +489,31 @@ class FiniteFreeResolution(FreeResolution):
                     [-z^2 + y*w]
                     [ y*z - x*w]
                     [-y^2 + x*z]
+
+        TESTS::
+
+            sage: P2.<x,y,z> = ProjectiveSpace(QQ, 2)
+            sage: S = P2.coordinate_ring()
+            sage: I = S.ideal(0)
+            sage: C = I.graded_free_resolution(); C
+            S(0) <-- 0
+            sage: C[1]
+            Ambient free module of rank 0 over the integral domain
+             Multivariate Polynomial Ring in x, y, z over Rational Field
+            sage: C[0]
+            Ambient free module of rank 1 over the integral domain
+             Multivariate Polynomial Ring in x, y, z over Rational Field
+            sage: C.differential(1)
+            Free module morphism defined as left-multiplication by the matrix
+            []
+            Domain: Ambient free module of rank 0 over the integral domain
+             Multivariate Polynomial Ring in x, y, z over Rational Field
+            Codomain: Ambient free module of rank 1 over the integral domain
+             Multivariate Polynomial Ring in x, y, z over Rational Field
+            sage: C.differential(1).matrix()
+            []
+            sage: C.differential(1).matrix().dimensions()
+            (1, 0)
         """
         if i < 0:
             raise IndexError('invalid index')
@@ -484,14 +522,17 @@ class FiniteFreeResolution(FreeResolution):
                 return self._initial_differential
             except AttributeError:
                 raise ValueError('0th differential map undefined')
-        elif i == self._length + 1:
-            s = FreeModule(self._base_ring, 0)
-            t = FreeModule(self._base_ring, self._maps[i - 2].ncols())
-            m = s.hom(0, t)
         elif i > self._length + 1:
             s = FreeModule(self._base_ring, 0)
             t = FreeModule(self._base_ring, 0)
-            m = s.hom(0, t)
+            m = s.hom(0, t, side='right')
+        elif i == self._length + 1:
+            s = FreeModule(self._base_ring, 0)
+            if self._length > 0:
+                t = FreeModule(self._base_ring, self._maps[i - 2].ncols())
+            else:
+                t = self._initial_differential.domain()
+            m = s.hom(0, t, side='right')
         else:
             s = FreeModule(self._base_ring, self._maps[i - 1].ncols())
             t = FreeModule(self._base_ring, self._maps[i - 1].nrows())
@@ -500,11 +541,11 @@ class FiniteFreeResolution(FreeResolution):
 
     def matrix(self, i):
         r"""
-        Return the matrix representing the ``i``-th differential map.
+        Return the matrix representing the `i`-th differential map.
 
         INPUT:
 
-        - ``i`` -- a positive integer
+        - ``i`` -- positive integer
 
         EXAMPLES::
 
@@ -523,10 +564,9 @@ class FiniteFreeResolution(FreeResolution):
         """
         if i <= 0:
             raise IndexError('invalid index')
-        elif i <= self._length:
+        if i <= self._length:
             return self._maps[i - 1]
-        else:
-            return self.differential(i).matrix()
+        return self.differential(i).matrix()
 
     def chain_complex(self):
         r"""
@@ -750,14 +790,14 @@ class FiniteFreeResolution_singular(FiniteFreeResolution):
     The available algorithms and the corresponding Singular commands
     are shown below:
 
-        ============= ============================
-        algorithm     Singular commands
-        ============= ============================
-        ``minimal``   ``mres(ideal)``
-        ``shreyer``   ``minres(sres(std(ideal)))``
-        ``standard``  ``minres(nres(std(ideal)))``
-        ``heuristic`` ``minres(res(std(ideal)))``
-        ============= ============================
+    ============= ============================
+    algorithm     Singular commands
+    ============= ============================
+    ``minimal``   ``mres(ideal)``
+    ``shreyer``   ``minres(sres(std(ideal)))``
+    ``standard``  ``minres(nres(std(ideal)))``
+    ``heuristic`` ``minres(res(std(ideal)))``
+    ============= ============================
 
     EXAMPLES::
 
@@ -809,7 +849,7 @@ class FiniteFreeResolution_singular(FiniteFreeResolution):
         [-y*z + x*w]
         [ z^2 - y*w]
     """
-    def __init__(self, module, name='S', algorithm='heuristic', **kwds):
+    def __init__(self, module, name='S', algorithm='heuristic', **kwds) -> None:
         r"""
         Initialize ``self``.
 

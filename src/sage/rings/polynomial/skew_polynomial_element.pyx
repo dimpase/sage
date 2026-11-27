@@ -1,15 +1,16 @@
+# sage.doctest: needs sage.combinat
 r"""
 Univariate skew polynomials
 
 This module provides the
-:class:`~sage.rings.polynomial.skew_polynomial_element.SkewPolynomial`.
+:class:`~sage.rings.polynomial.skew_polynomial_element.SkewPolynomial_generic_dense`.
 In the class hierarchy in Sage, the locution *Skew Polynomial* is used
 for a Ore polynomial without twisting derivation.
 
 .. WARNING::
 
     The current semantics of
-    :meth:`~sage.rings.polynomial.skew_polynomial_element.SkewPolynomial.__call__`
+    ``SkewPolynomial_generic_dense.__call__``
     are experimental, so a warning is thrown when a skew polynomial is evaluated
     for the first time in a session. See the method documentation for details.
 
@@ -38,7 +39,7 @@ AUTHORS:
   doctest errors
 """
 
-# ***************************************************************************
+# **************************************************************************
 #    Copyright (C) 2012 Xavier Caruso <xavier.caruso@normalesup.org>
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -46,7 +47,7 @@ AUTHORS:
 #    the Free Software Foundation, either version 2 of the License, or
 #    (at your option) any later version.
 #                  https://www.gnu.org/licenses/
-#****************************************************************************
+# **************************************************************************
 from cysignals.signals cimport sig_check
 
 from sage.structure.element cimport Element, RingElement, ModuleElement
@@ -63,7 +64,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
     Generic implementation of dense skew polynomial supporting any valid base
     ring and twisting morphism.
     """
-    cpdef left_power_mod(self, exp, modulus) noexcept:
+    cpdef left_power_mod(self, exp, modulus):
         r"""
         Return the remainder of ``self**exp`` in the left euclidean division
         by ``modulus``.
@@ -125,14 +126,14 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             _, r = r._left_quo_rem(modulus)
         return r
 
-    cpdef right_power_mod(self, exp, modulus) noexcept:
+    cpdef right_power_mod(self, exp, modulus):
         r"""
         Return the remainder of ``self**exp`` in the right euclidean division
         by ``modulus``.
 
         INPUT:
 
-        - ``exp`` -- an integer
+        - ``exp`` -- integer
 
         - ``modulus`` -- a skew polynomial in the same ring as ``self``
 
@@ -161,13 +162,11 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             x^5 + (2*t^2 + 4)*x^4 + (t^2 + 2)*x^3 + 2*x^2 + (4*t^2 + 2)*x + 2*t^2 + 4*t + 4
             sage: b == a * a * a * a * a
             True
-
             sage: modulus = x^3 + t*x^2 + (t+3)*x - 2
             sage: br = a.right_power_mod(5, modulus); br
             (t + 1)*x^2 + (2*t^2 + t + 1)*x + 2*t^2 + 4*t + 2
             sage: br == b % modulus
             True
-
             sage: a.right_power_mod(100, modulus)
             (2*t^2 + 3)*x^2 + (t^2 + 4*t + 2)*x + t^2 + 2*t + 1
 
@@ -180,7 +179,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
 
         However, they cannot be combined with modulus::
 
-            sage: a.right_power_mod(-10, modulus)
+            sage: a.right_power_mod(-10, modulus)                                       # needs sage.rings.finite_rings
             Traceback (most recent call last):
             ...
             ValueError: modulus cannot be combined with negative exponent
@@ -273,9 +272,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
 
         - ``eval_pt`` -- element of the base ring of ``self``
 
-        OUTPUT:
-
-        The operator evaluation of ``self`` at ``eval_pt``.
+        OUTPUT: the operator evaluation of ``self`` at ``eval_pt``
 
         .. TODO::
 
@@ -326,7 +323,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
         """
         return self.operator_eval(eval_pt)
 
-    cpdef operator_eval(self, eval_pt) noexcept:
+    cpdef operator_eval(self, eval_pt):
         r"""
         Evaluate ``self`` at ``eval_pt`` by the operator evaluation
         method.
@@ -335,9 +332,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
 
         - ``eval_pt`` -- element of the base ring of ``self``
 
-        OUTPUT:
-
-        The value of the polynomial at the point specified by the argument.
+        OUTPUT: the value of the polynomial at the point specified by the argument
 
         EXAMPLES::
 
@@ -370,7 +365,8 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
         cdef RingElement a = eval_pt
         for c in coefficients:
             ret += c * a
-            a = sigma(a)
+            if sigma is not None:
+                a = sigma(a)
         return ret
 
     def conjugate(self, n):
@@ -383,7 +379,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
 
         INPUT:
 
-        - `n` -- an integer, the power of conjugation
+        - ``n`` -- integer; the power of conjugation
 
         EXAMPLES::
 
@@ -403,7 +399,8 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             sage: b = a.conjugate(-1)
             Traceback (most recent call last):
             ...
-            NotImplementedError: inverse not implemented for morphisms of Fraction Field of Univariate Polynomial Ring in t over Rational Field
+            NotImplementedError: inverse not implemented for morphisms of
+            Fraction Field of Univariate Polynomial Ring in t over Rational Field
 
         Here is a working example::
 
@@ -414,7 +411,16 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             sage: v = u.conjugate(-1)
             sage: u*y == y*v
             True
+
+        TESTS::
+
+            sage: k = GF(7)
+            sage: S.<x> = SkewPolynomialRing(k, polcast=False)
+            sage: x.conjugate(1)
+            x
         """
+        if self._parent._morphism is None:
+            return self
         r = self._new_c([self._parent.twisting_morphism(n)(x) for x in self.list()],
                         self._parent, 0)
         return r
@@ -427,9 +433,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
 
         - ``eval_pts`` -- list of points at which ``self`` is to be evaluated
 
-        OUTPUT:
-
-        List of values of ``self`` at the ``eval_pts``.
+        OUTPUT: list of values of ``self`` at the ``eval_pts``
 
         .. TODO::
 
@@ -448,12 +452,12 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             sage: eval_pts = [1, t, t^2]
             sage: c = a.multi_point_evaluation(eval_pts); c
             [t + 1, 3*t^2 + 4*t + 4, 4*t]
-            sage: c == [ a(e) for e in eval_pts ]
+            sage: c == [a(e) for e in eval_pts]
             True
         """
-        return [ self(e) for e in eval_pts ]
+        return [self(e) for e in eval_pts]
 
-    cpdef ModuleElement _lmul_(self, Element right) noexcept:
+    cpdef ModuleElement _lmul_(self, Element right):
         r"""
         Return the product ``self * right``.
 
@@ -478,11 +482,11 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
         cdef list x = (<SkewPolynomial_generic_dense>self)._coeffs
         cdef Py_ssize_t i
         twisting_morphism = self._parent._morphism
-        r = self._new_c([ (twisting_morphism**i)(right)*x[i] for i from 0 <= i < len(x) ],
+        r = self._new_c([(twisting_morphism**i)(right)*x[i] for i from 0 <= i < len(x)],
                         self._parent, 0)
         return r
 
-    cpdef ModuleElement _rmul_(self, Element left) noexcept:
+    cpdef ModuleElement _rmul_(self, Element left):
         r"""
         Return the product ``left * self``.
 
@@ -506,10 +510,10 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             return self.parent().zero()
         cdef list x = (<SkewPolynomial_generic_dense>self)._coeffs
         cdef Py_ssize_t i
-        r = self._new_c([ left*x[i] for i from 0 <= i < len(x) ], self._parent, 0)
+        r = self._new_c([left*x[i] for i from 0 <= i < len(x)], self._parent, 0)
         return r
 
-    cpdef _mul_(self, right) noexcept:
+    cpdef _mul_(self, right):
         r"""
         Return the product ``self * right``.
 
@@ -535,6 +539,13 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
 
             sage: S(0)*a, (S(0)*a).list()
             (0, [])
+
+        ::
+
+            sage: k = GF(7)
+            sage: S.<x> = SkewPolynomialRing(k, polcast=False)
+            sage: x * x
+            x^2
         """
         cdef list x = (<SkewPolynomial_generic_dense>self)._coeffs
         cdef list y = (<SkewPolynomial_generic_dense>right)._coeffs
@@ -542,21 +553,30 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
         cdef Py_ssize_t dx = len(x)-1, dy = len(y)-1
         parent = self._parent
         if dx == -1:
-            return self # = zero
+            return self  # = zero
         elif dy == -1:
-            return right # = zero
+            return right  # = zero
         elif dx == 0:
             c = x[0]
             r = self._new_c([c*a for a in y], parent, 0)
             return r
         cdef list coeffs = []
-        for k from 0 <= k <= dx+dy:
-            start = 0 if k <= dy else k-dy
-            end = k if k <= dx else dx
-            sum = x[start] * parent.twisting_morphism(start)(y[k-start])
-            for i from start < i <= end:
-                sum += x[i] * parent.twisting_morphism(i)(y[k-i])
-            coeffs.append(sum)
+        if parent._morphism is None:
+            for k from 0 <= k <= dx+dy:
+                start = 0 if k <= dy else k-dy
+                end = k if k <= dx else dx
+                sum = x[start] * y[k-start]
+                for i from start < i <= end:
+                    sum += x[i] * y[k-i]
+                coeffs.append(sum)
+        else:
+            for k from 0 <= k <= dx+dy:
+                start = 0 if k <= dy else k-dy
+                end = k if k <= dx else dx
+                sum = x[start] * parent.twisting_morphism(start)(y[k-start])
+                for i from start < i <= end:
+                    sum += x[i] * parent.twisting_morphism(i)(y[k-i])
+                coeffs.append(sum)
         r = self._new_c(coeffs, parent, 0)
         return r
 
@@ -573,6 +593,13 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             sage: modulus = x^3 + t*x^2 + (t+3)*x - 2
             sage: a.left_power_mod(100,modulus)  # indirect doctest
             (4*t^2 + t + 1)*x^2 + (t^2 + 4*t + 1)*x + 3*t^2 + 3*t
+
+        ::
+
+            sage: k = GF(7)
+            sage: S.<x> = SkewPolynomialRing(k, polcast=False)
+            sage: x.left_power_mod(100, x^2 + x + 1)  # indirect doctest
+            x
         """
         cdef list x = self._coeffs
         cdef list y = right._coeffs
@@ -580,21 +607,36 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
         cdef Py_ssize_t d1 = len(x)-1, d2 = len(y)-1
         parent = self._parent
         if d2 == -1:
-            self._coeffs = [ ]
+            self._coeffs = []
         elif d1 >= 0:
-            for k from d1 < k <= d1+d2:
-                start = 0 if k <= d2 else k-d2
-                sum = x[start] * parent.twisting_morphism(start)(y[k-start])
-                for i from start < i <= d1:
-                    sum += x[i] * parent.twisting_morphism(i)(y[k-i])
-                x.append(sum)
-            for k from d1 >= k >= 0:
-                start = 0 if k <= d2 else k-d2
-                end = k if k <= d1 else d1
-                sum = x[start] * parent.twisting_morphism(start)(y[k-start])
-                for i from start < i <= end:
-                    sum += x[i] * parent.twisting_morphism(i)(y[k-i])
-                x[k] = sum
+            if parent._morphism is None:
+                for k from d1 < k <= d1+d2:
+                    start = 0 if k <= d2 else k-d2
+                    sum = x[start] * y[k-start]
+                    for i from start < i <= d1:
+                        sum += x[i] * y[k-i]
+                    x.append(sum)
+                for k from d1 >= k >= 0:
+                    start = 0 if k <= d2 else k-d2
+                    end = k if k <= d1 else d1
+                    sum = x[start] * y[k-start]
+                    for i from start < i <= end:
+                        sum += x[i] * y[k-i]
+                    x[k] = sum
+            else:
+                for k from d1 < k <= d1+d2:
+                    start = 0 if k <= d2 else k-d2
+                    sum = x[start] * parent.twisting_morphism(start)(y[k-start])
+                    for i from start < i <= d1:
+                        sum += x[i] * parent.twisting_morphism(i)(y[k-i])
+                    x.append(sum)
+                for k from d1 >= k >= 0:
+                    start = 0 if k <= d2 else k-d2
+                    end = k if k <= d1 else d1
+                    sum = x[start] * parent.twisting_morphism(start)(y[k-start])
+                    for i from start < i <= end:
+                        sum += x[i] * parent.twisting_morphism(i)(y[k-i])
+                    x[k] = sum
 
     cdef void _inplace_pow(self, Py_ssize_t n) noexcept:
         r"""
@@ -621,7 +663,7 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
                 self._inplace_rmul(selfpow)
             n = n >> 1
 
-    cdef _left_quo_rem(self, OrePolynomial other) noexcept:
+    cdef _left_quo_rem(self, OrePolynomial other):
         r"""
         Return the quotient and remainder of the left euclidean
         division of ``self`` by ``other`` (C implementation).
@@ -637,23 +679,35 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
             inv = self.base_ring()(~b[db])
         except (ZeroDivisionError, TypeError):
             raise NotImplementedError("the leading coefficient of the divisor is not invertible")
-        cdef list q = [ ]
+        cdef list q = []
         parent = self._parent
         for i from da-db >= i >= 0:
-            try:
-                c = parent.twisting_morphism(-db)(inv*a[i+db])
+            if parent._morphism is None:
+                c = inv * a[i+db]
                 for j from 0 <= j < db:
-                    a[i+j] -= b[j] * parent.twisting_morphism(j)(c)
-            except Exception:
-                raise NotImplementedError("inversion of the twisting morphism %s" % parent.twisting_morphism())
+                    a[i+j] -= b[j] * c
+            else:
+                try:
+                    c = parent.twisting_morphism(-db)(inv*a[i+db])
+                    for j from 0 <= j < db:
+                        a[i+j] -= b[j] * parent.twisting_morphism(j)(c)
+                except Exception:
+                    raise NotImplementedError("inversion of the twisting morphism %s" % parent.twisting_morphism())
             q.append(c)
         q.reverse()
         return (self._new_c(q, parent), self._new_c(a[:db], parent, 1))
 
-    cdef _right_quo_rem(self, OrePolynomial other) noexcept:
+    cdef _right_quo_rem(self, OrePolynomial other):
         r"""
         Return the quotient and remainder of the right euclidean
         division of ``self`` by ``other`` (C implementation).
+
+        TESTS::
+
+            sage: k = GF(7)
+            sage: S.<x> = SkewPolynomialRing(k, polcast=False)
+            sage: (x^3).right_quo_rem(x^2 + x + 1)
+            (x + 6, 1)
         """
         sig_check()
         cdef list a = list(self._coeffs)
@@ -662,18 +716,23 @@ cdef class SkewPolynomial_generic_dense(OrePolynomial_generic_dense):
         cdef Py_ssize_t da = self.degree(), db = other.degree()
         parent = self._parent
         if da < db:
-            return (self._new_c([],parent), self)
+            return (self._new_c([], parent), self)
         try:
             inv = self.base_ring()(~b[db])
         except (ZeroDivisionError, TypeError):
             raise NotImplementedError("the leading coefficient of the divisor"
                                       " is not invertible")
-        cdef list q = [ ]
+        cdef list q = []
         parent = self._parent
         for i from da-db >= i >= 0:
-            c = parent.twisting_morphism(i)(inv) * a[i+db]
-            for j from 0 <= j < db:
-                a[i+j] -= c * parent.twisting_morphism(i)(b[j])
+            if parent._morphism is None:
+                c = inv * a[i+db]
+                for j from 0 <= j < db:
+                    a[i+j] -= c * b[j]
+            else:
+                c = parent.twisting_morphism(i)(inv) * a[i+db]
+                for j from 0 <= j < db:
+                    a[i+j] -= c * parent.twisting_morphism(i)(b[j])
             q.append(c)
         q.reverse()
         return (self._new_c(q, parent), self._new_c(a[:db], parent, 1))

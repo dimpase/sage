@@ -92,10 +92,10 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-from sage.rings.infinity import infinity
 from sage.algebras.steenrod.steenrod_algebra import SteenrodAlgebra_generic
 from sage.modules.fp_graded.module import FPModule
 from sage.modules.fp_graded.free_module import FreeGradedModule
+from sage.rings.infinity import infinity
 from .profile import enveloping_profile_elements
 
 
@@ -133,9 +133,9 @@ class SteenrodModuleMixin:
             sage: X.profile()
             (0,)
         """
-        elements = [coeffifient for value in self.relations()
-                    for coeffifient in value.dense_coefficient_list()]
-        elements = [a for a in elements if a not in (0, 1)]
+        elements = [coeff for value in self.relations()
+                    for coeff in value.dense_coefficient_list()
+                    if coeff not in (0, 1)]
 
         return enveloping_profile_elements(elements,
                                            char=self.base_ring().characteristic())
@@ -245,11 +245,11 @@ class SteenrodModuleMixin:
 
         # Print the degrees of the additive generators.
         ret = '%d %s' % (len(additive_generator_degrees),
-                         ' '.join(['%d' % x for x in additive_generator_degrees]))
+                         ' '.join('%d' % x for x in additive_generator_degrees))
 
         # A private function which transforms a vector in a given dimension
         # to a vector of global indices for the basis elements corresponding
-        # to the non-zero entries in the vector.  E.g.
+        # to the nonzero entries in the vector.  E.g.
         # _GetIndices(dim=2, vec=(1,0,1)) will return a vector of length two,
         # (a, b), where a is the index of the first vector in the basis for
         # the 2-dimensional part of the module, and b is the index of the
@@ -357,13 +357,12 @@ class SteenrodFPModule(FPModule, SteenrodModuleMixin):
 
         INPUT:
 
-        - ``k`` -- non-negative integer
+        - ``k`` -- nonnegative integer
         - ``top_dim`` -- (optional) stop the computation at this degree
-        - ``verbose`` -- (default: ``False``) whether log messages are printed
+        - ``verbose`` -- boolean (default: ``False``); whether log messages are
+          printed
 
-        OUTPUT:
-
-        A list of homomorphisms `[\epsilon, f_1, \ldots, f_k]` such that
+        OUTPUT: list of homomorphisms `[\epsilon, f_1, \ldots, f_k]` such that
 
         .. MATH::
 

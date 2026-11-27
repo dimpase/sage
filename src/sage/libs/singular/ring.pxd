@@ -5,12 +5,12 @@ AUTHOR:
 
 - Martin Albrecht (2009-07): initial implementation
 """
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2009 Martin Albrecht <malb@informatik.uni-bremen.de>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from sage.libs.singular.decl cimport ring
 
@@ -44,7 +44,6 @@ from sage.libs.singular.decl cimport ring
 #         do_something_with(self.parent.ring)   # segfault
 
 
-
 # create a new singular ring
 cdef ring *singular_ring_new(base_ring, n, names, term_order) except NULL
 
@@ -55,4 +54,4 @@ cdef ring *singular_ring_reference(ring *existing_ring) except NULL
 cdef void singular_ring_delete(ring *doomed) noexcept
 
 # Used internally for reference counting
-cdef wrap_ring(ring* R) noexcept
+cdef wrap_ring(ring* R)

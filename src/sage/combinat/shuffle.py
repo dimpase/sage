@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Shuffle product of iterables
 
@@ -33,13 +32,6 @@ EXAMPLES::
      ['a', 'b', 1, 'c', 2],
      ['a', 1, 'b', 'c', 2],
      [1, 'a', 'b', 'c', 2]]
-
-References:
-
-.. [EilLan53] On the groups `H(\pi, n)`, I,
-    Samuel Eilenberg and
-    Saunders Mac Lane,
-    1953.
 
 Author:
 
@@ -82,7 +74,7 @@ class ShuffleProduct_abstract(Parent):
 
             sage: from sage.combinat.shuffle import ShuffleProduct
             sage: SP = ShuffleProduct([1,2],[4,5,7,8,9])
-            sage: TestSuite(SP).run(skip="_test_an_element")
+            sage: TestSuite(SP).run(skip='_test_an_element')
         """
         self._l1 = l1
         self._l2 = l2
@@ -141,7 +133,7 @@ class ShuffleProduct_abstract(Parent):
 
     def __ne__(self, other):
         """
-        Test for unequality
+        Test for unequality.
 
         EXAMPLES::
 
@@ -206,7 +198,7 @@ class SetShuffleProduct(ShuffleProduct_abstract):
 
         - ``l1``, ``l2`` -- iterable: the sets to shuffle
 
-        - ``element_constructor`` --  constructor for the returned elements
+        - ``element_constructor`` -- constructor for the returned elements
 
         TESTS::
 
@@ -214,7 +206,7 @@ class SetShuffleProduct(ShuffleProduct_abstract):
             sage: X = SetShuffleProduct({(1,2,3), (2,3,4)}, {(5,)})
             sage: X   # random
             Shuffle set product of: [(2, 3, 4), (1, 2, 3)] and [(5,)]
-            sage: TestSuite(X).run(skip="_test_an_element")
+            sage: TestSuite(X).run(skip='_test_an_element')
 
             sage: list(SetShuffleProduct({(1,2,3), (2,3,4)}, {(5,)}))   # random
             [[2, 3, 4, 5], [2, 5, 3, 4], [5, 2, 3, 4], [2, 3, 5, 4],
@@ -244,7 +236,6 @@ class SetShuffleProduct(ShuffleProduct_abstract):
             Shuffle set product of: [[1, 2], [3, 4]] and [[1, 4]]
             sage: SetShuffleProduct([()], [[1,4]])
             Shuffle set product of: [()] and [[1, 4]]
-
         """
         return "Shuffle set product of: %s and %s" % (self._element_constructor_(self._l1),
                                                       self._element_constructor_(self._l2))
@@ -260,7 +251,6 @@ class SetShuffleProduct(ShuffleProduct_abstract):
             [       [ o,   o   ] ]
             [       [     / \  ] ]
             [ [  ], [    o   o ] ] and [ [ 1, 4 ] ]
-
         """
         from sage.typeset.ascii_art import ascii_art
         return (ascii_art("Set shuffle product of:") *
@@ -312,7 +302,7 @@ class SetShuffleProduct(ShuffleProduct_abstract):
             return (ll1 + ll2).binomial(ll2)
 
         return sum(comp_binom(el1, el2)
-                   for (el1, el2) in itertools.product(self._l1, self._l2))
+                   for el1, el2 in itertools.product(self._l1, self._l2))
 
 
 class ShuffleProduct(ShuffleProduct_abstract):
@@ -335,7 +325,6 @@ class ShuffleProduct(ShuffleProduct_abstract):
          'abdec']
         sage: list(ShuffleProduct("", "de", element_constructor="".join))
         ['de']
-
     """
 
     def __init__(self, l1, l2, element_constructor=None):
@@ -346,7 +335,7 @@ class ShuffleProduct(ShuffleProduct_abstract):
 
         - ``l1``, ``l2`` -- iterable: iterables to shuffle
 
-        - ``element_constructor``:  constructor for the returned elements
+        - ``element_constructor`` -- constructor for the returned elements
 
         TESTS::
 
@@ -354,7 +343,7 @@ class ShuffleProduct(ShuffleProduct_abstract):
             sage: SP = ShuffleProduct([1,2,3],[4,5])
             sage: SP
             Shuffle product of: [1, 2, 3] and [4, 5]
-            sage: TestSuite(SP).run(skip="_test_an_element")
+            sage: TestSuite(SP).run(skip='_test_an_element')
 
             sage: list(ShuffleProduct(Word("aa"), Word("bbb"), Word))
             [word: aabbb, word: baabb, word: ababb, word: bbaab, word: babab, word: abbab,
@@ -568,7 +557,7 @@ class ShuffleProduct_overlapping_r(ShuffleProduct_abstract):
             sage: from sage.combinat.shuffle import ShuffleProduct_overlapping_r
             sage: w, u = map(Words(range(20)), [[2, 9], [9, 1]])
             sage: S = ShuffleProduct_overlapping_r(w,u,1)
-            sage: TestSuite(S).run(skip="_test_an_element")
+            sage: TestSuite(S).run(skip='_test_an_element')
         """
         self.r = r
         self.add = add
@@ -635,7 +624,7 @@ class ShuffleProduct_overlapping_r(ShuffleProduct_abstract):
         TESTS:
 
         We need to be explicitly more generic about the resulting parent
-        when shuffling two compositions `I` and `J` (:trac:`15131`)::
+        when shuffling two compositions `I` and `J` (:issue:`15131`)::
 
             sage: I, J = Compositions(4)([2, 2]), Composition([1, 1])
             sage: S = ShuffleProduct_overlapping_r(I, J, 1, Compositions())
@@ -722,7 +711,7 @@ class ShuffleProduct_overlapping(ShuffleProduct_abstract):
 
     If `c = a + b`, then the overlapping shuffle product with
     precisely `a + b - c` overlaps is plainly the shuffle product
-    (:class:`ShuffleProduct_w1w2`).
+    (:class:`~sage.combinat.words.shuffle_product.ShuffleProduct_w1w2`).
 
     INPUT:
 
@@ -778,7 +767,7 @@ class ShuffleProduct_overlapping(ShuffleProduct_abstract):
             sage: from sage.combinat.shuffle import ShuffleProduct_overlapping
             sage: w, u = map(Words(range(20)), [[2, 9], [9, 1]])
             sage: S = ShuffleProduct_overlapping(w,u)
-            sage: TestSuite(S).run(skip="_test_an_element")
+            sage: TestSuite(S).run(skip='_test_an_element')
         """
         self._add = add
 

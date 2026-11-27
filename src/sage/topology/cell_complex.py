@@ -1,4 +1,3 @@
-# sage.doctest: needs sage.graphs
 r"""
 Generic cell complexes
 
@@ -8,9 +7,9 @@ AUTHORS:
 
 This module defines a class of abstract finite cell complexes.  This
 is meant as a base class from which other classes (like
-:class:`~sage.homology.simplicial_complex.SimplicialComplex`,
-:class:`~sage.homology.cubical_complex.CubicalComplex`, and
-:class:`~sage.homology.delta_complex.DeltaComplex`) should derive.  As
+:class:`~sage.topology.simplicial_complex.SimplicialComplex`,
+:class:`~sage.topology.cubical_complex.CubicalComplex`, and
+:class:`~sage.topology.delta_complex.DeltaComplex`) should derive.  As
 such, most of its properties are not implemented.  It is meant for use
 by developers producing new classes, not casual users.
 
@@ -21,7 +20,7 @@ by developers producing new classes, not casual users.
     the :meth:`~GenericCellComplex.homology` method get passed on to
     the :meth:`~GenericCellComplex.chain_complex` method and also to
     the constructor for chain complexes in
-    :class:`sage.homology.chain_complex.ChainComplex_class <ChainComplex>`,
+    :class:`ChainComplex <sage.homology.chain_complex.ChainComplex_class>`,
     as well as its associated
     :meth:`~sage.homology.chain_complex.ChainComplex_class.homology` method.
     This means that those keywords should have consistent meaning in
@@ -56,20 +55,22 @@ class GenericCellComplex(SageObject):
 
     This is meant to be used by developers to produce new classes, not
     by casual users.  Classes which derive from this are
-    :class:`~sage.homology.simplicial_complex.SimplicialComplex`,
-    :class:`~sage.homology.delta_complex.DeltaComplex`, and
-    :class:`~sage.homology.cubical_complex.CubicalComplex`.
+    :class:`~sage.topology.simplicial_complex.SimplicialComplex`,
+    :class:`~sage.topology.delta_complex.DeltaComplex`, and
+    :class:`~sage.topology.cubical_complex.CubicalComplex`.
 
     Most of the methods here are not implemented, but probably should
     be implemented in a derived class.  Most of the other methods call
     a non-implemented one; their docstrings contain examples from
     derived classes in which the various methods have been defined.
     For example, :meth:`homology` calls :meth:`chain_complex`; the
-    class :class:`~sage.homology.delta_complex.DeltaComplex`
+    class :class:`~sage.topology.delta_complex.DeltaComplex`
     implements
-    :meth:`~sage.homology.delta_complex.DeltaComplex.chain_complex`,
+    :meth:`~sage.topology.delta_complex.DeltaComplex.chain_complex`,
     and so the :meth:`homology` method here is illustrated with
     examples involving `\Delta`-complexes.
+
+    .. automethod:: _n_cells_sorted
 
     EXAMPLES:
 
@@ -122,9 +123,10 @@ class GenericCellComplex(SageObject):
         optional argument ``subcomplex`` is present, then return only
         the cells which are *not* in the subcomplex.
 
-        :param subcomplex: a subcomplex of this cell complex.  Return
-           the cells which are not in this subcomplex.
-        :type subcomplex: optional, default None
+        INPUT:
+
+        - ``subcomplex`` -- subcomplex (default: ``None``); a subcomplex of
+          this cell complex; return the cells which are not in this subcomplex
 
         This is not implemented in general; it should be implemented
         in any derived class.  When implementing, see the warning in
@@ -174,21 +176,22 @@ class GenericCellComplex(SageObject):
 
     def n_cells(self, n, subcomplex=None):
         """
-        List of cells of dimension ``n`` of this cell complex.
+        List of cells of dimension `n` of this cell complex.
         If the optional argument ``subcomplex`` is present, then
-        return the ``n``-dimensional cells which are *not* in the
+        return the `n`-dimensional cells which are *not* in the
         subcomplex.
 
-        :param n: the dimension
-        :type n: non-negative integer
-        :param subcomplex: a subcomplex of this cell complex. Return
-           the cells which are not in this subcomplex.
-        :type subcomplex: optional, default ``None``
+        INPUT:
+
+        - ``n`` -- nonnegative integer; the dimension
+        - ``subcomplex`` -- (optional) a subcomplex of this cell complex;
+          return the cells which are not in this subcomplex
 
         .. NOTE::
 
             The resulting list need not be sorted. If you want a sorted
-            list of `n`-cells, use :meth:`_n_cells_sorted`.
+            list of `n`-cells, use
+            :meth:`~sage.topology.cell_complex.GenericCellComplex._n_cells_sorted`.
 
         EXAMPLES::
 
@@ -199,22 +202,21 @@ class GenericCellComplex(SageObject):
         """
         if n in self.cells(subcomplex):
             return list(self.cells(subcomplex)[n])
-        else:
-            # don't barf if someone asks for n_cells in a dimension where there are none
-            return []
+        # don't barf if someone asks for n_cells in a dimension where there are none
+        return []
 
     def _n_cells_sorted(self, n, subcomplex=None):
         """
-        Sorted list of cells of dimension ``n`` of this cell complex.
+        Sorted list of cells of dimension `n` of this cell complex.
         If the optional argument ``subcomplex`` is present, then
-        return the ``n``-dimensional cells which are *not* in the
+        return the `n`-dimensional cells which are *not* in the
         subcomplex.
 
-        :param n: the dimension
-        :type n: non-negative integer
-        :param subcomplex: a subcomplex of this cell complex. Return
-           the cells which are not in this subcomplex.
-        :type subcomplex: optional, default ``None``
+        INPUT:
+
+        - ``n`` -- the dimension
+        - ``subcomplex`` -- (default: ``None``) a subcomplex of this cell
+          complex; return the cells which are not in this subcomplex
 
         EXAMPLES::
 
@@ -227,6 +229,7 @@ class GenericCellComplex(SageObject):
             sage: K = SimplicialComplex([[1,2,3], [2,3,4]])
             sage: Z._n_cells_sorted(2, subcomplex=K)
             [(1, 2, 4), (1, 3, 4)]
+
             sage: S = SimplicialComplex([[complex(i), complex(1)]])
             sage: S._n_cells_sorted(0)
             [((1+0j),), (1j,)]
@@ -239,7 +242,7 @@ class GenericCellComplex(SageObject):
 
     def f_vector(self):
         """
-        The `f`-vector of this cell complex: a list whose `n^{th}`
+        The `f`-vector of this cell complex: a list whose `n`-th
         item is the number of `(n-1)`-cells.  Note that, like all
         lists in Sage, this is indexed starting at 0: the 0th element
         in this list is the number of `(-1)`-cells (which is 1: the
@@ -320,7 +323,9 @@ class GenericCellComplex(SageObject):
         """
         The disjoint union of this cell complex with another one.
 
-        :param right: the other cell complex (the right-hand factor)
+        INPUT:
+
+        - ``right`` -- the other cell complex (the right-hand factor)
 
         Disjoint unions are not implemented for general cell complexes.
 
@@ -340,7 +345,9 @@ class GenericCellComplex(SageObject):
         The wedge (one-point union) of this cell complex with
         another one.
 
-        :param right: the other cell complex (the right-hand factor)
+        INPUT:
+
+        - ``right`` -- the other cell complex (the right-hand factor)
 
         Wedges are not implemented for general cell complexes.
 
@@ -363,7 +370,9 @@ class GenericCellComplex(SageObject):
         """
         The join of this cell complex with another one.
 
-        :param right: the other cell complex (the right-hand factor)
+        INPUT:
+
+        - ``right`` -- the other cell complex (the right-hand factor)
 
         Joins are not implemented for general cell complexes.  They
         may be implemented in some derived classes (like simplicial
@@ -398,8 +407,7 @@ class GenericCellComplex(SageObject):
     #
     #     INPUT:
     #
-    #     -  ``n`` - positive integer (optional, default 1): suspend this
-    #        many times.
+    #     - ``n`` -- positive integer (default: 1); suspend this many times.
     #     """
     #     raise NotImplementedError
 
@@ -427,14 +435,14 @@ class GenericCellComplex(SageObject):
         - ``check`` -- a bool: whether to check that the each
           composite of two consecutive differentials is zero
         - ``dimensions`` -- if ``None``, compute the chain complex in all
-           dimensions.  If a list or tuple of integers, compute the
-           chain complex in those dimensions, setting the chain groups
-           in all other dimensions to zero.
+          dimensions.  If a list or tuple of integers, compute the
+          chain complex in those dimensions, setting the chain groups
+          in all other dimensions to zero.
 
         Definitely implement the following:
 
-        -  ``base_ring`` -- commutative ring (optional, default ZZ)
-        -  ``cochain`` -- a bool: whether to return the cochain complex
+        - ``base_ring`` -- commutative ring (default: ZZ)
+        - ``cochain`` -- a bool: whether to return the cochain complex
 
         EXAMPLES::
 
@@ -452,31 +460,29 @@ class GenericCellComplex(SageObject):
         r"""
         The (reduced) homology of this cell complex.
 
-        :param dim: If None, then return the homology in every
-           dimension.  If ``dim`` is an integer or list, return the
-           homology in the given dimensions.  (Actually, if ``dim`` is
-           a list, return the homology in the range from ``min(dim)``
-           to ``max(dim)``.)
-        :type dim: integer or list of integers or None; optional,
-           default None
-        :param base_ring: commutative ring, must be ZZ or a field.
-        :type base_ring: optional, default ZZ
-        :param subcomplex: a subcomplex of this simplicial complex.
-           Compute homology relative to this subcomplex.
-        :type subcomplex: optional, default empty
-        :param generators: If ``True``, return generators for the homology
-           groups along with the groups.
-        :type generators: boolean; optional, default False
-        :param cohomology: If True, compute cohomology rather than homology.
-        :type cohomology: boolean; optional, default False
-        :param algorithm: The options are 'auto', 'dhsw', or 'pari'.
-           See below for a description of what they mean.
-        :type algorithm: string; optional, default 'pari'
-        :param verbose: If True, print some messages as the homology is
-           computed.
-        :type verbose: boolean; optional, default False
-        :param reduced: If ``True``, return the reduced homology.
-        :type reduced: boolean; optional, default ``True``
+        INPUT:
+
+        - ``dim`` -- integer or list of integers or ``None`` (default:
+          ``None``); if ``None``, then return the homology in every
+          dimension.  If ``dim`` is an integer or list, return the
+          homology in the given dimensions.  (Actually, if ``dim`` is
+          a list, return the homology in the range from ``min(dim)``
+          to ``max(dim)``.)
+        - ``base_ring`` -- commutative ring (default: ``ZZ``); must be `\ZZ` or
+          a field
+        - ``subcomplex`` -- (default: empty) a subcomplex of this simplicial
+          complex. Compute the homology relative to this subcomplex.
+        - ``generators`` -- boolean (default: ``False``); if ``True``, return
+          generators for the homology groups along with the groups.
+        - ``cohomology`` -- boolean (default: ``False``); if ``True``, compute
+          cohomology rather than homology
+        - ``algorithm`` -- string (default: ``'pari'``); the algorithm options
+          are 'auto', 'dhsw', or 'pari'. See below for a description of what
+          they mean.
+        - ``verbose`` -- boolean (default: ``False``); if True, print some
+          messages as the homology is computed
+        - ``reduced`` -- boolean (default: ``True``); if ``True``, return the
+          reduced homology
 
         ALGORITHM:
 
@@ -503,7 +509,6 @@ class GenericCellComplex(SageObject):
 
         EXAMPLES::
 
-            sage: # needs sage.modules
             sage: P = delta_complexes.RealProjectivePlane()
             sage: P.homology()
             {0: 0, 1: C2, 2: 0}
@@ -522,7 +527,7 @@ class GenericCellComplex(SageObject):
         Sage can compute generators of homology groups::
 
             sage: S2 = simplicial_complexes.Sphere(2)
-            sage: S2.homology(dim=2, generators=True, base_ring=GF(2))                  # needs sage.modules
+            sage: S2.homology(dim=2, generators=True, base_ring=GF(2))
             [(Vector space of dimension 1 over Finite Field of size 2,
               (0, 1, 2) + (0, 1, 3) + (0, 2, 3) + (1, 2, 3))]
 
@@ -533,15 +538,15 @@ class GenericCellComplex(SageObject):
         complexes, each generator is a linear combination of cubes::
 
             sage: S2_cub = cubical_complexes.Sphere(2)
-            sage: S2_cub.homology(dim=2, generators=True)                               # needs sage.modules
+            sage: S2_cub.homology(dim=2, generators=True)
             [(Z,
              [0,0] x [0,1] x [0,1] - [0,1] x [0,0] x [0,1] + [0,1] x [0,1] x [0,0]
              - [0,1] x [0,1] x [1,1] + [0,1] x [1,1] x [0,1] - [1,1] x [0,1] x [0,1])]
 
-        Similarly for simpicial sets::
+        Similarly for simplicial sets::
 
             sage: S = simplicial_sets.Sphere(2)
-            sage: S.homology(generators=True)                                           # needs sage.modules
+            sage: S.homology(generators=True)
             {0: [], 1: 0, 2: [(Z, sigma_2)]}
         """
         from sage.homology.homology_group import HomologyGroup
@@ -608,24 +613,25 @@ class GenericCellComplex(SageObject):
         automatically true here.  Indeed, this function just calls
         :meth:`homology` with ``cohomology`` set to ``True``.
 
-        :param dim:
-        :param base_ring:
-        :param subcomplex:
-        :param algorithm:
-        :param verbose:
-        :param reduced:
+        INPUT:
+
+        - ``dim``
+        - ``base_ring``
+        - ``subcomplex``
+        - ``algorithm``
+        - ``verbose``
+        - ``reduced``
 
         EXAMPLES::
 
             sage: circle = SimplicialComplex([[0,1], [1,2], [0, 2]])
-            sage: circle.cohomology(0)                                                  # needs sage.modules
+            sage: circle.cohomology(0)
             0
-            sage: circle.cohomology(1)                                                  # needs sage.modules
+            sage: circle.cohomology(1)
             Z
 
         Projective plane::
 
-            sage: # needs sage.modules
             sage: P2 = SimplicialComplex([[0,1,2], [0,2,3], [0,1,5], [0,4,5], [0,3,4],
             ....:                         [1,2,4], [1,3,4], [1,3,5], [2,3,5], [2,4,5]])
             sage: P2.cohomology(2)
@@ -635,20 +641,20 @@ class GenericCellComplex(SageObject):
             sage: P2.cohomology(2, base_ring=GF(3))
             Vector space of dimension 0 over Finite Field of size 3
 
-            sage: cubical_complexes.KleinBottle().cohomology(2)                         # needs sage.modules
+            sage: cubical_complexes.KleinBottle().cohomology(2)
             C2
 
         Relative cohomology::
 
             sage: T = SimplicialComplex([[0,1]])
             sage: U = SimplicialComplex([[0], [1]])
-            sage: T.cohomology(1, subcomplex=U)                                         # needs sage.modules
+            sage: T.cohomology(1, subcomplex=U)
             Z
 
         A `\Delta`-complex example::
 
             sage: s5 = delta_complexes.Sphere(5)
-            sage: s5.cohomology(base_ring=GF(7))[5]                                     # needs sage.modules
+            sage: s5.cohomology(base_ring=GF(7))[5]
             Vector space of dimension 1 over Finite Field of size 7
         """
         return self.homology(dim=dim, cohomology=True, base_ring=base_ring,
@@ -660,20 +666,21 @@ class GenericCellComplex(SageObject):
         r"""
         The Betti numbers of this simplicial complex as a dictionary
         (or a single Betti number, if only one dimension is given):
-        the ith Betti number is the rank of the ith homology group.
+        the `i`-th Betti number is the rank of the `i`-th homology group.
 
-        :param dim: If ``None``, then return every Betti number, as
-           a dictionary with keys the non-negative integers.  If
-           ``dim`` is an integer or list, return the Betti number for
-           each given dimension.  (Actually, if ``dim`` is a list,
-           return the Betti numbers, as a dictionary, in the range
-           from ``min(dim)`` to ``max(dim)``.  If ``dim`` is a number,
-           return the Betti number in that dimension.)
-        :type dim: integer or list of integers or ``None``; optional,
-           default ``None``
-        :param subcomplex: a subcomplex of this cell complex.  Compute
-           the Betti numbers of the homology relative to this subcomplex.
-        :type subcomplex: optional, default ``None``
+        INPUT:
+
+        - ``dim`` -- integer or list of integers or ``None`` (default:
+          ``None``); if ``None``, then return every Betti number, as
+          a dictionary with keys the non-negative integers.  If
+          ``dim`` is an integer or list, return the Betti number for
+          each given dimension.  (Actually, if ``dim`` is a list,
+          return the Betti numbers, as a dictionary, in the range
+          from ``min(dim)`` to ``max(dim)``.  If ``dim`` is a number,
+          return the Betti number in that dimension.)
+        - ``subcomplex`` -- a subcomplex (default: ``None``) of this cell
+          complex;  compute the Betti numbers of the homology relative to this
+          subcomplex
 
         EXAMPLES:
 
@@ -681,52 +688,53 @@ class GenericCellComplex(SageObject):
         two-point space with itself::
 
             sage: S = SimplicialComplex([[0], [1]])
-            sage: (S*S*S).betti()                                                       # needs sage.modules
+            sage: (S*S*S).betti()
             {0: 1, 1: 0, 2: 1}
-            sage: (S*S*S).betti([1,2])                                                  # needs sage.modules
+            sage: (S*S*S).betti([1,2])
             {1: 0, 2: 1}
-            sage: (S*S*S).betti(2)                                                      # needs sage.modules
+            sage: (S*S*S).betti(2)
             1
 
         Or build the two-sphere as a `\Delta`-complex::
 
             sage: S2 = delta_complexes.Sphere(2)
-            sage: S2.betti([1,2])                                                       # needs sage.modules
+            sage: S2.betti([1,2])
             {1: 0, 2: 1}
 
         Or as a cubical complex::
 
             sage: S2c = cubical_complexes.Sphere(2)
-            sage: S2c.betti(2)                                                          # needs sage.modules
+            sage: S2c.betti(2)
             1
         """
-        dict = {}
+        dic = {}
         H = self.homology(dim, base_ring=QQ, subcomplex=subcomplex)
         try:
             for n in H.keys():
-                dict[n] = H[n].dimension()
+                dic[n] = H[n].dimension()
                 if n == 0:
-                    dict[n] += 1
-            return dict
+                    dic[n] += 1
         except AttributeError:
             return H.dimension()
+        else:
+            return dic
 
-    def is_acyclic(self, base_ring=ZZ):
+    def is_acyclic(self, base_ring=ZZ) -> bool:
         """
-        True if the reduced homology with coefficients in ``base_ring`` of
-        this cell complex is zero.
+        Return ``True`` if the reduced homology with coefficients in
+        ``base_ring`` of this cell complex is zero.
 
         INPUT:
 
-        - ``base_ring`` -- optional, default ``ZZ``. Compute homology
-          with coefficients in this ring.
+        - ``base_ring`` -- (default: ``ZZ``) compute homology
+          with coefficients in this ring
 
         EXAMPLES::
 
             sage: RP2 = simplicial_complexes.RealProjectivePlane()
-            sage: RP2.is_acyclic()                                                      # needs sage.modules
+            sage: RP2.is_acyclic()
             False
-            sage: RP2.is_acyclic(QQ)                                                    # needs sage.modules
+            sage: RP2.is_acyclic(QQ)
             True
 
         This first computes the Euler characteristic: if it is not 1,
@@ -748,9 +756,8 @@ class GenericCellComplex(SageObject):
         H = self.homology(base_ring=base_ring)
         if base_ring == ZZ:
             return all(len(x.invariants()) == 0 for x in H.values())
-        else:
-            # base_ring is a field.
-            return all(x.dimension() == 0 for x in H.values())
+        # base_ring is a field.
+        return all(x.dimension() == 0 for x in H.values())
 
     def n_chains(self, n, base_ring=ZZ, cochains=False):
         r"""
@@ -759,8 +766,8 @@ class GenericCellComplex(SageObject):
         INPUT:
 
         - ``n`` -- integer
-        - ``base_ring`` -- ring (optional, default `\ZZ`)
-        - ``cochains`` -- boolean (optional, default ``False``); if
+        - ``base_ring`` -- ring (default: `\ZZ`)
+        - ``cochains`` -- boolean (default: ``False``); if
           ``True``, return cochains instead
 
         The only difference between chains and cochains is
@@ -771,12 +778,12 @@ class GenericCellComplex(SageObject):
         EXAMPLES::
 
             sage: S2 = simplicial_complexes.Sphere(2)
-            sage: S2.n_chains(1, QQ)                                                    # needs sage.modules
+            sage: S2.n_chains(1, QQ)
             Free module generated by {(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)}
              over Rational Field
-            sage: list(S2.n_chains(1, QQ, cochains=False).basis())                      # needs sage.modules
+            sage: list(S2.n_chains(1, QQ, cochains=False).basis())
             [(0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3)]
-            sage: list(S2.n_chains(1, QQ, cochains=True).basis())                       # needs sage.modules
+            sage: list(S2.n_chains(1, QQ, cochains=True).basis())
             [\chi_(0, 1), \chi_(0, 2), \chi_(0, 3), \chi_(1, 2), \chi_(1, 3), \chi_(2, 3)]
         """
         from sage.homology.chains import Chains, Cochains
@@ -784,8 +791,7 @@ class GenericCellComplex(SageObject):
         n_cells = tuple(self._n_cells_sorted(n))
         if cochains:
             return Cochains(self, n, n_cells, base_ring)
-        else:
-            return Chains(self, n, n_cells, base_ring)
+        return Chains(self, n, n_cells, base_ring)
 
     def algebraic_topological_model(self, base_ring=QQ):
         r"""
@@ -823,9 +829,9 @@ class GenericCellComplex(SageObject):
 
         INPUT:
 
-        - ``base_ring`` -- coefficient ring (optional, default
+        - ``base_ring`` -- coefficient ring (default:
           ``QQ``); must be a field
-        - ``cohomology`` -- boolean (optional, default ``False``); if
+        - ``cohomology`` -- boolean (default: ``False``); if
           ``True``, return cohomology instead of homology
 
         Homology basis elements are named 'h_{dim,i}' where i ranges
@@ -840,7 +846,6 @@ class GenericCellComplex(SageObject):
 
         EXAMPLES::
 
-            sage: # needs sage.modules
             sage: K = simplicial_complexes.KleinBottle()
             sage: H = K.homology_with_basis(QQ); H
             Homology module of Minimal triangulation of the Klein bottle
@@ -856,12 +861,12 @@ class GenericCellComplex(SageObject):
         The homology is constructed as a graded object, so for
         example, you can ask for the basis in a single degree::
 
-            sage: H.basis(1)                                                            # needs sage.modules
+            sage: H.basis(1)
             Finite family {(1, 0): h_{1,0}, (1, 1): h_{1,1}}
 
             sage: S3 = delta_complexes.Sphere(3)
-            sage: H = S3.homology_with_basis(QQ, cohomology=True)                       # needs sage.modules
-            sage: list(H.basis(3))                                                      # needs sage.modules
+            sage: H = S3.homology_with_basis(QQ, cohomology=True)
+            sage: list(H.basis(3))
             [h^{3,0}]
         """
         from sage.homology.homology_vector_space_with_basis import \
@@ -888,7 +893,7 @@ class GenericCellComplex(SageObject):
 
         INPUT:
 
-        - ``base_ring`` -- coefficient ring (optional, default
+        - ``base_ring`` -- coefficient ring (default:
           ``QQ``); must be a field
 
         The basis elements in dimension ``dim`` are named 'h^{dim,i}'
@@ -907,7 +912,6 @@ class GenericCellComplex(SageObject):
 
         EXAMPLES::
 
-            sage: # needs sage.modules
             sage: K = simplicial_complexes.KleinBottle()
             sage: H = K.cohomology_ring(QQ); H
             Cohomology ring of Minimal triangulation of the Klein bottle
@@ -921,23 +925,22 @@ class GenericCellComplex(SageObject):
             [h^{0,0}, h^{1,0}, h^{1,1}, h^{2,0}]
 
             sage: X = delta_complexes.SurfaceOfGenus(2)
-            sage: H = X.cohomology_ring(QQ); H                                          # needs sage.modules
+            sage: H = X.cohomology_ring(QQ); H
             Cohomology ring of Delta complex with 3 vertices and 29 simplices
              over Rational Field
-            sage: sorted(H.basis(1), key=str)                                           # needs sage.modules
+            sage: sorted(H.basis(1), key=str)
             [h^{1,0}, h^{1,1}, h^{1,2}, h^{1,3}]
 
-            sage: H = simplicial_complexes.Torus().cohomology_ring(QQ); H               # needs sage.modules
+            sage: H = simplicial_complexes.Torus().cohomology_ring(QQ); H
             Cohomology ring of Minimal triangulation of the torus
              over Rational Field
-            sage: x = H.basis()[1,0]; x                                                 # needs sage.modules
+            sage: x = H.basis()[1,0]; x
             h^{1,0}
-            sage: y = H.basis()[1,1]; y                                                 # needs sage.modules
+            sage: y = H.basis()[1,1]; y
             h^{1,1}
 
         You can compute cup products of cohomology classes::
 
-            sage: # needs sage.modules
             sage: x.cup_product(y)
             -h^{2,0}
             sage: x * y # alternate notation
@@ -949,13 +952,12 @@ class GenericCellComplex(SageObject):
 
         Cohomology operations::
 
-            sage: # needs sage.groups
             sage: RP2 = simplicial_complexes.RealProjectivePlane()
             sage: K = RP2.suspension()
             sage: K.set_immutable()
-            sage: y = K.cohomology_ring(GF(2)).basis()[2,0]; y                          # needs sage.modules
+            sage: y = K.cohomology_ring(GF(2)).basis()[2,0]; y
             h^{2,0}
-            sage: y.Sq(1)                                                               # needs sage.modules
+            sage: y.Sq(1)
             h^{3,0}
 
         To compute the cohomology ring, the complex must be
@@ -969,12 +971,12 @@ class GenericCellComplex(SageObject):
             sage: T = S1.product(S1)
             sage: T.is_immutable()
             False
-            sage: T.cohomology_ring()                                                   # needs sage.modules
+            sage: T.cohomology_ring()
             Traceback (most recent call last):
             ...
             ValueError: this simplicial complex must be immutable; call set_immutable()
             sage: T.set_immutable()
-            sage: T.cohomology_ring()                                                   # needs sage.modules
+            sage: T.cohomology_ring()
             Cohomology ring of Simplicial complex with 9 vertices and
              18 facets over Rational Field
         """
@@ -1003,7 +1005,7 @@ class GenericCellComplex(SageObject):
         - ``dim_left`` -- the dimension of the left-hand factors in
           the decomposition
 
-        OUTPUT: a list containing triples ``(c, left, right)``.
+        OUTPUT: list containing triples ``(c, left, right)``.
         ``left`` and ``right`` should be cells in this complex, and
         ``c`` an integer. In the cellular approximation of the
         diagonal map, the chain represented by ``cell`` should get
@@ -1017,9 +1019,9 @@ class GenericCellComplex(SageObject):
 
         For simplicial and cubical complexes, the decomposition can be
         done at the level of individual cells: see
-        :meth:`~sage.homology.simplicial_complex.Simplex.alexander_whitney`
+        :meth:`~sage.topology.simplicial_complex.Simplex.alexander_whitney`
         and
-        :meth:`~sage.homology.cubical_complex.Cube.alexander_whitney`. Then
+        :meth:`~sage.topology.cubical_complex.Cube.alexander_whitney`. Then
         the method for simplicial complexes just calls the method for
         individual simplices, and similarly for cubical complexes. For
         `\Delta`-complexes and simplicial sets, the method is instead
@@ -1094,9 +1096,9 @@ class GenericCellComplex(SageObject):
         """
         raise NotImplementedError
 
-    def is_connected(self):
+    def is_connected(self) -> bool:
         """
-        True if this cell complex is connected.
+        Return ``True`` if this cell complex is connected.
 
         EXAMPLES::
 
@@ -1131,7 +1133,9 @@ class GenericCellComplex(SageObject):
         complex obtained by discarding all of the simplices in
         dimensions larger than `n`.
 
-        :param n: non-negative integer
+        INPUT:
+
+        - ``n`` -- nonnegative integer
 
         This is not implemented for general cell complexes.
 
@@ -1151,7 +1155,7 @@ class GenericCellComplex(SageObject):
         singular and plural of the name of the cells from which it is
         built.  This is used in constructing the string representation.
 
-        :return: tuple of strings
+        OUTPUT: tuple of strings
 
         This returns ``('Cell', 'cell', 'cells')``, as in "Cell
         complex", "1 cell", and "24 cells", but in other classes it
@@ -1176,7 +1180,7 @@ class GenericCellComplex(SageObject):
         """
         Print representation.
 
-        :return: string
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -1195,7 +1199,7 @@ class GenericCellComplex(SageObject):
         for dim in self.cells():
             cells += len(self.cells()[dim])
         if cells != 1:
-            cells_string = " and %s %s" % (cells, cells_name)
+            cells_string = " and {} {}".format(cells, cells_name)
         else:
             cells_string = " and 1 %s" % cell_name
         return Name + " complex " + vertex_string + cells_string

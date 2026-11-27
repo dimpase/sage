@@ -11,15 +11,15 @@ AUTHORS:
 - James Campbell and Vince Knight (06-2014): Original version
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2014 James Campbell james.campbell@tanti.org.uk
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 from itertools import permutations, combinations
 from sage.combinat.subset import powerset
 from sage.rings.integer import Integer
@@ -33,7 +33,7 @@ class CooperativeGame(SageObject):
 
     INPUT:
 
-    - ``characteristic_function`` -- a dictionary containing all possible
+    - ``characteristic_function`` -- dictionary containing all possible
       sets of players:
 
       * key - each set must be entered as a tuple.
@@ -254,7 +254,7 @@ class CooperativeGame(SageObject):
     """
     def __init__(self, characteristic_function):
         r"""
-        Initializes a co-operative game and checks the inputs.
+        Initialize a co-operative game and checks the inputs.
 
         TESTS:
 
@@ -395,7 +395,7 @@ class CooperativeGame(SageObject):
 
         return payoff_vector
 
-    def is_monotone(self):
+    def is_monotone(self) -> bool:
         r"""
         Return ``True`` if ``self`` is monotonic.
 
@@ -457,7 +457,7 @@ class CooperativeGame(SageObject):
         return not any(set(p1) <= set(p2) and self.ch_f[p1] > self.ch_f[p2]
                        for p1, p2 in permutations(self.ch_f.keys(), 2))
 
-    def is_superadditive(self):
+    def is_superadditive(self) -> bool:
         r"""
         Return ``True`` if ``self`` is superadditive.
 
@@ -606,7 +606,7 @@ class CooperativeGame(SageObject):
         output += "\\end{cases}"
         return output
 
-    def is_efficient(self, payoff_vector):
+    def is_efficient(self, payoff_vector) -> bool:
         r"""
         Return ``True`` if ``payoff_vector`` is efficient.
 
@@ -616,7 +616,7 @@ class CooperativeGame(SageObject):
 
         INPUT:
 
-        - ``payoff_vector`` -- a dictionary where the key is the player
+        - ``payoff_vector`` -- dictionary where the key is the player
           and the value is their payoff
 
         EXAMPLES:
@@ -672,7 +672,7 @@ class CooperativeGame(SageObject):
         pl = tuple(sorted(self.player_list))
         return sum(payoff_vector.values()) == self.ch_f[pl]
 
-    def nullplayer(self, payoff_vector):
+    def nullplayer(self, payoff_vector) -> bool:
         r"""
         Return ``True`` if ``payoff_vector`` possesses the nullplayer
         property.
@@ -684,7 +684,7 @@ class CooperativeGame(SageObject):
 
         INPUT:
 
-        - ``payoff_vector`` -- a dictionary where the key is the player
+        - ``payoff_vector`` -- dictionary where the key is the player
           and the value is their payoff
 
         EXAMPLES:
@@ -765,7 +765,7 @@ class CooperativeGame(SageObject):
                 return False
         return True
 
-    def is_symmetric(self, payoff_vector):
+    def is_symmetric(self, payoff_vector) -> bool:
         r"""
         Return ``True`` if ``payoff_vector`` possesses the symmetry property.
 
@@ -775,7 +775,7 @@ class CooperativeGame(SageObject):
 
         INPUT:
 
-        - ``payoff_vector`` -- a dictionary where the key is the player
+        - ``payoff_vector`` -- dictionary where the key is the player
           and the value is their payoff
 
         EXAMPLES:

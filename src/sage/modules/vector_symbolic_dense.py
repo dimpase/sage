@@ -22,7 +22,7 @@ EXAMPLES::
 TESTS:
 
 Check that the outcome of arithmetic with symbolic vectors is again
-a symbolic vector (:trac:`11549`)::
+a symbolic vector (:issue:`11549`)::
 
     sage: v = vector(SR, [1, 2])
     sage: w = vector(SR, [sin(x), 0])
@@ -42,25 +42,24 @@ Test pickling/unpickling::
     sage: u = vector(SR, [sin(x^2)])
     sage: loads(dumps(u)) == u
     True
-
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2011 Joris Vankerschaver (jv@caltech.edu)
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from . import free_module_element
+from sage.modules import free_module_element
 from sage.symbolic.expression import Expression
 
 
-def apply_map(phi):
+def apply_map(phi, name=None):
     """
-    Returns a function that applies phi to its argument.
+    Return a function that applies ``phi`` to its argument.
 
     EXAMPLES::
 
@@ -69,7 +68,6 @@ def apply_map(phi):
         sage: f = apply_map(lambda x: x+1)
         sage: f(v)
         (2, 3, 4)
-
     """
     def apply(self, *args, **kwds):
         """
@@ -101,6 +99,8 @@ def apply_map(phi):
             (sin(2*x), sin(3*x))
         """
         return self.apply_map(lambda x: phi(x, *args, **kwds))
+    apply.__name__ = name or getattr(phi, "__name__", "apply")
+    apply.__qualname__ = apply.__name__
     apply.__doc__ += "\nSee Expression." + phi.__name__ + "() for optional arguments."
     return apply
 
@@ -114,4 +114,4 @@ for method in ['simplify', 'simplify_factorial',
                'simplify_log', 'simplify_rational',
                'simplify_trig', 'simplify_full', 'trig_expand',
                'canonicalize_radical', 'trig_reduce']:
-    setattr(Vector_symbolic_dense, method, apply_map(getattr(Expression, method)))
+    setattr(Vector_symbolic_dense, method, apply_map(getattr(Expression, method), method))

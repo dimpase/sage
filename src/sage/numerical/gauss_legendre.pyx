@@ -38,18 +38,19 @@ AUTHORS:
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
-#as it turns out, computing the nodes can easily turn out to be more
-#expensive than computing the integrals. So it's worth optimizing this.
-#making the function into a cython routine helps a little bit. If we really
-#want to we can optimize this further, probably to a point where
-#we don't have to bother with node computation routines that have a better order
-#than this naive approach (which is quadratic)
+# as it turns out, computing the nodes can easily turn out to be more
+# expensive than computing the integrals. So it's worth optimizing this.
+# making the function into a cython routine helps a little bit. If we really
+# want to we can optimize this further, probably to a point where
+# we don't have to bother with node computation routines that have
+# a better order than this naive approach (which is quadratic)
 
 from sage.libs.mpfr cimport *
 import math
 from sage.rings.real_mpfr import RealField
 from sage.misc.cachefunc import cached_function
 from sage.rings.real_mpfr cimport RealNumber, RealField_class
+
 
 def nodes_uncached(degree, prec):
     r"""
@@ -61,14 +62,12 @@ def nodes_uncached(degree, prec):
 
     INPUT:
 
-     - ``degree`` -- integer. The number of nodes. Must be 3 or even.
+    - ``degree`` -- integer; the number of nodes (must be 3 or even)
 
-     - ``prec`` -- integer (minimal value 53). Binary precision with which the
-       nodes and weights are computed.
+    - ``prec`` -- integer (minimal value 53); binary precision with which the
+      nodes and weights are computed
 
-    OUTPUT:
-
-    A list of (node, weight) pairs.
+    OUTPUT: list of (node, weight) pairs
 
     EXAMPLES:
 
@@ -103,13 +102,13 @@ def nodes_uncached(degree, prec):
 
     .. TODO::
 
-        It may be worth testing if using the Arb algorithm for finding the
-        nodes and weights in ``arb/acb_calc/integrate_gl_auto_deg.c`` has better
+        It may be worth testing if using the FLINT/Arb algorithm for finding the
+        nodes and weights in ``src/acb_calc/integrate_gl_auto_deg.c`` has better
         performance.
     """
-    cdef long j,j1,n
-    cdef RealNumber r,t1,t2,t4,a,w
-    cdef mpfr_t u,v
+    cdef long j, j1, n
+    cdef RealNumber r, t1, t2, t4, a, w
+    cdef mpfr_t u, v
     cdef RealField_class R
     if prec < 53:
         prec = 53
@@ -117,8 +116,8 @@ def nodes_uncached(degree, prec):
         raise ValueError("degree=%s not supported (degree must be 3 or even)" % degree)
     R = RealField(int(prec*3/2))
     Rout = RealField(prec)
-    mpfr_init2(u,R._prec)
-    mpfr_init2(v,R._prec)
+    mpfr_init2(u, R._prec)
+    mpfr_init2(v, R._prec)
     ZERO = R.zero()
     ONE = R.one()
     HALF = ONE/2
@@ -128,23 +127,23 @@ def nodes_uncached(degree, prec):
     if degree == 3:
         x = (R(3)/5).sqrt()
         w = R(5)/18
-        nodes = [((1-x)/2,w),(HALF,R(4)/9),((1+x)/2,w)]
+        nodes = [((1-x)/2, w), (HALF, R(4)/9), ((1+x)/2, w)]
     else:
         nodes = []
         n = degree
         for j in range(1, n // 2 + 1):
             r = R(math.cos(math.pi*(j-0.25)/(n+0.5)))
             while True:
-                t1,t2=ONE,ZERO
-                for j1 in range(1,n+1):
-                    mpfr_mul(u,r.value,t1.value,rnd)
-                    mpfr_mul_si(u,u,2*j1-1,rnd)
-                    mpfr_mul_si(v,t2.value,j1-1,rnd)
-                    mpfr_sub(u,u,v,rnd)
-                    mpfr_div_si(u,u,j1,rnd)
+                t1, t2 = ONE, ZERO
+                for j1 in range(1, n+1):
+                    mpfr_mul(u, r.value, t1.value, rnd)
+                    mpfr_mul_si(u, u, 2*j1-1, rnd)
+                    mpfr_mul_si(v, t2.value, j1-1, rnd)
+                    mpfr_sub(u, u, v, rnd)
+                    mpfr_div_si(u, u, j1, rnd)
                     t2=t1
                     t1=R._new()
-                    mpfr_set(t1.value,u,rnd)
+                    mpfr_set(t1.value, u, rnd)
                 t4 = R(n)*(r*t1-t2)/(r**2-ONE)
                 a = t1/t4
                 r = r-a
@@ -152,13 +151,14 @@ def nodes_uncached(degree, prec):
                     break
             x = r
             w = ONE/((ONE-r**2)*t4**2)
-            nodes.append(((ONE+x)/TWO,w))
-            nodes.append(((ONE-x)/TWO,w))
-    nodes=[(Rout(x),Rout(w)) for x,w in nodes]
+            nodes.append(((ONE+x)/TWO, w))
+            nodes.append(((ONE-x)/TWO, w))
+    nodes = [(Rout(x), Rout(w)) for x, w in nodes]
     nodes.sort()
     mpfr_clear(u)
     mpfr_clear(v)
     return nodes
+
 
 @cached_function
 def nodes(degree, prec):
@@ -170,14 +170,12 @@ def nodes(degree, prec):
 
     INPUT:
 
-     - ``degree`` -- integer. The number of nodes. Must be 3 or even.
+    - ``degree`` -- integer; the number of nodes (must be 3 or even)
 
-     - ``prec`` -- integer (minimal value 53). Binary precision with which the
-       nodes and weights are computed.
+    - ``prec`` -- integer (minimal value 53); binary precision with which the
+      nodes and weights are computed
 
-    OUTPUT:
-
-    A list of (node, weight) pairs.
+    OUTPUT: list of (node, weight) pairs.
 
     EXAMPLES:
 
@@ -209,9 +207,9 @@ def nodes(degree, prec):
         [(0.11270166537925831148207346002, 0.27777777777777777777777777778),
          (0.50000000000000000000000000000, 0.44444444444444444444444444444),
          (0.88729833462074168851792653998, 0.27777777777777777777777777778)]
-
     """
     return nodes_uncached(degree, prec)
+
 
 def estimate_error(results, prec, epsilon):
     r"""
@@ -227,15 +225,15 @@ def estimate_error(results, prec, epsilon):
 
     INPUT:
 
-     - ``results`` -- list. List of approximations to estimate the error from. Should be at least length 2.
+    - ``results`` -- list of approximations to estimate the error from; should
+      be at least length 2
 
-     - ``prec`` -- integer. Binary precision at which computations are happening.
+    - ``prec`` -- integer; binary precision at which computations are happening
 
-     - ``epsilon`` -- multiprecision float. Default error estimate in case of insufficient data.
+    - ``epsilon`` -- multiprecision float; default error estimate in case of
+      insufficient data
 
-    OUTPUT:
-
-    An estimate of the error.
+    OUTPUT: an estimate of the error
 
     EXAMPLES::
 
@@ -262,10 +260,11 @@ def estimate_error(results, prec, epsilon):
             D2 = (results[-1][i]-results[-3][i]).abs().log()
         except ValueError:
             e.append(epsilon)
-        #we follow mpmath in clipping the precision
-        D4 = min(ZERO,max(D1**2/D2,2*D1,ZERO-prec))
+        # we follow mpmath in clipping the precision
+        D4 = min(ZERO, max(D1**2/D2, 2*D1, ZERO-prec))
         e.append(D4.exp())
     return max(e)
+
 
 def integrate_vector_N(f, prec, N=3):
     r"""
@@ -279,15 +278,13 @@ def integrate_vector_N(f, prec, N=3):
 
     INPUT:
 
-     - ``f`` -- callable. Vector-valued integrand.
+    - ``f`` -- callable; vector-valued integrand
 
-     - ``prec`` -- integer. Binary precision to be used.
+    - ``prec`` -- integer; binary precision to be used
 
-     - ``N`` -- integer (default: 3). Number of nodes to use.
+    - ``N`` -- integer (default: 3); number of nodes to use
 
-     OUTPUT:
-
-     Vector approximating value of the integral.
+     OUTPUT: vector approximating value of the integral
 
      EXAMPLES::
 
@@ -304,16 +301,17 @@ def integrate_vector_N(f, prec, N=3):
         The nodes and weights are calculated in the real field with ``prec``
         bits of precision. If the vector space in which ``f`` takes values
         is over a field which is incompatible with this field (e.g. a finite
-        field) then a :class:`TypeError` occurs.
+        field) then a :exc:`TypeError` occurs.
     """
     # We use nodes_uncached, because caching takes up memory, and numerics in
     # Bruin-DisneyHogg-Gao suggest that caching provides little benefit in the
     # use in the Riemann surfaces module.
     nodelist = nodes_uncached(N, prec)
     I = nodelist[0][1]*f(nodelist[0][0])
-    for i in range(1,len(nodelist)):
+    for i in range(1, len(nodelist)):
         I += nodelist[i][1]*f(nodelist[i][0])
     return I
+
 
 def integrate_vector(f, prec, epsilon=None):
     r"""
@@ -324,15 +322,14 @@ def integrate_vector(f, prec, epsilon=None):
 
     INPUT:
 
-     - ``f`` -- callable. Vector-valued integrand.
+    - ``f`` -- callable; vector-valued integrand
 
-     - ``prec`` -- integer. Binary precision to be used.
+    - ``prec`` -- integer; binary precision to be used
 
-     - ``epsilon`` -- multiprecision float (default: `2^{(-\text{prec}+3)}`). Target error bound.
+    - ``epsilon`` -- multiprecision float (default: `2^{(-\text{prec}+3)}`);
+      target error bound
 
-    OUTPUT:
-
-    Vector approximating value of the integral.
+    OUTPUT: vector approximating value of the integral
 
     EXAMPLES::
 
@@ -372,12 +369,12 @@ def integrate_vector(f, prec, epsilon=None):
         # values, so it will be very useful, approximately halving the runtime
         nodelist = nodes(degree, prec)
         I = nodelist[0][1]*f(nodelist[0][0])
-        for i in range(1,len(nodelist)):
+        for i in range(1, len(nodelist)):
             I += nodelist[i][1]*f(nodelist[i][0])
         results.append(I)
         if degree > 3:
             err = estimate_error(results, prec, epsilon)
             if err <= epsilon:
                 return I
-        #double the degree to double expected precision
+        # double the degree to double expected precision
         degree *= 2

@@ -3,7 +3,7 @@ r"""
 Calculus functions
 """
 from sage.misc.lazy_import import lazy_import
-from sage.structure.element import is_Matrix, is_Vector, Expression
+from sage.structure.element import Matrix, Vector, Expression
 
 lazy_import('sage.matrix.constructor', 'matrix')
 
@@ -25,7 +25,7 @@ def wronskian(*args):
     function.
 
     The Wronskian of a list of functions is a determinant of derivatives.
-    The nth row (starting from 0) is a list of the nth derivatives of the
+    The `n`-th row (starting from 0) is a list of the `n`-th derivatives of the
     given functions.
 
     For two functions::
@@ -137,14 +137,27 @@ def jacobian(functions, variables):
         [    x^3*cos(y)   3*x^2*sin(y)]
         [ cos(x)*cos(y) -sin(x)*sin(y)]
         [             0            e^x]
+
+    We verify Alpoge's counterexample to the Jacobian conjecture::
+
+        sage: x,y,z = var('x,y,z')
+        sage: l = [(1+x*y)^3*z + y^2*(1+x*y)*(4+3*x*y), y+3*x*(1+x*y)^2*z + 3*x*y^2*(4+3*x*y), 2*x-3*x^2*y-x^3*z]
+        sage: M = jacobian(l, (x,y,z))
+        sage: M.det().expand()
+        -2
+        sage: [f(x=0,y=0,z=-1/4) for f in l]
+        [-1/4, 0, 0]
+        sage: [f(x=1,y=-3/2,z=13/2) for f in l]
+        [-1/4, 0, 0]
+
     """
-    if is_Matrix(functions) and (functions.nrows() == 1
-                                 or functions.ncols() == 1):
+    if isinstance(functions, Matrix) and (functions.nrows() == 1
+                                          or functions.ncols() == 1):
         functions = functions.list()
-    elif not (isinstance(functions, (tuple, list)) or is_Vector(functions)):
+    elif not isinstance(functions, (tuple, list, Vector)):
         functions = [functions]
 
-    if not isinstance(variables, (tuple, list)) and not is_Vector(variables):
+    if not isinstance(variables, (tuple, list, Vector)):
         variables = [variables]
 
     return matrix([[diff(f, v) for v in variables] for f in functions])

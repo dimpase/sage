@@ -12,6 +12,7 @@ Hyperplane arrangements
    :maxdepth: 1
 
    sage/geometry/hyperplane_arrangement/arrangement
+   sage/geometry/hyperplane_arrangement/ordered_arrangement
    sage/geometry/hyperplane_arrangement/library
    sage/geometry/hyperplane_arrangement/hyperplane
    sage/geometry/hyperplane_arrangement/affine_subspace
@@ -77,8 +78,10 @@ Toric geometry
    :maxdepth: 1
 
    sage/geometry/toric_lattice
+   sage/geometry/toric_lattice_element
    sage/geometry/cone
    sage/geometry/cone_catalog
+   sage/geometry/cone_critical_angles
    sage/geometry/fan
    sage/geometry/fan_morphism
    sage/geometry/point_collection
@@ -100,6 +103,8 @@ Base classes for polyhedra
    sage/geometry/polyhedron/base6
    sage/geometry/polyhedron/base7
    sage/geometry/polyhedron/base
+   sage/geometry/polyhedron/base_mutable
+   sage/geometry/polyhedron/base_number_field
    sage/geometry/polyhedron/base_QQ
    sage/geometry/polyhedron/base_ZZ
    sage/geometry/polyhedron/base_RDF

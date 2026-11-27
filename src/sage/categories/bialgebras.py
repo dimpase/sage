@@ -19,7 +19,7 @@ from sage.misc.lazy_import import LazyImport
 
 class Bialgebras(Category_over_base_ring):
     """
-    The category of bialgebras
+    The category of bialgebras.
 
     EXAMPLES::
 
@@ -53,7 +53,8 @@ class Bialgebras(Category_over_base_ring):
 
         .. SEEALSO:: :meth:`Category.additional_structure`
 
-        .. TODO:: This category should be a :class:`CategoryWithAxiom`.
+        .. TODO:: This category should be a
+           :class:`~sage.categories.category_with_axiom.CategoryWithAxiom`.
 
         EXAMPLES::
 
@@ -71,7 +72,7 @@ class Bialgebras(Category_over_base_ring):
 
                 sage: # needs sage.modules
                 sage: s = SymmetricFunctions(QQ).schur()
-                sage: s([5]).is_primitive()
+                sage: s([5]).is_primitive()                                             # needs lrcalc_python
                 False
                 sage: p = SymmetricFunctions(QQ).powersum()
                 sage: p([5]).is_primitive()
@@ -87,9 +88,9 @@ class Bialgebras(Category_over_base_ring):
             EXAMPLES::
 
                 sage: s = SymmetricFunctions(QQ).schur()                                # needs sage.modules
-                sage: s([5]).is_grouplike()                                             # needs sage.modules
+                sage: s([5]).is_grouplike()                                             # needs lrcalc_python sage.modules
                 False
-                sage: s([]).is_grouplike()                                              # needs sage.modules
+                sage: s([]).is_grouplike()                                              # needs lrcalc_python sage.modules
                 True
             """
             return self.coproduct() == self.tensor(self)

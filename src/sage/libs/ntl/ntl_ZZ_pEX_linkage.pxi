@@ -5,18 +5,19 @@ This file provides the backend for \class{Polynomial_ZZ_pEX} via
 templating.
 
 AUTHOR:
-    -- Yann Laigle-Chapuy (2010-01): initial version
+
+- Yann Laigle-Chapuy (2010-01): initial version
 """
 
-#*****************************************************************************
+# ***************************************************************************
 #       Copyright (C) 2010 Yann Laigle-Chapuy
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ***************************************************************************
 
 from cysignals.signals cimport sig_on, sig_off
 
@@ -80,7 +81,7 @@ cdef int celement_gen(ZZ_pEX_c *e, long i, cparent parent) except -2:
         parent[0].zzpec[0].restore()
     ZZ_pEX_SetX(e[0])
 
-cdef object celement_repr(ZZ_pEX_c *e, cparent parent) noexcept:
+cdef object celement_repr(ZZ_pEX_c *e, cparent parent):
     """
     We ignore NTL's printing.
 
@@ -332,12 +333,12 @@ cdef inline int celement_pow(ZZ_pEX_c* res, ZZ_pEX_c* x, long e, ZZ_pEX_c *modul
         sage: (x+1)^(-2)
         1/(x^2 + 2*x + 1)
         sage: f = x+(a+1)
-        sage: f**50 == sum(binomial(50,i)*(a+1)**i*x**(50-i) for i in range(51))
+        sage: f**50 == sum(binomial(50,i)*(a+1)**i*x**(50-i) for i in range(51))        # needs sage.symbolic
         True
 
     TESTS:
 
-    Check that :trac:`15777` is fixed::
+    Check that :issue:`15777` is fixed::
 
         sage: k.<t> = GF(5**5)
         sage: x = polygen(k)
@@ -367,11 +368,11 @@ cdef inline int celement_pow(ZZ_pEX_c* res, ZZ_pEX_c* x, long e, ZZ_pEX_c *modul
             sig_off()
     else:
         if ZZ_pEX_deg(modulus[0]) == 1:
-             ZZ_pEX_rem(y, x[0], modulus[0])
-             sig_on()
-             ZZ_pEX_power(res[0], y, e)
-             sig_off()
-             return 0
+            ZZ_pEX_rem(y, x[0], modulus[0])
+            sig_on()
+            ZZ_pEX_power(res[0], y, e)
+            sig_off()
+            return 0
         ZZ_pEX_Modulus_build(mod, modulus[0])
         if ZZ_pEX_deg(x[0]) < ZZ_pEX_deg(modulus[0]):
             sig_on()

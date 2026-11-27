@@ -1,20 +1,21 @@
 "License"
 
+from __future__ import annotations
 import os
-from . import pager
+from sage.misc import pager
 
 from sage.env import SAGE_ROOT
 
 
 class License:
-    def __call__(self):
+    def __call__(self) -> None:
         pager.pager()(str(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Type license() to see the full license text."
 
-    def __str__(self):
-        with open(os.path.join(SAGE_ROOT,'COPYING.txt')) as f:
+    def __str__(self) -> str:
+        with open(os.path.join(SAGE_ROOT, 'COPYING.txt')) as f:
             return f.read()
 
 

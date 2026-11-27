@@ -1,5 +1,5 @@
 """
-`q`-Bernoulli Numbers and Polynomials
+`q`-Bernoulli numbers and polynomials
 """
 from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
@@ -17,9 +17,9 @@ def q_bernoulli(m, p=None):
 
     INPUT:
 
-    - `m` -- a nonnegative integer
+    - ``m`` -- nonnegative integer
 
-    - `p` (default: ``None``) -- an optional value for `q`
+    - ``p`` -- (default: ``None``) an optional value for `q`
 
     OUTPUT:
 
@@ -54,9 +54,9 @@ def q_bernoulli(m, p=None):
 
     REFERENCES:
 
-    .. [Ca1948] Leonard Carlitz, "q-Bernoulli numbers and polynomials". Duke Math J. 15, 987-1000 (1948), :doi:`10.1215/S0012-7094-48-01588-9`
+    - [Ca1948]_
 
-    .. [Ca1954] Leonard Carlitz, "q-Bernoulli and Eulerian numbers". Trans Am Soc. 76, 332-350 (1954), :doi:`10.1090/S0002-9947-1954-0060538-2`
+    - [Ca1954]_
     """
     m = ZZ(m)
     if m < 0:
@@ -67,8 +67,7 @@ def q_bernoulli(m, p=None):
                                   for i in range(m + 1))
     if p is None:
         return result
-    else:
-        return result(q=p)
+    return result(q=p)
 
 
 @cached_function
@@ -87,11 +86,9 @@ def q_bernoulli_polynomial(m):
 
     INPUT:
 
-    - `m` -- a nonnegative integer
+    - ``m`` -- nonnegative integer
 
-    OUTPUT:
-
-    A polynomial in one variable `x`.
+    OUTPUT: a polynomial in one variable `x`
 
     EXAMPLES::
 
@@ -104,7 +101,8 @@ def q_bernoulli_polynomial(m):
         sage: all(q_bernoulli_polynomial(i)(q=1) == bernoulli_polynomial(x,i)           # needs sage.libs.flint
         ....:     for i in range(12))
         True
-        sage: all(q_bernoulli_polynomial(i)(x=0)==q_bernoulli(i) for i in range(12))
+        sage: all(q_bernoulli_polynomial(i)(x=0) == q_bernoulli(i)
+        ....:     for i in range(12))
         True
 
     The function does not accept negative arguments::

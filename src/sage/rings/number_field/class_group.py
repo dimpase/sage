@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 r"""
-Class Groups of Number Fields
+Class groups of number fields
 
 An element of a class group is stored as a pair consisting of both an explicit
 ideal in that ideal class, and a list of exponents giving that ideal class in
@@ -32,13 +31,11 @@ EXAMPLES::
     sage: I * I.ideal()   # ideal classes coerce to their representative ideal
     Fractional ideal (4, 1/2*a + 3/2)
 
-    sage: O = K.OK(); O
-    Maximal Order in Number Field in a with defining polynomial x^2 + 23
-    sage: O*(2, 1/2*a + 1/2)
+    sage: K.fractional_ideal([2, 1/2*a + 1/2])
     Fractional ideal (2, 1/2*a + 1/2)
-    sage: (O*(2, 1/2*a + 1/2)).is_principal()
+    sage: K.fractional_ideal([2, 1/2*a + 1/2]).is_principal()
     False
-    sage: (O*(2, 1/2*a + 1/2))^3
+    sage: K.fractional_ideal([2, 1/2*a + 1/2])^3
     Fractional ideal (1/2*a - 3/2)
 """
 
@@ -66,7 +63,7 @@ class FractionalIdealClass(AbelianGroupWithValuesElement):
         sage: K.<w> = QuadraticField(-23)
         sage: OK = K.ring_of_integers()
         sage: C = OK.class_group()
-        sage: P2a, P2b = [P for P, e in (2*OK).factor()]
+        sage: P2a, P2b = [P for P, e in (2*K).factor()]
         sage: c = C(P2a); c
         Fractional ideal class (2, 1/2*w - 1/2)
         sage: c.gens()
@@ -208,7 +205,7 @@ class FractionalIdealClass(AbelianGroupWithValuesElement):
             sage: K.<w> = QuadraticField(-23)
             sage: OK = K.ring_of_integers()
             sage: C = OK.class_group()
-            sage: P2a, P2b = [P for P, e in (2*OK).factor()]
+            sage: P2a, P2b = [P for P, e in (2*K).factor()]
             sage: c = C(P2a)
             sage: c.is_principal()
             False
@@ -250,7 +247,7 @@ class FractionalIdealClass(AbelianGroupWithValuesElement):
             sage: K.<w> = QuadraticField(-23)
             sage: OK = K.ring_of_integers()
             sage: C = OK.class_group()
-            sage: P2a, P2b = [P for P, e in (2*OK).factor()]
+            sage: P2a, P2b = [P for P, e in (2*K).factor()]
             sage: c = C(P2a); c
             Fractional ideal class (2, 1/2*w - 1/2)
             sage: c.ideal()
@@ -264,7 +261,8 @@ class FractionalIdealClass(AbelianGroupWithValuesElement):
 
         INPUT:
 
-        - ``norm_bound`` -- (positive integer) upper bound on the norm of primes tested.
+        - ``norm_bound`` -- (positive integer) upper bound on the norm of
+          primes tested
 
         EXAMPLES::
 
@@ -305,7 +303,7 @@ class FractionalIdealClass(AbelianGroupWithValuesElement):
                 return P
         raise RuntimeError("No prime of norm less than %s found in class %s" % (norm_bound, c))
 
-    def gens(self):
+    def gens(self) -> tuple:
         r"""
         Return generators for a representative ideal in this
         (`S`-)ideal class.
@@ -315,12 +313,12 @@ class FractionalIdealClass(AbelianGroupWithValuesElement):
             sage: K.<w> = QuadraticField(-23)
             sage: OK = K.ring_of_integers()
             sage: C = OK.class_group()
-            sage: P2a, P2b = [P for P, e in (2*OK).factor()]
+            sage: P2a, P2b = [P for P, e in (2*K).factor()]
             sage: c = C(P2a); c
             Fractional ideal class (2, 1/2*w - 1/2)
             sage: c.gens()
             (2, 1/2*w - 1/2)
-       """
+        """
         return self.ideal().gens()
 
 
@@ -482,11 +480,10 @@ class ClassGroup(AbelianGroupWithValues_class):
         """
         if isinstance(args[0], FractionalIdealClass):
             return self.element_class(self, None, self._number_field.ideal(args[0].ideal()))
-        else:
-            I = self._number_field.ideal(*args, **kwds)
-            if I.is_zero():
-                raise TypeError("The zero ideal is not a fractional ideal")
-            return self.element_class(self, None, I)
+        I = self._number_field.ideal(*args, **kwds)
+        if I.is_zero():
+            raise TypeError("The zero ideal is not a fractional ideal")
+        return self.element_class(self, None, I)
 
     def _ideal_log(self, ideal):
         """
@@ -511,11 +508,9 @@ class ClassGroup(AbelianGroupWithValues_class):
         r"""
         Return generating ideals for the (`S`-)class group.
 
-        This is an alias for :meth:`gens_values`.
+        This is an alias for :meth:`~sage.groups.abelian_gps.values.AbelianGroupWithValues_class.gens_values`.
 
-        OUTPUT:
-
-        A tuple of ideals, one for each abstract Abelian group generator.
+        OUTPUT: a tuple of ideals, one for each abstract Abelian group generator
 
         EXAMPLES::
 
@@ -527,10 +522,10 @@ class ClassGroup(AbelianGroupWithValues_class):
             sage: C = NumberField(x^2 + x + 23899, 'a').class_group(); C
             Class group of order 68 with structure C34 x C2 of Number Field
             in a with defining polynomial x^2 + x + 23899
-            sage: C.gens()
-            (Fractional ideal class (7, a + 5), Fractional ideal class (5, a + 3))
-            sage: C.gens_ideals()
-            (Fractional ideal (7, a + 5), Fractional ideal (5, a + 3))
+            sage: C.gens()  # random - depends on pari version
+            (Fractional ideal class (83, a + 21), Fractional ideal class (15, a + 8))
+            sage: C.gens() == C.gens_ideals()
+            True
         """
         return self.gens_values()
 
@@ -740,11 +735,10 @@ class SClassGroup(ClassGroup):
         """
         if isinstance(args[0], FractionalIdealClass):
             return self.element_class(self, None, args[0].ideal())
-        else:
-            I = self.number_field().ideal(*args, **kwds)
-            if I.is_zero():
-                raise TypeError("The zero ideal is not a fractional ideal")
-            return self.element_class(self, None, I)
+        I = self.number_field().ideal(*args, **kwds)
+        if I.is_zero():
+            raise TypeError("The zero ideal is not a fractional ideal")
+        return self.element_class(self, None, I)
 
     def _repr_(self):
         r"""

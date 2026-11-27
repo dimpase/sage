@@ -89,7 +89,6 @@ class InterfaceFeature(Feature):
             return FeatureTestResult(self, False,
                                      reason=f"Interface {interface} is not functional: {exception}")
 
-
 # The following are provided by external software only (no SPKG)
 
 class Magma(InterfaceFeature):

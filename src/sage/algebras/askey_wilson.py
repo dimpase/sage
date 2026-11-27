@@ -233,13 +233,13 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
             q = R(q)
         if q == 0:
             raise ValueError("q cannot be 0")
-        if 1/q not in R:
+        if 1 / q not in R:
             raise ValueError("q={} is not invertible in {}".format(q, R))
         if R not in Rings().Commutative():
             raise ValueError("{} is not a commutative ring".format(R))
         return super().__classcall__(cls, R, q)
 
-    def __init__(self, R, q):
+    def __init__(self, R, q) -> None:
         r"""
         Initialize ``self``.
 
@@ -250,14 +250,14 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         """
         self._q = q
         cat = Algebras(Rings().Commutative()).WithBasis()
-        indices = cartesian_product([NonNegativeIntegers()]*6)
+        indices = cartesian_product([NonNegativeIntegers()] * 6)
         CombinatorialFreeModule.__init__(self, R, indices, prefix='AW',
                                          sorting_key=_basis_key,
                                          sorting_reverse=True,
                                          category=cat)
         self._assign_names('A,B,C,a,b,g')
 
-    def _repr_term(self, t):
+    def _repr_term(self, t) -> str:
         r"""
         Return a string representation of the basis element indexed by ``t``.
 
@@ -277,14 +277,14 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
             if e == 1:
                 return '*' + l
             return '*' + l + '^{}'.format(e)
-        ret = ''.join(exp(l, e) for l, e in zip(['A','B','C','a','b','g'], t))
+        ret = ''.join(exp(l, e) for l, e in zip('ABCabg', t))
         if not ret:
             return '1'
         if ret[0] == '*':
             ret = ret[1:]
         return ret
 
-    def _latex_term(self, t):
+    def _latex_term(self, t) -> str:
         r"""
         Return a latex representation of the basis element indexed by ``t``.
 
@@ -310,7 +310,7 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         var_names = ['A', 'B', 'C', '\\alpha', '\\beta', '\\gamma']
         return ''.join(exp(l, e) for l, e in zip(var_names, t))
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -347,7 +347,7 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         return Family(A, build_monomial)
 
     @cached_method
-    def gens(self):
+    def gens(self) -> tuple:
         r"""
         Return the generators of ``self``.
 
@@ -370,7 +370,7 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
             sage: AW.one_basis()
             (0, 0, 0, 0, 0, 0)
         """
-        return self._indices([0]*6)
+        return self._indices([0] * 6)
 
     def q(self):
         r"""
@@ -388,7 +388,7 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         return self._q
 
     @cached_method
-    def an_element(self):
+    def _an_element_(self):
         r"""
         Return an element of ``self``.
 
@@ -401,13 +401,13 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         q = self._q
         I = self._indices
         R = self.base_ring()
-        elt = {I((1,0,0,0,0,0)): R(1),
-               I((1,0,2,0,1,0)): R.an_element(),
-               I((0,1,0,2,0,1)): q**2 * R(3),
-               I((0,0,0,1,1,3)): q**-3 + R(3) + R(2)*q + q**2}
+        elt = {I((1, 0, 0, 0, 0, 0)): R(1),
+               I((1, 0, 2, 0, 1, 0)): R.an_element(),
+               I((0, 1, 0, 2, 0, 1)): q**2 * R(3),
+               I((0, 0, 0, 1, 1, 3)): q**-3 + R(3) + R(2) * q + q**2}
         return self.element_class(self, elt)
 
-    def some_elements(self):
+    def some_elements(self) -> tuple:
         r"""
         Return some elements of ``self``.
 
@@ -450,13 +450,13 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         """
         q = self._q
         I = self._indices
-        d = {I((1,1,1,0,0,0)): q,      # q ABC
-             I((2,0,0,0,0,0)): q**2,   # q^2 A^2
-             I((0,2,0,0,0,0)): q**-2,  # q^-2 B^2
-             I((0,0,2,0,0,0)): q**2,   # q^2 C^2
-             I((1,0,0,1,0,0)): -q,     # -q A\alpha
-             I((0,1,0,0,1,0)): -q**-1, # -q^-1 B\beta
-             I((0,0,1,0,0,1)): -q}     # -q C\gamma
+        d = {I((1, 1, 1, 0, 0, 0)): q,       # q ABC
+             I((2, 0, 0, 0, 0, 0)): q**2,    # q^2 A^2
+             I((0, 2, 0, 0, 0, 0)): q**-2,   # q^-2 B^2
+             I((0, 0, 2, 0, 0, 0)): q**2,    # q^2 C^2
+             I((1, 0, 0, 1, 0, 0)): -q,      # -q A\alpha
+             I((0, 1, 0, 0, 1, 0)): -q**-1,  # -q^-1 B\beta
+             I((0, 0, 1, 0, 0, 1)): -q}      # -q C\gamma
         return self.element_class(self, d)
 
     @cached_method
@@ -504,7 +504,7 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         # Commute the central parts to the right
         lhs = list(x[:3])
         rhs = list(y)
-        for i in range(3,6):
+        for i in range(3, 6):
             rhs[i] += x[i]
 
         # No ABC variables on the RHS to move past
@@ -514,44 +514,44 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         # We recurse using the PBW-type basis property:
         #   that YX = XY + lower order terms (see Theorem 4.1 in Terwilliger).
         q = self._q
-        if lhs[2] > 0: # lhs has a C
-            if rhs[0] > 0: # rhs has an A to commute with C
+        if lhs[2] > 0:  # lhs has a C
+            if rhs[0] > 0:  # rhs has an A to commute with C
                 lhs[2] -= 1
                 rhs[0] -= 1
-                rel = {I((1,0,1,0,0,0)): q**-2,         # q^2 AC
-                       I((0,1,0,0,0,0)): q**-3 - q**1,  # q^-1(q^-2-q^2) B
-                       I((0,0,0,0,1,0)): 1 - q**-2}     # -q^-1(q^-1-q) b
+                rel = {I((1, 0, 1, 0, 0, 0)): q**-2,         # q^2 AC
+                       I((0, 1, 0, 0, 0, 0)): q**-3 - q**1,  # q^-1(q^-2-q^2) B
+                       I((0, 0, 0, 0, 1, 0)): 1 - q**-2}     # -q^-1(q^-1-q) b
                 rel = self.element_class(self, rel)
-                return self.monomial(I(lhs+[0]*3)) * (rel * self.monomial(I(rhs)))
-            elif rhs[1] > 0: # rhs has a B to commute with C
+                return self.monomial(I(lhs + [0] * 3)) * (rel * self.monomial(I(rhs)))
+            if rhs[1] > 0:  # rhs has a B to commute with C
                 lhs[2] -= 1
                 rhs[1] -= 1
-                rel = {I((0,1,1,0,0,0)): q**2,          # q^2 BC
-                       I((1,0,0,0,0,0)): q**3 - q**-1,  # q(q^2-q^-2) A
-                       I((0,0,0,1,0,0)): -q**2 + 1}     # -q(q-q^-1) a
+                rel = {I((0, 1, 1, 0, 0, 0)): q**2,           # q^2 BC
+                       I((1, 0, 0, 0, 0, 0)): q**3 - q**-1,  # q(q^2-q^-2) A
+                       I((0, 0, 0, 1, 0, 0)): -q**2 + 1}     # -q(q-q^-1) a
                 rel = self.element_class(self, rel)
-                return self.monomial(I(lhs+[0]*3)) * (rel * self.monomial(I(rhs)))
-            else: # nothing to commute as rhs has no A nor B
-                rhs[2] += lhs[2]
-                rhs[1] = lhs[1]
-                rhs[0] = lhs[0]
-                return self.monomial(I(rhs))
+                return self.monomial(I(lhs + [0] * 3)) * (rel * self.monomial(I(rhs)))
+            # nothing to commute as rhs has no A nor B
+            rhs[2] += lhs[2]
+            rhs[1] = lhs[1]
+            rhs[0] = lhs[0]
+            return self.monomial(I(rhs))
 
-        elif lhs[1] > 0: # lhs has a B
-            if rhs[0] > 0: # rhs has an A to commute with B
+        if lhs[1] > 0:  # lhs has a B
+            if rhs[0] > 0:  # rhs has an A to commute with B
                 lhs[1] -= 1
                 rhs[0] -= 1
-                rel = {I((1,1,0,0,0,0)): q**2,          # q^2 AB
-                       I((0,0,1,0,0,0)): q**3 - q**-1,  # q(q^2-q^-2) C
-                       I((0,0,0,0,0,1)): -q**2 + 1}     # -q(q-q^-1) g
+                rel = {I((1, 1, 0, 0, 0, 0)): q**2,          # q^2 AB
+                       I((0, 0, 1, 0, 0, 0)): q**3 - q**-1,  # q(q^2-q^-2) C
+                       I((0, 0, 0, 0, 0, 1)): -q**2 + 1}     # -q(q-q^-1) g
                 rel = self.element_class(self, rel)
-                return self.monomial(I(lhs+[0]*3)) * (rel * self.monomial(I(rhs)))
-            else: # nothing to commute as rhs has no A
-                rhs[1] += lhs[1]
-                rhs[0] = lhs[0]
-                return self.monomial(I(rhs))
+                return self.monomial(I(lhs + [0] * 3)) * (rel * self.monomial(I(rhs)))
+            # nothing to commute as rhs has no A
+            rhs[1] += lhs[1]
+            rhs[0] = lhs[0]
+            return self.monomial(I(rhs))
 
-        elif lhs[0] > 0: # lhs has an A
+        if lhs[0] > 0:  # lhs has an A
             rhs[0] += lhs[0]
             return self.monomial(I(rhs))
 
@@ -590,8 +590,8 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
             sage: r3(AW.an_element()) == AW.an_element()
             True
         """
-        A,B,C,a,b,g = self.gens()
-        return AlgebraMorphism(self, [B,C,A,b,g,a], codomain=self)
+        A, B, C, a, b, g = self.gens()
+        return AlgebraMorphism(self, [B, C, A, b, g, a], codomain=self)
 
     rho = permutation_automorphism
 
@@ -637,11 +637,11 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
             sage: s2(AW.an_element()) == AW.an_element()
             True
         """
-        A,B,C,a,b,g = self.gens()
+        A, B, C, a, b, g = self.gens()
         q = self._q
         # Note that sage: (A*B-B*A) / (q-q^-1) == -q*A*B - (1+q^2)*C + q*g
-        Cp = C - q*A*B - (1+q**2)*C + q*g
-        return AlgebraMorphism(self, [B,A,Cp,b,a,g], codomain=self)
+        Cp = C - q * A * B - (1 + q**2) * C + q * g
+        return AlgebraMorphism(self, [B, A, Cp, b, a, g], codomain=self)
 
     sigma = reflection_automorphism
 
@@ -750,23 +750,26 @@ class AskeyWilsonAlgebra(CombinatorialFreeModule):
         la = base.gen()
         inv = ~la
         M = MatrixSpace(base, 2)
-        A = M([[la,1-inv],[0,inv]])
-        Ai = M([[inv,inv-1],[0,la]])
-        B = M([[inv,0],[la-1,la]])
-        Bi = M([[la,0],[1-la,inv]])
-        C = M([[1,1-la],[inv-1,la+inv-1]])
-        Ci = M([[la+inv-1,la-1],[1-inv,1]])
+        A = M([[la, 1 - inv], [0, inv]])
+        Ai = M([[inv, inv - 1], [0, la]])
+        B = M([[inv, 0], [la - 1, la]])
+        Bi = M([[la, 0], [1 - la, inv]])
+        C = M([[1, 1 - la], [inv - 1, la + inv - 1]])
+        Ci = M([[la + inv - 1, la - 1], [1 - inv, 1]])
         mu = la + inv
         nu = (self._q**2 + self._q**-2) * mu + mu**2
         nuI = M(nu)
         # After #29374 is fixed, the category can become
         # Algebras(Rings().Commutative()) as it was before #29399.
         category = Rings()
-        return AlgebraMorphism(self, [q*A + q**-1*Ai, q*B + q**-1*Bi, q*C + q**-1*Ci,
+        return AlgebraMorphism(self, [q * A + q**-1 * Ai,
+                                      q * B + q**-1 * Bi,
+                                      q * C + q**-1 * Ci,
                                       nuI, nuI, nuI],
                                codomain=M, category=category)
 
     pi = loop_representation
+
 
 def _basis_key(t):
     """
@@ -781,6 +784,7 @@ def _basis_key(t):
         (13, (0, 2, 3, 1, 2, 5))
     """
     return (sum(t), t.value)
+
 
 class AlgebraMorphism(ModuleMorphismByLinearity):
     """
@@ -797,15 +801,13 @@ class AlgebraMorphism(ModuleMorphismByLinearity):
         INPUT:
 
         - ``domain`` -- an Askey-Wilson algebra
-        - ``on_generators`` -- a list of length 6 corresponding to
+        - ``on_generators`` -- list of length 6 corresponding to
           the images of the generators
         - ``codomain`` -- (optional) the codomain
-        - ``position`` -- (default: 0) integer
+        - ``position`` -- integer (default: 0)
         - ``category`` -- (optional) category
 
-        OUTPUT:
-
-        - module morphism
+        OUTPUT: module morphism
 
         EXAMPLES::
 
@@ -819,7 +821,7 @@ class AlgebraMorphism(ModuleMorphismByLinearity):
         ModuleMorphismByLinearity.__init__(self, domain=domain, codomain=codomain,
                                            position=position, category=category)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """
         Check equality.
 
@@ -840,20 +842,18 @@ class AlgebraMorphism(ModuleMorphismByLinearity):
                 and self._on_generators == other._on_generators
                 and self._position == other._position
                 and self._is_module_with_basis_over_same_base_ring
-                    == other._is_module_with_basis_over_same_base_ring)
+                == other._is_module_with_basis_over_same_base_ring)
 
     def _on_basis(self, c):
         r"""
-        Computes the image of this morphism on the basis element
+        Compute the image of this morphism on the basis element
         indexed by ``c``.
 
         INPUT:
 
-        - ``c`` -- a tuple of length 6
+        - ``c`` -- tuple of length 6
 
-        OUTPUT:
-
-        - element of the codomain
+        OUTPUT: element of the codomain
 
         EXAMPLES::
 
@@ -906,7 +906,7 @@ class AlgebraMorphism(ModuleMorphismByLinearity):
              + (3-3*q^2)*g^2 - q^2*C + q*g
         """
         return self.codomain().prod(self._on_generators[i]**exp
-                                    for i,exp in enumerate(c))
+                                    for i, exp in enumerate(c))
 
     def _composition_(self, right, homset):
         """

@@ -3,7 +3,7 @@ Interactively tracing execution of a command
 """
 
 
-def trace(code, preparse=True):
+def trace(code: str, preparse: bool = True) -> None:
     r"""
     Evaluate Sage code using the interactive tracer and return the
     result. The string ``code`` must be a valid expression
@@ -13,12 +13,10 @@ def trace(code, preparse=True):
 
     INPUT:
 
+    - ``code`` -- string
 
-    -  ``code`` - str
-
-    -  ``preparse`` - bool (default: True); if True, run
-       expression through the Sage preparser.
-
+    - ``preparse`` -- boolean (default: ``True``); if ``True``, run
+      expression through the Sage preparser
 
     REMARKS: This function is extremely powerful! For example, if you
     want to step through each line of execution of, e.g.,
@@ -46,7 +44,7 @@ def trace(code, preparse=True):
 
     TESTS:
 
-    For tests we disable garbage collection, see :trac:`21258` ::
+    For tests we disable garbage collection, see :issue:`21258` ::
 
         sage: import gc
         sage: gc.disable()
@@ -54,9 +52,9 @@ def trace(code, preparse=True):
     The only real way to test this is via pexpect spawning a
     sage subprocess that uses IPython::
 
-        sage: # needs pexpect sage.all
+        sage: # needs pexpect
         sage: import pexpect
-        sage: s = pexpect.spawn('sage')
+        sage: s = pexpect.spawn('python3 -m sage.cli')
         sage: _ = s.sendline("from sage.misc.trace import trace; trace('print(factor(10))'); print(3+97)")
         sage: _ = s.expect('ipdb>', timeout=90)
         sage: _ = s.sendline("s"); _ = s.sendline("c")
@@ -65,7 +63,8 @@ def trace(code, preparse=True):
     Seeing the ipdb prompt and the 2 \* 5 in the output below is a
     strong indication that the trace command worked correctly::
 
-        sage: print(s.before[s.before.find(b'--'):].decode())                           # needs pexpect sage.all
+        sage: # needs pexpect
+        sage: print(s.before[s.before.find(b'--'):].decode())
         --...
         ...ipdb> c
         ...2 * 5...

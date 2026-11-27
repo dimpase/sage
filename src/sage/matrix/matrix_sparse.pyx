@@ -15,9 +15,9 @@ from cysignals.signals cimport sig_check
 
 cimport sage.matrix.matrix as matrix
 cimport sage.matrix.matrix0 as matrix0
+from sage.categories.rings import Rings
 from sage.structure.element cimport Element, Vector
 from sage.structure.richcmp cimport richcmp_item, rich_to_bool
-from sage.rings.ring import is_Ring
 
 from cpython cimport *
 from cpython.object cimport Py_EQ, Py_NE
@@ -62,7 +62,7 @@ cdef class Matrix_sparse(matrix.Matrix):
             [2.00000000000000*x  -2.00000000000000]
             [-------------------------------------]
         """
-        if not is_Ring(ring):
+        if ring not in Rings():
             raise TypeError("input must be a ring")
         if ring is self._base_ring:
             if self._is_immutable:
@@ -104,7 +104,7 @@ cdef class Matrix_sparse(matrix.Matrix):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef long _hash_(self) except -1:
+    cdef Py_hash_t _hash_(self) except -1:
         """
         Return the hash of this matrix.
 
@@ -117,9 +117,10 @@ cdef class Matrix_sparse(matrix.Matrix):
 
             sage: m = matrix(2, range(6), sparse=True)
             sage: m.set_immutable()
-            sage: hash(m)
-            -154991009345361003  # 64-bit
-            -2003358827          # 32-bit
+            sage: hash32 = -2003358827
+            sage: hash64 = -154991009345361003
+            sage: hash(m) in [hash32, hash64]
+            True
 
         The sparse and dense hashes should agree::
 
@@ -154,9 +155,10 @@ cdef class Matrix_sparse(matrix.Matrix):
         cdef long C[5]
         self.get_hash_constants(C)
 
-        cdef long h = 0, k, l
+        cdef Py_hash_t h = 0
+        cdef long k, l
         cdef Py_ssize_t i, j
-        for ij, x in D.iteritems():
+        for ij, x in D.items():
             sig_check()
             i = (<tuple>ij)[0]
             j = (<tuple>ij)[1]
@@ -184,6 +186,42 @@ cdef class Matrix_sparse(matrix.Matrix):
             [-2  3]
             [-4  6]
         """
+        cdef dict e = left._multiply_classical_entries(right)
+        return left.new_matrix(left._nrows, right._ncols, entries=e, coerce=False, copy=False)
+
+    cdef dict _multiply_classical_entries(self, Matrix_sparse right):
+        r"""
+        Return the dictionary of nonzero entries of the classical sparse
+        product ``self * right``.
+
+        This is the shared core of :meth:`_multiply_classical` and
+        :meth:`_set_to_product_classical`.  Keeping it separate lets
+        :meth:`set_to_product` write the product directly into its
+        destination, while ``*`` builds a new matrix from the same
+        dictionary; neither pays for an intermediate matrix.
+
+        INPUT:
+
+        - ``right`` -- a sparse matrix whose number of rows is the number of
+          columns of ``self``
+
+        OUTPUT:
+
+        a dictionary mapping each position ``(i, j)`` of a nonzero entry of
+        the product to its value
+
+        EXAMPLES:
+
+        This is exercised by both of its callers, which must agree::
+
+            sage: A = matrix(QQ['x,y'], 2, [0,-1,2,-2], sparse=True)
+            sage: B = matrix(QQ['x,y'], 2, [-1,-1,-2,-2], sparse=True)
+            sage: C = matrix(QQ['x,y'], 2, sparse=True)
+            sage: C.set_to_product(A, B)
+            sage: C == A * B
+            True
+        """
+        cdef Matrix_sparse left = self
         cdef Py_ssize_t row, col, row_start, k1, k2, len_left, len_right, a, b
         cdef list left_nonzero = <list> left.nonzero_positions(copy=False, column_order=False)
         cdef list right_nonzero = <list> right.nonzero_positions(copy=False, column_order=True)
@@ -223,12 +261,171 @@ cdef class Matrix_sparse(matrix.Matrix):
                     k2 += 1
             while k1 < len_left and get_ij(left_nonzero, k1, 0) == row:
                 k1 += 1
-        return left.new_matrix(left._nrows, right._ncols, entries=e, coerce=False, copy=False)
+        return e
+
+    cdef void _set_to_product_classical(self, matrix0.Matrix left, matrix0.Matrix right) except *:
+        r"""
+        Set ``self`` to ``left * right`` using the sparse classical algorithm.
+
+        This overrides
+        :meth:`~sage.matrix.matrix0.Matrix._set_to_product_classical`, whose
+        generic triple loop would iterate over every position of the product
+        and multiply implicit zero entries.  Here the nonzero entries are
+        computed by :meth:`_multiply_classical_entries` and written directly
+        into ``self``, so :meth:`set_to_product` keeps the sparse algorithm's
+        complexity.
+
+        The destination is first zeroed at its current nonzero positions,
+        since it may hold the result of an earlier product.
+
+        INPUT:
+
+        - ``left`` -- a sparse matrix of the same type and base ring as
+          ``self``
+        - ``right`` -- a sparse matrix of the same type and base ring as
+          ``self``
+
+        OUTPUT: none; ``self`` is modified in place
+
+        EXAMPLES::
+
+            sage: A = matrix(QQ['x,y'], 2, [0,-1,2,-2], sparse=True)
+            sage: B = matrix(QQ['x,y'], 2, [-1,-1,-2,-2], sparse=True)
+            sage: C = matrix(QQ['x,y'], 2, sparse=True)
+            sage: C.set_to_product(A, B)
+            sage: C
+            [2 2]
+            [2 2]
+
+        Reusing the destination overwrites the entries of the previous
+        product::
+
+            sage: C.set_to_product(B, A)
+            sage: C
+            [-2  3]
+            [-4  6]
+
+        TESTS:
+
+        Writing the product must not leave the destination's cached sparsity
+        pattern describing its previous contents::
+
+            sage: C = matrix(ZZ, 3, 3, {(0, 0): 7}, sparse=True)
+            sage: A = matrix(ZZ, 3, 3, {(0, 1): 2}, sparse=True)
+            sage: B = matrix(ZZ, 3, 3, {(1, 2): 5}, sparse=True)
+            sage: C.set_to_product(A, B)
+            sage: C.nonzero_positions()
+            [(0, 2)]
+            sage: C.rows()
+            [(0, 0, 10), (0, 0, 0), (0, 0, 0)]
+
+        The sparse algorithm must never multiply implicit zero entries.  To
+        check that, we build a ring whose zero elements raise when they are
+        multiplied, and whose zero test can be made to fail on demand::
+
+            sage: from sage.categories.rings import Rings
+            sage: from sage.structure.element import RingElement
+            sage: from sage.structure.parent import Parent
+            sage: from sage.structure.richcmp import richcmp
+            sage: class ExplodingElement(RingElement):
+            ....:     def __init__(self, parent, value, is_zero=False):
+            ....:         RingElement.__init__(self, parent)
+            ....:         self.value = value
+            ....:         self._is_zero = is_zero
+            ....:     def _repr_(self):
+            ....:         return repr(self.value)
+            ....:     def _add_(self, other):
+            ....:         if self._is_zero:
+            ....:             return other
+            ....:         if other._is_zero:
+            ....:             return self
+            ....:         return self.parent()(self.value + other.value)
+            ....:     def _neg_(self):
+            ....:         if self._is_zero:
+            ....:             return self
+            ....:         return self.parent()(-self.value)
+            ....:     def _mul_(self, other):
+            ....:         if self._is_zero or other._is_zero:
+            ....:             raise RuntimeError("implicit zero was multiplied")
+            ....:         return self.parent()(self.value * other.value)
+            ....:     def _richcmp_(self, other, op):
+            ....:         return richcmp((self.value, self._is_zero),
+            ....:                        (other.value, other._is_zero), op)
+            ....:     def __bool__(self):
+            ....:         P = self.parent()
+            ....:         if self._is_zero and P.fail_zero_test:
+            ....:             P.zero_tests += 1
+            ....:             if P.zero_tests == 2:
+            ....:                 raise RuntimeError("zero test failed")
+            ....:         return not self._is_zero
+            ....:     def is_zero(self):
+            ....:         return self._is_zero
+            ....:     def __hash__(self):
+            ....:         return hash((self.value, self._is_zero))
+            sage: class ExplodingRing(Parent):
+            ....:     Element = ExplodingElement
+            ....:     def __init__(self):
+            ....:         Parent.__init__(self, category=Rings())
+            ....:         self.fail_zero_test = False
+            ....:         self.zero_tests = 0
+            ....:     def _repr_(self):
+            ....:         return "Exploding zero test ring"
+            ....:     def _element_constructor_(self, x=0):
+            ....:         if isinstance(x, ExplodingElement):
+            ....:             if x.parent() is self:
+            ....:                 return x
+            ....:             x = x.value
+            ....:         return self.element_class(self, x, x == 0)
+            ....:     def zero(self):
+            ....:         return self.element_class(self, 0, True)
+            ....:     def one(self):
+            ....:         return self.element_class(self, 1, False)
+
+        Neither ``*`` nor :meth:`set_to_product` may touch an implicit zero::
+
+            sage: R = ExplodingRing()
+            sage: A = matrix(R, 3, 3, {(0, 1): R(2)}, sparse=True)
+            sage: B = matrix(R, 3, 3, {(1, 2): R(5)}, sparse=True)
+            sage: A * B
+            [ 0  0 10]
+            [ 0  0  0]
+            [ 0  0  0]
+            sage: C = matrix(R, 3, 3, sparse=True)
+            sage: C.set_to_product(A, B)
+            sage: C
+            [ 0  0 10]
+            [ 0  0  0]
+            [ 0  0  0]
+
+        The destination's cache is invalidated even if writing the result
+        fails after partially modifying it::
+
+            sage: A = matrix(R, 2, 2, {(0, 0): R(1)}, sparse=True)
+            sage: B = matrix(R, 2, 2, {(0, 0): R(1)}, sparse=True)
+            sage: C = matrix(R, 2, 2, {(0, 0): R(2), (1, 1): R(3)}, sparse=True)
+            sage: R.fail_zero_test = True
+            sage: C.set_to_product(A, B)
+            Traceback (most recent call last):
+            ...
+            RuntimeError: zero test failed
+            sage: R.fail_zero_test = False
+            sage: C.nonzero_positions()
+            [(1, 1)]
+        """
+        cdef dict e = (<Matrix_sparse>left)._multiply_classical_entries(<Matrix_sparse>right)
+        cdef Py_ssize_t i, j
+        zero = self._base_ring.zero()
+        # Overwrite any previous content of the destination, then write the
+        # nonzero entries of the product directly into it.
+        for i, j in self.nonzero_positions(copy=True):
+            self.set_unsafe(i, j, zero)
+        for (i, j), x in e.items():
+            self.set_unsafe(i, j, x)
 
     def _multiply_classical_with_cache(Matrix_sparse left, Matrix_sparse right):
         """
         This function computes the locations of the end of the rows/columns
-        in the non-zero entries list once O(rows+cols) time and space, then
+        in the nonzero entries list once O(rows+cols) time and space, then
         uses these values in the inner loops. For large matrices this can
         be a 2x or more speedup, but the matrices can no longer be
         arbitrarily large as the runtime and space requirements are no
@@ -301,18 +498,16 @@ cdef class Matrix_sparse(matrix.Matrix):
 
         return left.new_matrix(left._nrows, right._ncols, entries=e, coerce=False, copy=False)
 
-    cpdef _lmul_(self, Element right) noexcept:
+    cpdef _lmul_(self, Element right):
         """
         Left scalar multiplication. Internal usage only.
 
         INPUT:
 
-        - `right` -- a ring element which must already be in the basering
-          of ``self`` (no coercion done here).
+        - ``right`` -- a ring element which must already be in the base ring
+          of ``self`` (no coercion done here)
 
-        OUTPUT:
-
-        the matrix ``self * right``
+        OUTPUT: the matrix ``self * right``
 
         EXAMPLES::
 
@@ -349,9 +544,8 @@ cdef class Matrix_sparse(matrix.Matrix):
             r = get_ij(nz, k, 0)
             c = get_ij(nz, k, 1)
             entry = self.get_unsafe(r,c)*right
-            M.set_unsafe(r,c,entry)
+            M.set_unsafe(r, c, entry)
         return M
-
 
     cdef bint _will_use_strassen(self, matrix0.Matrix right) except -2:
         # never use Strassen for sparse matrix multiply
@@ -365,12 +559,12 @@ cdef class Matrix_sparse(matrix.Matrix):
     def _unpickle_generic(self, data, int version):
         cdef Py_ssize_t i, j
         if version == -1:
-            for (i, j), x in data.iteritems():
+            for (i, j), x in data.items():
                 self.set_unsafe(i, j, x)
         else:
             raise RuntimeError("unknown matrix version (=%s)" % version)
 
-    cpdef _richcmp_(self, right, int op) noexcept:
+    cpdef _richcmp_(self, other, int op):
         """
         Rich comparison.
 
@@ -385,17 +579,17 @@ cdef class Matrix_sparse(matrix.Matrix):
             sage: M != Mp
             True
         """
-        other = <Matrix_sparse>right
+        _other = <Matrix_sparse>other
         if op == Py_EQ:
-            return self._dict() == other._dict()
+            return self._dict() == _other._dict()
         if op == Py_NE:
-            return self._dict() != other._dict()
+            return self._dict() != _other._dict()
         cdef Py_ssize_t i, j
         # Parents are equal, so dimensions of self and other are equal
         for i in range(self._nrows):
             for j in range(self._ncols):
                 lij = self.get_unsafe(i, j)
-                rij = other.get_unsafe(i, j)
+                rij = _other.get_unsafe(i, j)
                 r = richcmp_item(lij, rij, op)
                 if r is not NotImplemented:
                     return bool(r)
@@ -435,7 +629,7 @@ cdef class Matrix_sparse(matrix.Matrix):
         for k from 0 <= k < len(nz):
             i = get_ij(nz, k, 0)
             j = get_ij(nz, k, 1)
-            A.set_unsafe(j,i,self.get_unsafe(i,j))
+            A.copy_from_unsafe(j, i, self, i, j)
         if self._subdivisions is not None:
             row_divs, col_divs = self.subdivisions()
             A.subdivide(col_divs, row_divs)
@@ -467,13 +661,12 @@ cdef class Matrix_sparse(matrix.Matrix):
         for k from 0 <= k < len(nz):
             i = get_ij(nz, k, 0)
             j = get_ij(nz, k, 1)
-            A.set_unsafe(self._ncols-j-1, self._nrows-i-1,self.get_unsafe(i,j))
+            A.copy_from_unsafe(self._ncols-j-1, self._nrows-i-1, self, i, j)
         if self._subdivisions is not None:
             row_divs, col_divs = self.subdivisions()
             A.subdivide(list(reversed([self._ncols - t for t in col_divs])),
                             list(reversed([self._nrows - t for t in row_divs])))
         return A
-
 
     def _reverse_unsafe(self):
         r"""
@@ -647,7 +840,7 @@ cdef class Matrix_sparse(matrix.Matrix):
         R = phi.codomain()
         M = sage.matrix.matrix_space.MatrixSpace(R, self._nrows,
                                                  self._ncols, sparse=True)
-        return M({ij: phi(z) for ij, z in self.dict().iteritems()})
+        return M({ij: phi(z) for ij, z in self.dict().items()})
 
     def apply_map(self, phi, R=None, sparse=True):
         r"""
@@ -661,9 +854,9 @@ cdef class Matrix_sparse(matrix.Matrix):
 
         - ``phi`` -- arbitrary Python function or callable object
 
-        -  ``R`` -- (optional) ring
+        - ``R`` -- (optional) ring
 
-        - ``sparse`` -- (optional, default ``True``) whether to return
+        - ``sparse`` -- boolean (default: ``True``); whether to return
           a sparse or a dense matrix
 
         OUTPUT: a matrix over ``R``
@@ -672,7 +865,6 @@ cdef class Matrix_sparse(matrix.Matrix):
 
             sage: m = matrix(ZZ, 10000, {(1,2): 17}, sparse=True)
 
-            sage: # needs sage.rings.finite_rings
             sage: k.<a> = GF(9)
             sage: f = lambda x: k(x)
             sage: n = m.apply_map(f)
@@ -696,13 +888,13 @@ cdef class Matrix_sparse(matrix.Matrix):
         If we did not specify the codomain, the resulting matrix in the
         above case ends up over `\ZZ` again::
 
-            sage: n = m.apply_map(lambda x:x%3)
+            sage: n = m.apply_map(lambda x: x%3)
             sage: n.parent()
             Full MatrixSpace of 10000 by 10000 sparse matrices over Integer Ring
             sage: n[1, 2]
             2
 
-        If self is subdivided, the result will be as well::
+        If ``self`` is subdivided, the result will be as well::
 
             sage: m = matrix(2, 2, [0, 0, 3, 0])
             sage: m.subdivide(None, 1); m
@@ -712,7 +904,7 @@ cdef class Matrix_sparse(matrix.Matrix):
             [0|0]
             [9|0]
 
-        If the map sends zero to a non-zero value, then it may be useful to
+        If the map sends zero to a nonzero value, then it may be useful to
         get the result as a dense matrix.
 
         ::
@@ -746,7 +938,7 @@ cdef class Matrix_sparse(matrix.Matrix):
             [  1 1/2]
             [1/3 1/4]
 
-        Test subdivisions when phi maps 0 to non-zero::
+        Test subdivisions when phi maps 0 to nonzero::
 
             sage: m = matrix(2, 2, [0, 0, 3, 0])
             sage: m.subdivide(None, 1); m
@@ -757,7 +949,7 @@ cdef class Matrix_sparse(matrix.Matrix):
             [4|1]
 
         When applying a map to a sparse zero matrix, the codomain is determined
-        from the image of zero (:trac:`29214`)::
+        from the image of zero (:issue:`29214`)::
 
             sage: matrix(RR, 2, 2, sparse=True).apply_map(floor).base_ring() is ZZ
             True
@@ -765,14 +957,13 @@ cdef class Matrix_sparse(matrix.Matrix):
         if self._nrows==0 or self._ncols==0:
             if not sparse:
                 return self.dense_matrix()
-            else:
-                return self.__copy__()
+            return self.__copy__()
         self_dict = self._dict()
         if len(self_dict) < self._nrows * self._ncols:
             zero_res = phi(self.base_ring()(0))
         else:
             zero_res = None
-        v = [(ij, phi(z)) for ij,z in self_dict.iteritems()]
+        v = [(ij, phi(z)) for ij,z in self_dict.items()]
         if R is None:
             w = [x for _, x in v]
             if zero_res is not None:
@@ -814,13 +1005,24 @@ cdef class Matrix_sparse(matrix.Matrix):
             sage: m._derivative(x)                                                      # needs sage.symbolic
             [    0     1]
             [  2*x 3*x^2]
+
+        TESTS:
+
+        Verify that :issue:`15067` is fixed::
+
+            sage: m = matrix(3, 3, {(1, 1): 2, (0,2): 5})
+            sage: derivative(m, x)
+            [0 0 0]
+            [0 0 0]
+            [0 0 0]
         """
         # We would just use apply_map, except that Cython does not
         # allow lambda functions
 
         if self._nrows==0 or self._ncols==0:
             return self.__copy__()
-        v = [(ij, z.derivative(var)) for ij, z in self.dict().iteritems()]
+        v = [(ij, sage.calculus.functional.derivative(z, var))
+             for ij, z in self.dict().items()]
         if R is None:
             w = [x for _, x in v]
             w = sage.structure.sequence.Sequence(w)
@@ -831,6 +1033,64 @@ cdef class Matrix_sparse(matrix.Matrix):
         M = sage.matrix.matrix_space.MatrixSpace(R, self._nrows,
                    self._ncols, sparse=True)
         return M(v)
+
+    def is_symmetric(self) -> bool:
+        r"""
+        Return whether this matrix is symmetric.
+
+        The generic implementation compares the `n(n-1)/2` pairs of
+        off-diagonal entries and is therefore quadratic in the dimension of
+        the matrix, even when almost all of those entries are zero. Here only
+        the nonzero entries are visited, so the running time is linear in
+        their number.
+
+        EXAMPLES::
+
+            sage: M = matrix(ZZ, 3, 3, {(0, 1): 1, (1, 0): 1}, sparse=True)
+            sage: M.is_symmetric()
+            True
+            sage: M[0, 2] = 5
+            sage: M.is_symmetric()
+            False
+
+        A matrix that is not square is not symmetric::
+
+            sage: matrix(ZZ, 2, 3, sparse=True).is_symmetric()
+            False
+
+        TESTS:
+
+        An entry that is stored but zero is treated like any other zero::
+
+            sage: M = matrix(ZZ, 2, 2, sparse=True)
+            sage: M[0, 1] = 0
+            sage: M.is_symmetric()
+            True
+
+        Symmetry agrees with equality to the transpose (:issue:`18810`)::
+
+            sage: for _ in range(30):
+            ....:     M = random_matrix(ZZ, 8, 8, density=0.2, sparse=True)
+            ....:     assert M.is_symmetric() == (M == M.transpose())
+            ....:     N = M + M.transpose()
+            ....:     assert N.is_symmetric() == (N == N.transpose())
+
+        Entries need not come from an exact ring::
+
+            sage: R.<x> = QQ[]
+            sage: M = matrix(R, 2, 2, {(0, 1): x, (1, 0): x}, sparse=True)
+            sage: M.is_symmetric()
+            True
+        """
+        if self._nrows != self._ncols:
+            return False
+        cdef dict D = self._dict()
+        zero = self.base_ring().zero()
+        cdef Py_ssize_t i, j
+        for (i, j), v in D.items():
+            if i != j and D.get((j, i), zero) != v:
+                return False
+        return True
 
     def density(self):
         """
@@ -931,7 +1191,7 @@ cdef class Matrix_sparse(matrix.Matrix):
 
         ncols = PyList_GET_SIZE(columns)
         nrows = PyList_GET_SIZE(rows)
-        cdef Matrix_sparse A = self.new_matrix(nrows = nrows, ncols = ncols)
+        cdef Matrix_sparse A = self.new_matrix(nrows=nrows, ncols=ncols)
 
         tmp = [el for el in columns if 0 <= el < self._ncols]
         columns = tmp
@@ -968,7 +1228,7 @@ cdef class Matrix_sparse(matrix.Matrix):
                         A.set_unsafe(new_row, new_col, entry)
         return A
 
-    cdef _stack_impl(self, bottom) noexcept:
+    cdef _stack_impl(self, bottom):
         r"""
         Stack ``self`` on top of ``bottom``::
 
@@ -1010,7 +1270,7 @@ cdef class Matrix_sparse(matrix.Matrix):
 
         TESTS:
 
-        One can stack matrices over different rings (:trac:`16399`). ::
+        One can stack matrices over different rings (:issue:`16399`). ::
 
             sage: M = Matrix(ZZ, 2, 3, range(6), sparse=True)
             sage: N = Matrix(QQ, 1, 3, [10,11,12], sparse=True)
@@ -1087,7 +1347,7 @@ cdef class Matrix_sparse(matrix.Matrix):
 
         TESTS:
 
-        Verify that :trac:`12689` is fixed::
+        Verify that :issue:`12689` is fixed::
 
             sage: A = identity_matrix(QQ, 2, sparse=True)
             sage: B = identity_matrix(ZZ, 2, sparse=True)
@@ -1119,13 +1379,13 @@ cdef class Matrix_sparse(matrix.Matrix):
             Z._subdivide_on_augment(self, other)
         return Z
 
-    cdef _vector_times_matrix_(self, Vector v) noexcept:
+    cdef _vector_times_matrix_(self, Vector v):
         """
         Return the vector times matrix product.
 
         INPUT:
 
-        -  ``v`` -- a free module element
+        - ``v`` -- a free module element
 
         OUTPUT: the vector times matrix product ``v*A``
 
@@ -1143,16 +1403,16 @@ cdef class Matrix_sparse(matrix.Matrix):
             sage: (v * m).parent() is m.row(0).parent()
             True
             """
-        cdef int i, j
+        cdef Py_ssize_t i, j
         if self._nrows != v._degree:
             raise ArithmeticError("number of rows of matrix must equal degree of vector")
         parent = self.row_ambient_module(base_ring=None, sparse=v.is_sparse_c())
         s = parent.zero_vector()
-        for (i, j), a in self._dict().iteritems():
+        for (i, j), a in self._dict().items():
             s[j] += v[i] * a
         return s
 
-    cdef _matrix_times_vector_(self, Vector v) noexcept:
+    cdef _matrix_times_vector_(self, Vector v):
         """
         Return the matrix times vector product.
 
@@ -1176,9 +1436,8 @@ cdef class Matrix_sparse(matrix.Matrix):
             sage: (m * v).parent() is m.column(0).parent()
             True
 
-        Check that the bug in :trac:`13854` has been fixed::
+        Check that the bug in :issue:`13854` has been fixed::
 
-            sage: # needs sage.combinat sage.libs.singular
             sage: A.<x,y> = FreeAlgebra(QQ, 2)
             sage: P.<x,y> = A.g_algebra(relations={y*x: -x*y}, order='lex')
             sage: M = Matrix([[x]], sparse=True)
@@ -1196,12 +1455,12 @@ cdef class Matrix_sparse(matrix.Matrix):
             sage: M*w
             (x*y)
         """
-        cdef int i, j
+        cdef Py_ssize_t i, j
         if self._ncols != v._degree:
             raise ArithmeticError("number of columns of matrix must equal degree of vector")
         parent = self.column_ambient_module(base_ring=None, sparse=v.is_sparse_c())
         s = parent.zero_vector()
-        for (i, j), a in self._dict().iteritems():
+        for (i, j), a in self._dict().items():
             s[i] += a * v[j]
         return s
 

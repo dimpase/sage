@@ -1,4 +1,4 @@
-.. -*- coding: utf-8 -*-
+.. sage-doctest: needs sage.plot sage.symbolic
 
 .. linkall
 
@@ -54,7 +54,6 @@ Each of the Cartesian coordinates spans the entire real line::
 
     sage: cartesian.coord_range()
     x: (-oo, +oo); y: (-oo, +oo)
-
 
 
 2. Vector fields
@@ -218,7 +217,6 @@ see :ref:`vector_fields_as_derivations_plane` below)::
     (pi*w_x(-2, 3) - 3) e_x + (pi*w_y(-2, 3) - 2) e_y
 
 
-
 3. Differential operators
 -------------------------
 
@@ -340,7 +338,7 @@ They are related to Cartesian coordinates by the following transformations::
 
 The orthonormal vector frame `(e_r, e_\phi)` associated with polar coordinates
 is returned by the method
-:meth:`~sage.manifolds.differentiable.euclidean.EuclideanPlane.polar_frame`::
+:meth:`~sage.manifolds.differentiable.examples.euclidean.EuclideanPlane.polar_frame`::
 
     sage: polar_frame = E.polar_frame()
     sage: polar_frame
@@ -500,7 +498,7 @@ manifold endowed with a positive definite metric tensor::
 
 Actually ``RR`` is used here as a proxy for the real field (this should
 be replaced in the future, see the discussion at
-:trac:`24456`) and the 53 bits of
+:issue:`24456`) and the 53 bits of
 precision play of course no role for the symbolic computations.
 
 The user atlas of `\mathbb{E}^2` has two charts::

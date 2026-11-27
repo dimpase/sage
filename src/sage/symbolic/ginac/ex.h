@@ -30,6 +30,7 @@
 #include <iosfwd>
 #include <iterator>
 #include <functional>
+#include <memory>
 #include <stack>
 #include <unordered_set>
 
@@ -230,9 +231,6 @@ public:
 	ex to_rational(lst & repl_lst) const;
 	ex to_polynomial(exmap & repl) const;
 	ex to_polynomial(lst & repl_lst) const;
-#ifdef PYNAC_HAVE_LIBGIAC
-        const giac::polynome to_polynome(ex_int_map& map, exvector& revmap) const;
-#endif
         const CanonicalForm to_canonical(ex_int_umap& map,
                         power_ocvector_map& pomap, exvector& revmap) const;
         void collect_powers(power_ocvector_map& pomap) const;
@@ -354,12 +352,18 @@ ex::ex(const std::string &s, const ex &l) : bp(construct_from_string_and_lst(s, 
 
 // Iterators
 
-class const_iterator : public std::iterator<std::random_access_iterator_tag, ex, ptrdiff_t, const ex *, const ex &> {
+class const_iterator {
 	friend class ex;
 	friend class const_preorder_iterator;
 	friend class const_postorder_iterator;
 
 public:
+	using iterator_category = std::random_access_iterator_tag;
+	using value_type = ex;
+	using difference_type = ptrdiff_t;
+	using pointer = const ex *;
+	using reference = const ex &;
+
 	const_iterator() throw() {}
 
 private:
@@ -500,8 +504,14 @@ struct _iter_rep {
 
 } // namespace internal
 
-class const_preorder_iterator : public std::iterator<std::forward_iterator_tag, ex, ptrdiff_t, const ex *, const ex &> {
+class const_preorder_iterator {
 public:
+	using iterator_category = std::forward_iterator_tag;
+	using value_type = ex;
+	using difference_type = ptrdiff_t;
+	using pointer = const ex *;
+	using reference = const ex &;
+
 	const_preorder_iterator() throw() {}
 
 	const_preorder_iterator(const ex &e, size_t n)
@@ -564,8 +574,14 @@ private:
 	}
 };
 
-class const_postorder_iterator : public std::iterator<std::forward_iterator_tag, ex, ptrdiff_t, const ex *, const ex &> {
+class const_postorder_iterator {
 public:
+	using iterator_category = std::forward_iterator_tag;
+	using value_type = ex;
+	using difference_type = ptrdiff_t;
+	using pointer = const ex *;
+	using reference = const ex &;
+
 	const_postorder_iterator() throw() {}
 
 	const_postorder_iterator(const ex &e, size_t n)

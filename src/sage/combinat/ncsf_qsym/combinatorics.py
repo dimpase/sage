@@ -3,18 +3,11 @@ Common combinatorial tools
 
 REFERENCES:
 
-.. [NCSF] Gelfand, Krob, Lascoux, Leclerc, Retakh, Thibon,
-   *Noncommutative Symmetric Functions*, Adv. Math. 112 (1995), no. 2, 218-348.
+- [NCSF]_
 
-.. [QSCHUR] Haglund, Luoto, Mason, van Willigenburg,
-   *Quasisymmetric Schur functions*, J. Comb. Theory Ser. A 118 (2011), 463-490.
-   http://www.sciencedirect.com/science/article/pii/S0097316509001745 ,
-   :arxiv:`0810.2489v2`.
+- [HLMvW2011]_
 
-.. [Tev2007] Lenny Tevlin,
-   *Noncommutative Analogs of Monomial Symmetric Functions,
-   Cauchy Identity, and Hall Scalar Product*,
-   :arxiv:`0712.2201v1`.
+- [Tev2007]_
 """
 from sage.misc.misc_c import prod
 from sage.arith.misc import factorial
@@ -31,16 +24,14 @@ from sage.rings.integer_ring import ZZ
 
 def coeff_pi(J, I):
     r"""
-    Returns the coefficient `\pi_{J,I}` as defined in [NCSF]_.
+    Return the coefficient `\pi_{J,I}` as defined in [NCSF]_.
 
     INPUT:
 
     - ``J`` -- a composition
     - ``I`` -- a composition refining ``J``
 
-    OUTPUT:
-
-    - integer
+    OUTPUT: integer
 
     EXAMPLES::
 
@@ -53,18 +44,16 @@ def coeff_pi(J, I):
     return prod(prod(K.partial_sums()) for K in J.refinement_splitting(I))
 
 
-def coeff_lp(J,I):
+def coeff_lp(J, I):
     r"""
-    Returns the coefficient `lp_{J,I}` as defined in [NCSF]_.
+    Return the coefficient `lp_{J,I}` as defined in [NCSF]_.
 
     INPUT:
 
     - ``J`` -- a composition
     - ``I`` -- a composition refining ``J``
 
-    OUTPUT:
-
-    - integer
+    OUTPUT: integer
 
     EXAMPLES::
 
@@ -77,18 +66,16 @@ def coeff_lp(J,I):
     return prod(K[-1] for K in J.refinement_splitting(I))
 
 
-def coeff_ell(J,I):
+def coeff_ell(J, I):
     r"""
-    Returns the coefficient `\ell_{J,I}` as defined in [NCSF]_.
+    Return the coefficient `\ell_{J,I}` as defined in [NCSF]_.
 
     INPUT:
 
     - ``J`` -- a composition
     - ``I`` -- a composition refining ``J``
 
-    OUTPUT:
-
-    - integer
+    OUTPUT: integer
 
     EXAMPLES::
 
@@ -103,16 +90,14 @@ def coeff_ell(J,I):
 
 def coeff_sp(J, I):
     r"""
-    Returns the coefficient `sp_{J,I}` as defined in [NCSF]_.
+    Return the coefficient `sp_{J,I}` as defined in [NCSF]_.
 
     INPUT:
 
     - ``J`` -- a composition
     - ``I`` -- a composition refining ``J``
 
-    OUTPUT:
-
-    - integer
+    OUTPUT: integer
 
     EXAMPLES::
 
@@ -132,11 +117,9 @@ def coeff_dab(I, J):
 
     INPUT:
 
-    - ``I, J`` -- compositions
+    - ``I``, ``J`` -- compositions
 
-    OUTPUT:
-
-    - An integer
+    OUTPUT: integer
 
     EXAMPLES::
 
@@ -155,7 +138,7 @@ def coeff_dab(I, J):
 
 def compositions_order(n):
     r"""
-    Return the compositions of `n` ordered as defined in [QSCHUR]_.
+    Return the compositions of `n` ordered as defined in [HLMvW2011]_.
 
     Let `S(\gamma)` return the composition `\gamma` after sorting. For
     compositions `\alpha` and `\beta`, we order `\alpha \rhd \beta` if
@@ -165,12 +148,10 @@ def compositions_order(n):
 
     INPUT:
 
-    - ``n`` -- a positive integer
+    - ``n`` -- positive integer
 
-    OUTPUT:
-
-    - A list of the compositions of ``n`` sorted into decreasing order
-      by `\rhd`
+    OUTPUT: list of the compositions of `n` sorted into decreasing order
+    by `\rhd`
 
     EXAMPLES::
 
@@ -195,7 +176,7 @@ def m_to_s_stat(R, I, K):
 
     INPUT:
 
-    - ``R`` -- A ring, supposed to be a `\QQ`-algebra
+    - ``R`` -- a ring; supposed to be a `\QQ`-algebra
     - ``I``, ``K`` -- compositions
 
     OUTPUT:
@@ -219,7 +200,7 @@ def m_to_s_stat(R, I, K):
         if I.is_finer(J) and K.is_finer(J):
             pvec = [0] + Composition(I).refinement_splitting_lengths(J).partial_sums()
             pp = prod( R( len(I) - pvec[i] ) for i in range( len(pvec)-1 ) )
-            stat += R((-1)**(len(I)-len(K)) / pp * coeff_lp(K, J))
+            stat += R((-1)**(len(I)-len(K))) * coeff_lp(K, J) / pp
     return stat
 
 
@@ -236,9 +217,7 @@ def number_of_fCT(content_comp, shape_comp):
 
     - ``content_comp``, ``shape_comp`` -- compositions
 
-    OUTPUT:
-
-    - An integer
+    OUTPUT: integer
 
     EXAMPLES::
 
@@ -253,8 +232,7 @@ def number_of_fCT(content_comp, shape_comp):
     if content_comp.to_partition().length() == 1:
         if shape_comp.to_partition().length() == 1:
             return 1
-        else:
-            return 0
+        return 0
     C = Compositions(content_comp.size()-content_comp[-1], outer=list(shape_comp))
     s = 0
     for x in C:
@@ -284,9 +262,7 @@ def number_of_SSRCT(content_comp, shape_comp):
 
     - ``content_comp``, ``shape_comp`` -- compositions
 
-    OUTPUT:
-
-    - An integer
+    OUTPUT: integer
 
     EXAMPLES::
 
@@ -306,14 +282,13 @@ def number_of_SSRCT(content_comp, shape_comp):
     if len(content_comp) == 1:
         if len(shape_comp) == 1:
             return ZZ.one()
-        else:
-            return ZZ.zero()
+        return ZZ.zero()
     s = ZZ.zero()
-    cond = lambda al,be: all(al[j] <= be_val
-                             and not any(al[i] <= k and k <= be[i]
-                                         for k in range(al[j], be_val)
-                                         for i in range(j))
-                             for j, be_val in enumerate(be))
+    cond = lambda al, be: all(al[j] <= be_val
+                              and not any(al[i] <= k <= be[i]
+                                          for k in range(al[j], be_val)
+                                          for i in range(j))
+                              for j, be_val in enumerate(be))
     C = Compositions(content_comp.size()-content_comp[0],
                      inner=[1]*len(shape_comp),
                      outer=list(shape_comp))

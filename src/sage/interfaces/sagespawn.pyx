@@ -1,13 +1,14 @@
+# sage.doctest: optional - ptyprocess
 """
 Sage wrapper around pexpect's ``spawn`` class and
 the ptyprocess's ``PtyProcess`` class.
 
 AUTHOR:
 
-- Jeroen Demeyer (2015-02-01): initial version, see :trac:`17686`.
+- Jeroen Demeyer (2015-02-01): initial version, see :issue:`17686`.
 
 - Jeroen Demeyer (2015-12-04): add support for pexpect 4 + ptyprocess,
-  see :trac:`10295`.
+  see :issue:`10295`.
 """
 
 # ***************************************************************************
@@ -39,13 +40,13 @@ class SageSpawn(spawn):
         """
         Spawn a subprocess in a pseudo-tty.
 
-        - ``*args``, ``**kwds``: see :class:`pexpect.spawn`.
+        - ``*args``, ``**kwds`` -- see :class:`pexpect.spawn`
 
         - ``name`` -- human-readable name for this process, used for
-          display purposes only.
+          display purposes only
 
         - ``quit_string`` -- (default: ``None``) if not ``None``, send
-          this string to the child process before killing it.
+          this string to the child process before killing it
 
         EXAMPLES::
 
@@ -102,8 +103,7 @@ class SageSpawn(spawn):
             cmd = " ".join(self.args)
             if not self.terminated:
                 return "%s with PID %s running %s" % (self.__name, self.pid, cmd)
-            else:
-                return "%s finished running %s" % (self.__name, cmd)
+            return "%s finished running %s" % (self.__name, cmd)
         except Exception:
             return object.__repr__(self)
 
@@ -136,7 +136,7 @@ class SageSpawn(spawn):
 
     def expect_peek(self, *args, **kwds):
         r"""
-        Like :meth:`expect` but restore the read buffer such that it
+        Like :meth:`~pexpect.spawn.expect` but restore the read buffer such that it
         looks like nothing was actually read. The next reading will
         continue at the current position.
 
@@ -155,7 +155,7 @@ class SageSpawn(spawn):
 
     def expect_upto(self, *args, **kwds):
         r"""
-        Like :meth:`expect` but restore the read buffer starting from
+        Like :meth:`~pexpect.spawn.expect` but restore the read buffer starting from
         the matched string. The next reading will continue starting
         with the matched string.
 
@@ -216,7 +216,7 @@ class SagePtyProcess(PtyProcess):
         INPUT:
 
         - ``interval`` -- (default: 5) how much seconds to wait between
-          sending two signals.
+          sending two signals
 
         EXAMPLES:
 

@@ -4,12 +4,12 @@ The Unknown truth value
 The ``Unknown`` object is used in Sage in several places as return value
 in addition to ``True`` and ``False``, in order to signal uncertainty
 about or inability to compute the result. ``Unknown`` can be identified
-using ``is``, or by catching :class:`UnknownError` from a boolean operation.
+using ``is``, or by catching :exc:`UnknownError` from a boolean operation.
 
 .. WARNING::
 
     Calling ``bool()`` with ``Unknown`` as argument will throw an
-    ``UnknownError``. This also means that in the following cases,
+    :exc:`UnknownError`. This also means that in the following cases,
     ``and``, ``not``, and ``or`` fail or return a somewhat wrong value::
 
         sage: not Unknown         # should return Unknown
@@ -30,10 +30,9 @@ EXAMPLES::
     sage: def func(n):
     ....:     if n > 0:
     ....:         return True
-    ....:     elif n < 0:
+    ....:     if n < 0:
     ....:         return False
-    ....:     else:
-    ....:         return Unknown
+    ....:     return Unknown
 
 Using direct identification::
 
@@ -49,7 +48,7 @@ Using direct identification::
     n=0 is neither positive nor negative
     n=12 is positive
 
-Using ``UnknownError``::
+Using :exc:`UnknownError`::
 
     sage: for n in [-3, 0, 12]:
     ....:    try:
@@ -80,12 +79,16 @@ AUTHORS:
 # ****************************************************************************
 
 
+from typing import Any
+
+from sage.structure.richcmp import rich_to_bool, richcmp_method
 from sage.structure.unique_representation import UniqueRepresentation
-from sage.structure.richcmp import richcmp_method, rich_to_bool
+
 
 class UnknownError(TypeError):
     """
-    Raised whenever :class:`Unknown` is used in a boolean operation.
+    Raised whenever the :class:`UnknownClass` instance ``Unknown`` is used in a
+    boolean operation.
 
     EXAMPLES::
 
@@ -96,28 +99,29 @@ class UnknownError(TypeError):
     """
     pass
 
+
 @richcmp_method
 class UnknownClass(UniqueRepresentation):
     """
-    The Unknown truth value
+    The Unknown truth value.
 
     The ``Unknown`` object is used in Sage in several places as return value
     in addition to ``True`` and ``False``, in order to signal uncertainty
     about or inability to compute the result. ``Unknown`` can be identified
-    using ``is``, or by catching :class:`UnknownError` from a boolean
+    using ``is``, or by catching :exc:`UnknownError` from a boolean
     operation.
 
     .. WARNING::
 
         Calling ``bool()`` with ``Unknown`` as argument will throw an
-        ``UnknownError``. This also means that applying ``and``, ``not``,
+        :exc:`UnknownError`. This also means that applying ``and``, ``not``,
         and ``or`` to ``Unknown`` might fail.
 
     TESTS::
 
         sage: TestSuite(Unknown).run()
     """
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         TESTS::
 
@@ -126,9 +130,9 @@ class UnknownClass(UniqueRepresentation):
         """
         return "Unknown"
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         """
-        When evaluated in a boolean context ``Unknown`` raises a ``UnknownError``.
+        When evaluated in a boolean context ``Unknown`` raises a :exc:`UnknownError`.
 
         EXAMPLES::
 
@@ -143,7 +147,7 @@ class UnknownClass(UniqueRepresentation):
         """
         raise UnknownError('Unknown does not evaluate in boolean context')
 
-    def __and__(self, other):
+    def __and__(self, other: Any) -> Any:
         """
         The ``&`` logical operation.
 
@@ -161,12 +165,11 @@ class UnknownClass(UniqueRepresentation):
         """
         if other is False:
             return False
-        elif other is True or other is Unknown:
+        if other is True or other is Unknown:
             return self
-        else:
-            return NotImplemented
+        return NotImplemented
 
-    def __or__(self, other):
+    def __or__(self, other: Any) -> Any:
         """
         The ``|`` logical connector.
 
@@ -184,12 +187,11 @@ class UnknownClass(UniqueRepresentation):
         """
         if other is True:
             return True
-        elif other is False or other is Unknown:
+        if other is False or other is Unknown:
             return self
-        else:
-            return NotImplemented
+        return NotImplemented
 
-    def __richcmp__(self, other, op):
+    def __richcmp__(self, other: Any, op: int) -> bool:
         """
         Comparison of truth value.
 
@@ -212,8 +214,7 @@ class UnknownClass(UniqueRepresentation):
             return NotImplemented
         if other:
             return rich_to_bool(op, -1)
-        else:
-            return rich_to_bool(op, +1)
+        return rich_to_bool(op, +1)
 
 
-Unknown = UnknownClass()
+Unknown: UnknownClass = UnknownClass()

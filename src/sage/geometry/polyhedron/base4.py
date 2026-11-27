@@ -1,8 +1,7 @@
-# sage.doctest: needs sage.graphs
 r"""
 Base class for polyhedra: Graph-theoretic methods
 
-Define methods relying on :mod:`sage.graphs`.
+Define methods relying on :ref:`sage.graphs <sage.graphs>`.
 """
 
 # ****************************************************************************
@@ -36,9 +35,10 @@ Define methods relying on :mod:`sage.graphs`.
 from sage.misc.cachefunc import cached_method
 from .base3 import Polyhedron_base3
 
+
 class Polyhedron_base4(Polyhedron_base3):
     """
-    Methods relying on :mod:`sage.graphs`.
+    Methods relying on :ref:`sage.graphs <sage.graphs>`.
 
     See :class:`sage.geometry.polyhedron.base.Polyhedron_base`.
 
@@ -70,7 +70,7 @@ class Polyhedron_base4(Polyhedron_base3):
 
         This function constructs a directed bipartite graph.
         The nodes of the graph correspond to the vertices of the polyhedron
-        and the facets of the polyhedron. There is an directed edge
+        and the facets of the polyhedron. There is a directed edge
         from a vertex to a face if and only if the vertex is incident to the face.
 
         INPUT:
@@ -126,12 +126,12 @@ class Polyhedron_base4(Polyhedron_base3):
 
         TESTS:
 
-        Check that :trac:`28828` is fixed::
+        Check that :issue:`28828` is fixed::
 
             sage: G._immutable
             True
 
-        Check that :trac:`29188` is fixed::
+        Check that :issue:`29188` is fixed::
 
             sage: P = polytopes.cube()
             sage: P.vertex_facet_graph().is_isomorphic(P.vertex_facet_graph(False))
@@ -192,7 +192,7 @@ class Polyhedron_base4(Polyhedron_base3):
 
         TESTS:
 
-        Check for a line segment (:trac:`30545`)::
+        Check for a line segment (:issue:`30545`)::
 
             sage: polytopes.simplex(1).graph().edges(sort=True)
             [(A vertex at (0, 1), A vertex at (1, 0), None)]
@@ -218,8 +218,8 @@ class Polyhedron_base4(Polyhedron_base3):
             - a vector ; in this case the linear form is obtained by duality
               using the dot product: ``f(v) = v.dot_product(f)``.
 
-        - ``increasing`` -- boolean (default ``True``) whether to orient
-          edges in the increasing or decreasing direction.
+        - ``increasing`` -- boolean (default: ``True``); whether to orient
+          edges in the increasing or decreasing direction
 
         By default, an edge is oriented from `v` to `w` if
         `f(v) \leq f(w)`.
@@ -308,7 +308,7 @@ class Polyhedron_base4(Polyhedron_base3):
 
         .. NOTE::
 
-            The face lattice is not cached, as long as this creates a memory leak, see :trac:`28982`.
+            The face lattice is not cached, as long as this creates a memory leak, see :issue:`28982`.
 
         EXAMPLES::
 
@@ -353,7 +353,7 @@ class Polyhedron_base4(Polyhedron_base3):
             sage: c5_20_fl = c5_20.face_lattice() # long time
             sage: [len(x) for x in c5_20_fl.level_sets()] # long time
             [1, 20, 190, 580, 680, 272, 1]
-            sage: polytopes.hypercube(2).face_lattice().plot()                          # needs sage.plot
+            sage: polytopes.hypercube(2).face_lattice().plot()
             Graphics object consisting of 27 graphics primitives
             sage: level_sets = polytopes.cross_polytope(2).face_lattice().level_sets()
             sage: level_sets[0][0].ambient_V_indices(), level_sets[-1][0].ambient_V_indices()
@@ -383,7 +383,6 @@ class Polyhedron_base4(Polyhedron_base3):
             [[()], [(0, 1)]]
             sage: [[ls.ambient_V_indices() for ls in lss] for lss in Polyhedron(lines=[(1,0)], vertices=[(0,0)]).face_lattice().level_sets()]
             [[()], [(0, 1)]]
-
         """
         from sage.combinat.posets.lattices import FiniteLatticePoset
         return FiniteLatticePoset(self.hasse_diagram())
@@ -399,17 +398,15 @@ class Polyhedron_base4(Polyhedron_base3):
 
         EXAMPLES::
 
-            sage: # needs sage.rings.number_field
             sage: P = polytopes.regular_polygon(4).pyramid()
             sage: D = P.hasse_diagram(); D
             Digraph on 20 vertices
             sage: D.degree_polynomial()
             x^5 + x^4*y + x*y^4 + y^5 + 4*x^3*y + 8*x^2*y^2 + 4*x*y^3
 
-        Faces of an mutable polyhedron are not hashable. Hence those are not suitable as
+        Faces of a mutable polyhedron are not hashable. Hence those are not suitable as
         vertices of the hasse diagram. Use the combinatorial polyhedron instead::
 
-            sage: # needs sage.rings.number_field
             sage: P = polytopes.regular_polygon(4).pyramid()
             sage: parent = P.parent()
             sage: parent = parent.change_ring(QQ, backend='ppl')
@@ -417,7 +414,7 @@ class Polyhedron_base4(Polyhedron_base3):
             sage: Q.hasse_diagram()
             Traceback (most recent call last):
             ...
-            TypeError: mutable polyhedra are unhashable
+            TypeError: ...mutable polyhedra are unhashable...
             sage: C = Q.combinatorial_polyhedron()
             sage: D = C.hasse_diagram()
             sage: set(D.vertices(sort=False)) == set(range(20))
@@ -471,12 +468,10 @@ class Polyhedron_base4(Polyhedron_base3):
 
         INPUT:
 
-        - ``args`` -- integers (optional); specify an entry of the
+        - ``args`` -- integer (optional); specify an entry of the
           flag-f-vector; must be an increasing sequence of integers
 
-        OUTPUT:
-
-        - a dictionary, if no arguments were given
+        OUTPUT: a dictionary, if no arguments were given
 
         - an Integer, if arguments were given
 
@@ -546,7 +541,8 @@ class Polyhedron_base4(Polyhedron_base3):
              (3,): 8,
              4: 1}
 
-        If the arguments are not stricly increasing or out of range, a key error is raised::
+        If the arguments are not strictly increasing or out of range,
+        a key error is raised::
 
             sage: P.flag_f_vector(-1,0,3,6)
             Traceback (most recent call last):
@@ -560,15 +556,14 @@ class Polyhedron_base4(Polyhedron_base3):
         flag = self._flag_f_vector()
         if len(args) == 0:
             return flag
-        elif len(args) == 1:
+        if len(args) == 1:
             return flag[(args[0],)]
-        else:
-            dim = self.dimension()
-            if args[0] == -1:
-                args = args[1:]
-            if args[-1] == dim:
-                args = args[:-1]
-            return flag[tuple(args)]
+        dim = self.dimension()
+        if args[0] == -1:
+            args = args[1:]
+        if args[-1] == dim:
+            args = args[:-1]
+        return flag[tuple(args)]
 
     @cached_method(do_pickle=True)
     def _flag_f_vector(self):
@@ -603,7 +598,7 @@ class Polyhedron_base4(Polyhedron_base3):
     @cached_method
     def combinatorial_automorphism_group(self, vertex_graph_only=False):
         """
-        Computes the combinatorial automorphism group.
+        Compute the combinatorial automorphism group.
 
         If ``vertex_graph_only`` is ``True``,  the automorphism group
         of the vertex-edge graph of the polyhedron is returned. Otherwise
@@ -619,7 +614,7 @@ class Polyhedron_base4(Polyhedron_base3):
         OUTPUT:
 
         A
-        :class:`PermutationGroup<sage.groups.perm_gps.permgroup.PermutationGroup_generic_with_category'>`
+        :class:`PermutationGroup <sage.groups.perm_gps.permgroup.PermutationGroup_generic>`
         that is isomorphic to the combinatorial automorphism group is
         returned.
 
@@ -686,7 +681,6 @@ class Polyhedron_base4(Polyhedron_base3):
             sage: QG = Q.hasse_diagram().automorphism_group()
             sage: Q.combinatorial_automorphism_group().is_isomorphic(QG)
             True
-
         """
         if vertex_graph_only:
             G = self.graph()
@@ -695,7 +689,7 @@ class Polyhedron_base4(Polyhedron_base3):
         return G.automorphism_group(edge_labels=True)
 
     @cached_method
-    def restricted_automorphism_group(self, output="abstract"):
+    def restricted_automorphism_group(self, output='abstract'):
         r"""
         Return the restricted automorphism group.
 
@@ -762,22 +756,22 @@ class Polyhedron_base4(Polyhedron_base3):
 
         - ``output`` -- how the group should be represented:
 
-          - ``"abstract"`` (default) -- return an abstract permutation
-            group without further meaning.
+          - ``'abstract'`` -- default; return an abstract permutation
+            group without further meaning
 
-          - ``"permutation"`` -- return a permutation group on the
+          - ``'permutation'`` -- return a permutation group on the
             indices of the polyhedron generators. For example, the
             permutation ``(0,1)`` would correspond to swapping
             ``self.Vrepresentation(0)`` and ``self.Vrepresentation(1)``.
 
-          - ``"matrix"`` -- return a matrix group representing affine
+          - ``'matrix'`` -- return a matrix group representing affine
             transformations. When acting on affine vectors, you should
             append a `1` to every vector. If the polyhedron is not full
             dimensional, the returned matrices act as the identity on
             the orthogonal complement of the affine space spanned by
             the polyhedron.
 
-          - ``"matrixlist"`` -- like ``matrix``, but return the list of
+          - ``'matrixlist'`` -- like ``matrix``, but return the list of
             elements of the matrix group. Useful for fields without a
             good implementation of matrix groups or to avoid the
             overhead of creating the group.
@@ -802,13 +796,13 @@ class Polyhedron_base4(Polyhedron_base3):
             sage: P = polytopes.cross_polytope(3)
             sage: P.restricted_automorphism_group() == PermutationGroup([[(3,4)], [(2,3),(4,5)],[(2,5)],[(1,2),(5,6)],[(1,6)]])
             True
-            sage: P.restricted_automorphism_group(output="permutation") == PermutationGroup([[(2,3)],[(1,2),(3,4)],[(1,4)],[(0,1),(4,5)],[(0,5)]])
+            sage: P.restricted_automorphism_group(output='permutation') == PermutationGroup([[(2,3)],[(1,2),(3,4)],[(1,4)],[(0,1),(4,5)],[(0,5)]])
             True
             sage: mgens = [[[1,0,0,0],[0,1,0,0],[0,0,-1,0],[0,0,0,1]], [[1,0,0,0],[0,0,1,0],[0,1,0,0],[0,0,0,1]], [[0,1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,1]]]
 
         We test groups for equality in a fool-proof way; they can have different generators, etc::
 
-            sage: poly_g = P.restricted_automorphism_group(output="matrix")
+            sage: poly_g = P.restricted_automorphism_group(output='matrix')
             sage: matrix_g = MatrixGroup([matrix(QQ,t) for t in mgens])
             sage: all(t.matrix() in poly_g for t in matrix_g.gens())
             True
@@ -832,7 +826,7 @@ class Polyhedron_base4(Polyhedron_base3):
             sage: P = Polyhedron(rays=[(1,0),(0,1)])
             sage: P.Vrepresentation()
             (A vertex at (0, 0), A ray in the direction (0, 1), A ray in the direction (1, 0))
-            sage: P.restricted_automorphism_group(output="permutation")
+            sage: P.restricted_automorphism_group(output='permutation')
             Permutation Group with generators [(1,2)]
 
         Also, the polyhedron need not be full-dimensional::
@@ -840,8 +834,7 @@ class Polyhedron_base4(Polyhedron_base3):
             sage: P = Polyhedron(vertices=[(1,2,3,4,5),(7,8,9,10,11)])
             sage: P.restricted_automorphism_group()
             Permutation Group with generators [(1,2)]
-            sage: G = P.restricted_automorphism_group(output="matrixlist")
-            sage: G
+            sage: G = P.restricted_automorphism_group(output='matrixlist'); G
             (
             [1 0 0 0 0 0]  [ -87/55  -82/55    -2/5   38/55   98/55   12/11]
             [0 1 0 0 0 0]  [-142/55  -27/55    -2/5   38/55   98/55   12/11]
@@ -850,8 +843,7 @@ class Polyhedron_base4(Polyhedron_base3):
             [0 0 0 0 1 0]  [-142/55  -82/55    -2/5   38/55  153/55   12/11]
             [0 0 0 0 0 1], [      0       0       0       0       0       1]
             )
-            sage: g = AffineGroup(5, QQ)(G[1])
-            sage: g
+            sage: g = AffineGroup(5, QQ)(G[1]); g
                   [ -87/55  -82/55    -2/5   38/55   98/55]     [12/11]
                   [-142/55  -27/55    -2/5   38/55   98/55]     [12/11]
             x |-> [-142/55  -82/55     3/5   38/55   98/55] x + [12/11]
@@ -891,39 +883,43 @@ class Polyhedron_base4(Polyhedron_base3):
         complete implementation of matrix groups::
 
             sage: P = polytopes.dodecahedron(); P
-            A 3-dimensional polyhedron in (Number Field in sqrt5 with defining polynomial x^2 - 5 with sqrt5 = 2.236067977499790?)^3 defined as the convex hull of 20 vertices
-            sage: G = P.restricted_automorphism_group(output="matrixlist")
+            A 3-dimensional polyhedron in (Number Field in sqrt5 with defining
+             polynomial x^2 - 5 with sqrt5 = 2.236067977499790?)^3
+             defined as the convex hull of 20 vertices
+            sage: G = P.restricted_automorphism_group(output='matrixlist')
             sage: len(G)
             120
 
         Floating-point computations are supported with a simple fuzzy
         zero implementation::
 
-            sage: P = Polyhedron(vertices=[(1/3,0,0,1),(0,1/4,0,1),(0,0,1/5,1)], base_ring=RDF)
+            sage: P = Polyhedron(vertices=[(1/3,0,0,1),(0,1/4,0,1),(0,0,1/5,1)],
+            ....:                base_ring=RDF)
             sage: P.restricted_automorphism_group()
             Permutation Group with generators [(2,3), (1,2)]
-            sage: len(P.restricted_automorphism_group(output="matrixlist"))
+            sage: len(P.restricted_automorphism_group(output='matrixlist'))
             6
 
         TESTS::
 
             sage: P = Polyhedron(vertices=[(1,0), (1,1)], rays=[(1,0)])
-            sage: P.restricted_automorphism_group(output="permutation")
+            sage: P.restricted_automorphism_group(output='permutation')
             Permutation Group with generators [(1,2)]
-            sage: P.restricted_automorphism_group(output="matrix")
+            sage: P.restricted_automorphism_group(output='matrix')
             Matrix group over Rational Field with 1 generators (
             [ 1  0  0]
             [ 0 -1  1]
             [ 0  0  1]
             )
-            sage: P.restricted_automorphism_group(output="foobar")
+            sage: P.restricted_automorphism_group(output='foobar')
             Traceback (most recent call last):
             ...
-            ValueError: unknown output 'foobar', valid values are ('abstract', 'permutation', 'matrix', 'matrixlist')
+            ValueError: unknown output 'foobar', valid values are
+            ('abstract', 'permutation', 'matrix', 'matrixlist')
 
-        Check that :trac:`28828` is fixed::
+        Check that :issue:`28828` is fixed::
 
-            sage: P.restricted_automorphism_group(output="matrixlist")[0].is_immutable()
+            sage: P.restricted_automorphism_group(output='matrixlist')[0].is_immutable()
             True
         """
         # The algorithm works as follows:
@@ -1021,7 +1017,7 @@ class Polyhedron_base4(Polyhedron_base3):
         permgroup = G.automorphism_group(edge_labels=True)
         if output == "permutation":
             return permgroup
-        elif output == "matrix":
+        if output == "matrix":
             permgroup = permgroup.gens()
 
         # Compute V+ = Vt Q+ as list of row vectors
@@ -1047,9 +1043,8 @@ class Polyhedron_base4(Polyhedron_base3):
 
         if output == "matrixlist":
             return tuple(matrices)
-        else:
-            from sage.groups.matrix_gps.finitely_generated import MatrixGroup
-            return MatrixGroup(matrices)
+        from sage.groups.matrix_gps.finitely_generated import MatrixGroup
+        return MatrixGroup(matrices)
 
     def is_combinatorially_isomorphic(self, other, algorithm='bipartite_graph'):
         r"""
@@ -1061,8 +1056,8 @@ class Polyhedron_base4(Polyhedron_base3):
         INPUT:
 
         - ``other`` -- a polyhedron object
-        - ``algorithm`` (default = ``'bipartite_graph'``) -- the algorithm to use.
-          The other possible value is ``'face_lattice'``.
+        - ``algorithm`` -- (default: ``'bipartite_graph'``) the algorithm to
+          use; the other possible value is ``'face_lattice'``
 
         OUTPUT:
 
@@ -1088,10 +1083,10 @@ class Polyhedron_base4(Polyhedron_base3):
         All the faces of the 3-dimensional permutahedron are either
         combinatorially isomorphic to a square or a hexagon::
 
-            sage: H = polytopes.regular_polygon(6)                                      # needs sage.rings.number_field
+            sage: H = polytopes.regular_polygon(6)
             sage: S = polytopes.hypercube(2)
             sage: P = polytopes.permutahedron(4)
-            sage: all(F.as_polyhedron().is_combinatorially_isomorphic(S)                # needs sage.rings.number_field
+            sage: all(F.as_polyhedron().is_combinatorially_isomorphic(S)
             ....:       or F.as_polyhedron().is_combinatorially_isomorphic(H)
             ....:     for F in P.faces(2))
             True
@@ -1110,7 +1105,7 @@ class Polyhedron_base4(Polyhedron_base3):
             ....:    return C.intersection(H)
             sage: [simplex_intersection(k).is_combinatorially_isomorphic(cube_intersection(k)) for k in range(2,5)]
             [True, True, True]
-            sage: simplex_intersection(2).is_combinatorially_isomorphic(polytopes.regular_polygon(6))                   # needs sage.rings.number_field
+            sage: simplex_intersection(2).is_combinatorially_isomorphic(polytopes.regular_polygon(6))
             True
             sage: simplex_intersection(3).is_combinatorially_isomorphic(polytopes.octahedron())
             True
@@ -1118,10 +1113,10 @@ class Polyhedron_base4(Polyhedron_base3):
         Two polytopes with the same `f`-vector, but different combinatorial types::
 
             sage: P = Polyhedron([[-605520/1525633, -605520/1525633, -1261500/1525633, -52200/1525633, 11833/1525633],\
-             [-720/1769, -600/1769, 1500/1769, 0, -31/1769], [-216/749, 240/749, -240/749, -432/749, 461/749], \
-             [-50/181, 50/181, 60/181, -100/181, -119/181], [-32/51, -16/51, -4/51, 12/17, 1/17],\
-             [1, 0, 0, 0, 0], [16/129, 128/129, 0, 0, 1/129], [64/267, -128/267, 24/89, -128/267, 57/89],\
-             [1200/3953, -1200/3953, -1440/3953, -360/3953, -3247/3953], [1512/5597, 1512/5597, 588/5597, 4704/5597, 2069/5597]])
+            ....: [-720/1769, -600/1769, 1500/1769, 0, -31/1769], [-216/749, 240/749, -240/749, -432/749, 461/749], \
+            ....: [-50/181, 50/181, 60/181, -100/181, -119/181], [-32/51, -16/51, -4/51, 12/17, 1/17],\
+            ....: [1, 0, 0, 0, 0], [16/129, 128/129, 0, 0, 1/129], [64/267, -128/267, 24/89, -128/267, 57/89],\
+            ....: [1200/3953, -1200/3953, -1440/3953, -360/3953, -3247/3953], [1512/5597, 1512/5597, 588/5597, 4704/5597, 2069/5597]])
             sage: C = polytopes.cyclic_polytope(5,10)
             sage: C.f_vector() == P.f_vector(); C.f_vector()
             True
@@ -1162,7 +1157,6 @@ class Polyhedron_base4(Polyhedron_base3):
             Traceback (most recent call last):
             ...
             AssertionError: polyhedron `other` must be bounded
-
         """
         assert isinstance(other, Polyhedron_base4), "input `other` must be a polyhedron"
         assert self.is_compact(), "polyhedron `self` must be bounded"
@@ -1180,8 +1174,7 @@ class Polyhedron_base4(Polyhedron_base3):
             G_other = other.vertex_facet_graph(False)
 
             return G_self.is_isomorphic(G_other)
-        else:
-            return self.face_lattice().is_isomorphic(other.face_lattice())
+        return self.face_lattice().is_isomorphic(other.face_lattice())
 
     def _test_is_combinatorially_isomorphic(self, tester=None, **options):
         """
@@ -1233,13 +1226,12 @@ class Polyhedron_base4(Polyhedron_base3):
             True
             sage: polytopes.cube().is_self_dual()
             False
-            sage: polytopes.hypersimplex(5,2).is_self_dual()                            # needs sage.combinat
+            sage: polytopes.hypersimplex(5,2).is_self_dual()
             False
             sage: P = Polyhedron(vertices=[[1/2, 1/3]], rays=[[1, 1]]).is_self_dual()
             Traceback (most recent call last):
             ...
             ValueError: polyhedron has to be compact
-
         """
         if not self.is_compact():
             raise ValueError("polyhedron has to be compact")

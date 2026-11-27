@@ -143,7 +143,7 @@ Berkovich Analytic Spaces
 
 - **Berkovich Analytic Space (not yet implemented)**
   The construction of analytic spaces from schemes due to Berkovich. Any Berkovich
-  space should inherit from :class:`Berkovich`
+  space should inherit from :class:`~sage.schemes.berkovich.berkovich_space.Berkovich`
 
 - **Berkovich Analytic Space over Cp**
   A special case of the general Berkovich analytic space construction.
@@ -157,5 +157,4 @@ AUTHORS:
 - David Kohel, William Stein (2006-01-03): initial version
 
 - Andrey Novoseltsev (2010-09-24): updated due to addition of toric varieties
-
 """

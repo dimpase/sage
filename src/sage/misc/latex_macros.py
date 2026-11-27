@@ -37,22 +37,25 @@ defined, and ``["GF", 4]`` would have raised an error, because to
 define the field with four elements in Sage, you also need to specify
 the name of a generator.)
 
-To see evidence of the results of the code here, run ``sage --docbuild
-tutorial latex`` (for example), and look at the resulting LaTeX file in
-``SAGE_DOC/latex/en/tutorial/``.  The preamble should
-contain '\newcommand' lines for each of the entries in ``macros``.
+To see evidence of the results of the code here, run ``meson compile -C
+builddir doc-pdf-other-en-tutorial`` (for example), where ``builddir`` is the
+Meson build directory, and look at the resulting LaTeX file in
+``builddir/src/doc/latex/en/tutorial/``.  The preamble should contain
+'\newcommand' lines for each of the entries in ``macros``.
 """
 
+import importlib
 
-def produce_latex_macro(name, *sample_args):
+
+def produce_latex_macro(name: str, *sample_args: object) -> str:
     r"""
     Produce a string defining a LaTeX macro.
 
     INPUT:
 
-    -  ``name`` -- name of macro to be defined, also name of corresponding Sage object
+    - ``name`` -- name of macro to be defined, also name of corresponding Sage object
 
-    -  ``sample_args`` -- (optional) sample arguments for this Sage object
+    - ``sample_args`` -- (optional) sample arguments for this Sage object
 
     EXAMPLES::
 
@@ -69,7 +72,7 @@ def produce_latex_macro(name, *sample_args):
          sage: produce_latex_macro('GF', 37)
          '\\newcommand{\\GF}[1]{\\Bold{F}_{#1}}'
 
-    If the Sage object is not in the global name space, describe it
+    If the Sage object is not in the global namespace, describe it
     like so::
 
          sage: produce_latex_macro('sage.rings.finite_rings.finite_field_constructor.FiniteField', 3)
@@ -84,33 +87,29 @@ def produce_latex_macro(name, *sample_args):
     else:
         module, real_name = names_split
     newcommand = '\\newcommand{\\' + real_name + '}'
-    count = 0
-    args = "("
-    for x in sample_args:
-        count += 1
-        args += str(x) + ','
-    args += ')'
-    exec('from ' + module + ' import ' + real_name)
-    if count:
-        defn = '[' + str(count) + ']{'
-        defn += eval('str(LatexCall()(' + real_name + args + '))') + '}'
+    sage_object = getattr(importlib.import_module(module), real_name)
+    if sample_args:
+        defn = '[' + str(len(sample_args)) + ']{'
+        defn += str(LatexCall()(sage_object(*sample_args))) + '}'
     else:
-        defn = '{' + eval('str(LatexCall()(' + real_name + '))') + '}'
-    count = 0
-    for x in sample_args:
-        count += 1
-        defn = defn.replace(str(x), "#" + str(count))
+        defn = '{' + str(LatexCall()(sage_object)) + '}'
+    for i, x in enumerate(sample_args):
+        s = str(x)
+        assert s in defn
+        defn = defn.replace(s, "#" + str(i+1))
     return newcommand + defn
 
 
-def convert_latex_macro_to_mathjax(macro):
+def convert_latex_macro_to_mathjax(
+    macro: str,
+) -> tuple[str, str] | tuple[str, list[str | int]]:
     r"""
     This converts a LaTeX macro definition (\newcommand...) to a
     MathJax macro definition (MathJax.Macro...).
 
     INPUT:
 
-    -  ``macro`` -- LaTeX macro definition
+    - ``macro`` -- LaTeX macro definition
 
     See the web page
     https://docs.mathjax.org/en/latest/input/tex/macros.html for a
@@ -128,19 +127,18 @@ def convert_latex_macro_to_mathjax(macro):
     right_bracket = macro.find('[')
     if left_bracket >= 0:
         right_bracket = macro.find(']')
-        num_args = int(macro[left_bracket + 1 : right_bracket])
+        num_args = int(macro[left_bracket + 1: right_bracket])
     else:
         num_args = 0
     start_name = macro.find('{') + 1  # add one to go past the backslash
     end_name = macro.find('}')
-    name = macro[start_name + 1 : end_name]
+    name = macro[start_name + 1: end_name]
     start_defn = macro.find('{', end_name)
     end_defn = macro.rfind('}')
-    defn = macro[start_defn + 1 : end_defn]
+    defn = macro[start_defn + 1: end_defn]
     if num_args == 0:
         return name, defn
-    else:
-        return name, [defn, num_args]
+    return name, [defn, num_args]
 
 
 # To add a new macro for use in the Sage documentation, add a list or
@@ -148,10 +146,10 @@ def convert_latex_macro_to_mathjax(macro):
 # form [name, arguments], which will be passed to the function
 # produce_latex_macro: see that for more documentation.
 #
-# To see the results of this, run 'sage --docbuild tutorial latex' (for
-# example -- you could replace 'tutorial' with your favorite piece of
-# documentation), and look at the resulting tex file in
-# SAGE_DOC/latex/en/tutorial.  The preamble should contain
+# To see the results of this, run
+# 'meson compile -C builddir doc-pdf-other-en-tutorial', where builddir is
+# the Meson build directory, and look at the resulting tex file in
+# builddir/src/doc/latex/en/tutorial.  The preamble should contain
 # \newcommand's for each of the entries here.
 macros = [["ZZ"],
           ["NN"],
@@ -174,14 +172,15 @@ macros = [["ZZ"],
 # Use this list to define additional latex macros for sage documentation
 latex_macros = [r"\newcommand{\SL}{\mathrm{SL}}",
                 r"\newcommand{\PSL}{\mathrm{PSL}}",
-                r"\newcommand{\lcm}{\mathop{\operatorname{lcm}}}"]
+                r"\newcommand{\lcm}{\mathop{\operatorname{lcm}}}",
+                r"\newcommand{\dist}{\mathrm{dist}}"]
 
 # The following is to allow customization of typesetting of rings:
 # mathbf vs mathbb.  See latex.py for more information.
 sage_configurable_latex_macros = [r"\newcommand{\Bold}[1]{\mathbf{#1}}"]
 
 
-def sage_latex_macros():
+def sage_latex_macros() -> list[str]:
     r"""
     Return list of LaTeX macros for Sage. This just runs the function
     :func:`produce_latex_macro` on the list ``macros`` defined in this
@@ -196,7 +195,8 @@ def sage_latex_macros():
     """
     return [produce_latex_macro(*x) for x in macros] + latex_macros + sage_configurable_latex_macros
 
-def sage_mathjax_macros():
+
+def sage_mathjax_macros() -> dict[str, str | list[str | int]]:
     r"""
     Return Sage's macro definitions for usage with MathJax.
 

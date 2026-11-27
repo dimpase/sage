@@ -45,7 +45,7 @@ Tutorial der richtige Ort um damit anzufangen. Zum Beispiel:
     over Rational Field
     sage: E.anlist(10)
     [0, 1, 1, 0, -1, -3, 0, -1, -3, -3, -3]
-    sage: E.rank()
+    sage: E.rank()  # needs eclib
     1
 
     sage: k = 1/(sqrt(3)*I + 3/4 + sqrt(73)*5/9); k
@@ -69,7 +69,6 @@ http://sagecell.sagemath.org benutzen.
 Schauen Sie sich den `Sage Installation Guide <http://doc.sagemath.org/html/en/installation/index.html>`_ an, um Anleitungen
 zur Installation von Sage auf Ihrem Computer zu erhalten.
 Hier geben wir nur ein paar Kommentare ab.
-
 
 
 #. Die herunterladbare Sage-Datei wurde nach der *batteries included*

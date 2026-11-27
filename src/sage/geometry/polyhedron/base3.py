@@ -1,7 +1,7 @@
 r"""
 Base class for polyhedra: Methods regarding the combinatorics of a polyhedron
 
-Excluding methods relying on :mod:`sage.graphs`.
+Excluding methods relying on :ref:`sage.graphs <sage.graphs>`.
 """
 
 # ****************************************************************************
@@ -38,11 +38,14 @@ from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
 from .base2 import Polyhedron_base2
 
+
 class Polyhedron_base3(Polyhedron_base2):
     """
     Methods related to the combinatorics of a polyhedron.
 
     See :class:`sage.geometry.polyhedron.base.Polyhedron_base`.
+
+    .. automethod:: _test_combinatorial_face_as_combinatorial_polyhedron
 
     TESTS::
 
@@ -73,7 +76,7 @@ class Polyhedron_base3(Polyhedron_base2):
 
     def _init_empty_polyhedron(self):
         """
-        Initializes an empty polyhedron.
+        Initialize an empty polyhedron.
 
         TESTS::
 
@@ -135,7 +138,6 @@ class Polyhedron_base3(Polyhedron_base2):
             [1 0 1 0 0 1]
             [1 0 0 0 1 1]
 
-            sage: # needs sage.rings.number_field
             sage: P = polytopes.dodecahedron().faces(2)[0].as_polyhedron()
             sage: P.slack_matrix()
             [1/2*sqrt5 - 1/2               0               0               1 1/2*sqrt5 - 1/2               0]
@@ -154,7 +156,7 @@ class Polyhedron_base3(Polyhedron_base2):
 
             sage: Polyhedron().slack_matrix()
             []
-            sage: Polyhedron(base_ring=QuadraticField(2)).slack_matrix().base_ring()    # needs sage.rings.number_field
+            sage: Polyhedron(base_ring=QuadraticField(2)).slack_matrix().base_ring()
             Number Field in a with defining polynomial x^2 - 2 with a = 1.41...
         """
         if not self.n_Vrepresentation() or not self.n_Hrepresentation():
@@ -275,12 +277,12 @@ class Polyhedron_base3(Polyhedron_base2):
 
             sage: P = polytopes.twenty_four_cell()
             sage: M = P.incidence_matrix()
-            sage: sum(sum(x) for x in M) == P.flag_f_vector(0, 3)                       # needs sage.combinat
+            sage: sum(sum(x) for x in M) == P.flag_f_vector(0, 3)
             True
 
         TESTS:
 
-        Check that :trac:`28828` is fixed::
+        Check that :issue:`28828` is fixed::
 
             sage: R.incidence_matrix().is_immutable()
             True
@@ -288,7 +290,6 @@ class Polyhedron_base3(Polyhedron_base2):
         Test that this method works for inexact base ring
         (``cdd`` sets the cache already)::
 
-            sage: # needs sage.groups
             sage: P = polytopes.dodecahedron(exact=False)
             sage: M = P.incidence_matrix.cache
             sage: P.incidence_matrix.clear_cache()
@@ -372,7 +373,7 @@ class Polyhedron_base3(Polyhedron_base2):
                                                        prefix=tester._prefix+"  ")
         tester.info(tester._prefix + " ", newline=False)
 
-    def face_generator(self, face_dimension=None, algorithm=None, **kwds):
+    def face_generator(self, face_dimension=None, algorithm=None):
         r"""
         Return an iterator over the faces of given dimension.
 
@@ -380,7 +381,7 @@ class Polyhedron_base3(Polyhedron_base2):
 
         INPUT:
 
-        - ``face_dimension`` -- integer (default ``None``),
+        - ``face_dimension`` -- integer (default: ``None``);
           yield only faces of this dimension if specified
 
         - ``algorithm`` -- string (optional);
@@ -583,28 +584,12 @@ class Polyhedron_base3(Polyhedron_base2):
             sage: list(Polyhedron().face_generator())
             [A -1-dimensional face of a Polyhedron in ZZ^0]
 
-        Check that :trac:`29155` is fixed::
+        Check that :issue:`29155` is fixed::
 
             sage: P = polytopes.permutahedron(3)
             sage: [f] = P.face_generator(2)
             sage: f.ambient_Hrepresentation()
             (An equation (1, 1, 1) x - 6 == 0,)
-
-        The ``dual`` keyword is deprecated::
-
-             sage: P = polytopes.hypercube(4)
-             sage: list(P.face_generator(dual=False))[:4]
-             doctest:...: DeprecationWarning: the keyword dual is deprecated; use algorithm instead
-             See https://github.com/sagemath/sage/issues/33646 for details.
-             [A 4-dimensional face of a Polyhedron in ZZ^4 defined as the convex hull of 16 vertices,
-              A -1-dimensional face of a Polyhedron in ZZ^4,
-              A 3-dimensional face of a Polyhedron in ZZ^4 defined as the convex hull of 8 vertices,
-              A 3-dimensional face of a Polyhedron in ZZ^4 defined as the convex hull of 8 vertices]
-             sage: list(P.face_generator(True))[:4]
-             [A 1-dimensional face of a Polyhedron in ZZ^4 defined as the convex hull of 2 vertices,
-              A 1-dimensional face of a Polyhedron in ZZ^4 defined as the convex hull of 2 vertices,
-              A 1-dimensional face of a Polyhedron in ZZ^4 defined as the convex hull of 2 vertices,
-              A 1-dimensional face of a Polyhedron in ZZ^4 defined as the convex hull of 2 vertices]
 
         Check that we catch incorrect algorithms::
 
@@ -618,30 +603,20 @@ class Polyhedron_base3(Polyhedron_base2):
             dual = False
         elif algorithm == 'dual':
             dual = True
-        elif algorithm in (False, True):
-            from sage.misc.superseded import deprecation
-            deprecation(33646, "the keyword dual is deprecated; use algorithm instead")
-            dual = algorithm
         elif algorithm is not None:
             raise ValueError("algorithm must be 'primal', 'dual' or None")
-
-        if kwds:
-            from sage.misc.superseded import deprecation
-            deprecation(33646, "the keyword dual is deprecated; use algorithm instead")
-            if 'dual' in kwds and dual is None:
-                dual = kwds['dual']
 
         from sage.geometry.polyhedron.combinatorial_polyhedron.face_iterator import FaceIterator_geom
         return FaceIterator_geom(self, output_dimension=face_dimension, dual=dual)
 
     def faces(self, face_dimension):
         """
-        Return the faces of given dimension
+        Return the faces of given dimension.
 
         INPUT:
 
-        - ``face_dimension`` -- integer. The dimension of the faces
-          whose representation will be returned.
+        - ``face_dimension`` -- integer; the dimension of the faces
+          whose representation will be returned
 
         OUTPUT:
 
@@ -653,7 +628,7 @@ class Polyhedron_base3(Polyhedron_base2):
         .. SEEALSO::
 
             :meth:`face_generator`,
-            :meth:`~sage.geometry.polyhedron.base0.Polyhedron_base0.facet`.
+            :meth:`~sage.geometry.polyhedron.base3.Polyhedron_base3.facets`.
 
         EXAMPLES:
 
@@ -833,7 +808,7 @@ class Polyhedron_base3(Polyhedron_base2):
             sage: Polyhedron(ieqs=[[1,-1,0,0],[1,1,0,0]]).f_vector()
             (1, 0, 0, 2, 1)
 
-        However, the method :meth:`Polyhedron_base.vertices` returns
+        However, the method :meth:`~sage.geometry.polyhedron.base0.Polyhedron_base0.vertices` returns
         two points that belong to the ``Vrepresentation``::
 
             sage: P = Polyhedron(ieqs=[[1,-1,0],[1,1,0]])
@@ -844,7 +819,7 @@ class Polyhedron_base3(Polyhedron_base2):
 
         TESTS:
 
-        Check that :trac:`28828` is fixed::
+        Check that :issue:`28828` is fixed::
 
             sage: P.f_vector().is_immutable()
             True
@@ -864,9 +839,7 @@ class Polyhedron_base3(Polyhedron_base2):
         """
         Return the bounded edges (excluding rays and lines).
 
-        OUTPUT:
-
-        A generator for pairs of vertices, one pair per edge.
+        OUTPUT: a generator for pairs of vertices, one pair per edge
 
         EXAMPLES::
 
@@ -911,7 +884,7 @@ class Polyhedron_base3(Polyhedron_base2):
             [1 1 1 1 0]
 
         The rows and columns of the vertex adjacency matrix correspond
-        to the :meth:`Vrepresentation` objects: vertices, rays, and
+        to the :meth:`~sage.geometry.polyhedron.base0.Polyhedron_base0.Vrepresentation` objects: vertices, rays, and
         lines. The `(i,j)` matrix entry equals `1` if the `i`-th and
         `j`-th V-representation object are adjacent.
 
@@ -1010,13 +983,13 @@ class Polyhedron_base3(Polyhedron_base2):
             sage: M = Q.vertex_adjacency_matrix()
             sage: sum(M)
             (4, 4, 3, 3, 4, 4, 4, 3, 3)
-            sage: G = Q.vertex_graph()                                                  # needs sage.graphs
-            sage: G.degree()                                                            # needs sage.graphs
+            sage: G = Q.vertex_graph()
+            sage: G.degree()
             [4, 4, 3, 3, 4, 4, 4, 3, 3]
 
         TESTS:
 
-        Check that :trac:`28828` is fixed::
+        Check that :issue:`28828` is fixed::
 
                 sage: P.adjacency_matrix().is_immutable()
                 True
@@ -1067,12 +1040,12 @@ class Polyhedron_base3(Polyhedron_base2):
 
         TESTS:
 
-        Check that :trac:`28828` is fixed::
+        Check that :issue:`28828` is fixed::
 
             sage: s4.facet_adjacency_matrix().is_immutable()
             True
 
-        Checks that :trac:`22455` is fixed::
+        Checks that :issue:`22455` is fixed::
 
             sage: s = polytopes.simplex(2)
             sage: s.facet_adjacency_matrix()
@@ -1127,7 +1100,7 @@ class Polyhedron_base3(Polyhedron_base2):
                 for face in comb_chain] + \
                [universe]
 
-    def is_simplex(self):
+    def is_simplex(self) -> bool:
         r"""
         Return whether the polyhedron is a simplex.
 
@@ -1179,7 +1152,7 @@ class Polyhedron_base3(Polyhedron_base2):
             raise NotImplementedError("this function is implemented for polytopes only")
         return self.combinatorial_polyhedron().simplicity()
 
-    def is_simple(self):
+    def is_simple(self) -> bool:
         """
         Test for simplicity of a polytope.
 
@@ -1230,9 +1203,9 @@ class Polyhedron_base3(Polyhedron_base2):
             raise NotImplementedError("this function is implemented for polytopes only")
         return self.combinatorial_polyhedron().simpliciality()
 
-    def is_simplicial(self):
+    def is_simplicial(self) -> bool:
         """
-        Tests if the polytope is simplicial
+        Test if the polytope is simplicial.
 
         A polytope is simplicial if every facet is a simplex.
 
@@ -1279,9 +1252,7 @@ class Polyhedron_base3(Polyhedron_base2):
           to return a vertex of the polytope which is the apex of a pyramid,
           if found
 
-        OUTPUT:
-
-        If ``certificate`` is ``True``, returns a tuple containing:
+        OUTPUT: if ``certificate`` is ``True``, returns a tuple containing:
 
         1. Boolean.
         2. The apex of the pyramid or ``None``.
@@ -1295,8 +1266,8 @@ class Polyhedron_base3(Polyhedron_base2):
             True
             sage: P.is_pyramid(certificate=True)
             (True, A vertex at (1, 0, 0, 0))
-            sage: egyptian_pyramid = polytopes.regular_polygon(4).pyramid()             # needs sage.rings.number_field
-            sage: egyptian_pyramid.is_pyramid()                                         # needs sage.rings.number_field
+            sage: egyptian_pyramid = polytopes.regular_polygon(4).pyramid()
+            sage: egyptian_pyramid.is_pyramid()
             True
             sage: Q = polytopes.octahedron()
             sage: Q.is_pyramid()
@@ -1329,9 +1300,7 @@ class Polyhedron_base3(Polyhedron_base2):
           to return two vertices of the polytope which are the apices of a
           bipyramid, if found
 
-        OUTPUT:
-
-        If ``certificate`` is ``True``, returns a tuple containing:
+        OUTPUT: if ``certificate`` is ``True``, returns a tuple containing:
 
         1. Boolean.
         2. ``None`` or a tuple containing:
@@ -1386,9 +1355,7 @@ class Polyhedron_base3(Polyhedron_base2):
           to return two facets of the polytope which are the bases of a prism,
           if found
 
-        OUTPUT:
-
-        If ``certificate`` is ``True``, returns a tuple containing:
+        OUTPUT: if ``certificate`` is ``True``, returns a tuple containing:
 
         1. Boolean.
         2. ``None`` or a tuple containing:
@@ -1470,8 +1437,8 @@ class Polyhedron_base3(Polyhedron_base2):
             sage: L.is_lattice_polytope()
             True
 
-            sage: egyptian_pyramid = polytopes.regular_polygon(4).pyramid()             # needs sage.number_field
-            sage: egyptian_pyramid.is_lawrence_polytope()                               # needs sage.number_field
+            sage: egyptian_pyramid = polytopes.regular_polygon(4).pyramid()
+            sage: egyptian_pyramid.is_lawrence_polytope()
             True
 
             sage: polytopes.octahedron().is_lawrence_polytope()
@@ -1526,7 +1493,6 @@ class Polyhedron_base3(Polyhedron_base2):
             3
             sage: [polytopes.cyclic_polytope(5,n).neighborliness() for n in range(6,10)]
             [6, 2, 2, 2]
-
         """
         return self.combinatorial_polyhedron().neighborliness()
 
@@ -1576,7 +1542,6 @@ class Polyhedron_base3(Polyhedron_base2):
             sage: testpolys = [polytopes.cube(), polytopes.cyclic_polytope(6, 9), polytopes.simplex(6)]
             sage: [(P.neighborliness() >= P.dim() // 2) == P.is_neighborly() for P in testpolys]
             [True, True, True]
-
         """
         return self.combinatorial_polyhedron().is_neighborly()
 

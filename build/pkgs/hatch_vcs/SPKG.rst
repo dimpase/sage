@@ -1,13 +1,15 @@
-hatch_vcs: Hatch plugin for versioning with your preferred VCS
-==============================================================
+hatchling: Modern, extensible Python build backend
+==================================================
 
 Description
 -----------
 
-Hatch plugin for versioning with your preferred VCS
+Provides a plugin for Hatch that uses your VCS (like Git) to determine project versions.
 
 License
 -------
+
+MIT
 
 Upstream Contact
 ----------------

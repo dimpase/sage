@@ -20,6 +20,7 @@ from sage.categories.homsets import HomsetsCategory
 # an object using misc.functional.category
 #############################################################
 
+
 class Objects(Category_singleton):
     """
     The category of all objects
@@ -39,7 +40,7 @@ class Objects(Category_singleton):
 
     def additional_structure(self):
         """
-        Return ``None``
+        Return ``None``.
 
         Indeed, by convention, the category of objects defines no
         additional structure.
@@ -61,7 +62,7 @@ class Objects(Category_singleton):
         """
         return []
 
-    def __contains__(self, x):
+    def __contains__(self, x) -> bool:
         """
         Anything is in the category of objects.
 
@@ -116,7 +117,7 @@ class Objects(Category_singleton):
 
             .. SEEALSO::
 
-                :class:`~.covariant_functorial_construction.FunctorialConstruction`
+                :class:`~sage.categories.covariant_functorial_construction.FunctorialConstructionCategory`
 
             .. TODO::
 
@@ -133,8 +134,8 @@ class Objects(Category_singleton):
                 - For instances of redundant code due to this missing
                   feature, see:
 
-                  - :meth:`AdditiveMonoids.Homsets.extra_super_categories`
-                  - :meth:`HomsetsCategory.extra_super_categories`
+                  - :meth:`~sage.categories.additive_monoids.AdditiveMonoids.Homsets.extra_super_categories`
+                  - :meth:`~sage.categories.covariant_functorial_construction.FunctorialConstructionCategory.extra_super_categories`
                     (slightly different nature)
                   - plus plenty of spots where this is not implemented.
             """

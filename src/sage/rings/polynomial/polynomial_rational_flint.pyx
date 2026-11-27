@@ -12,35 +12,34 @@ AUTHOR:
 - Sebastian Pancratz
 """
 
-#*****************************************************************************
+# ****************************************************************************
 #          Copyright (C) 2010 Sebastian Pancratz <sfp@pancratz.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
-from cysignals.memory cimport check_allocarray, sig_free
 from cysignals.signals cimport sig_on, sig_str, sig_off
 
+from libc.limits cimport LONG_MIN
 from cpython.long cimport PyLong_AsLong
 from sage.arith.long cimport pyobject_to_long
 
-from sage.libs.arb.acb cimport acb_div_fmpz
-from sage.libs.arb.arb cimport arb_div_fmpz
-from sage.libs.arb.arb_fmpz_poly cimport _arb_fmpz_poly_evaluate_arb, _arb_fmpz_poly_evaluate_acb
-from sage.libs.gmp.mpz cimport *
-from sage.libs.gmp.mpq cimport *
+from sage.libs.flint.acb cimport acb_div_fmpz
+from sage.libs.flint.arb cimport arb_div_fmpz
+from sage.libs.flint.arb_fmpz_poly cimport _arb_fmpz_poly_evaluate_arb, _arb_fmpz_poly_evaluate_acb
 from sage.libs.flint.fmpz cimport *
 from sage.libs.flint.fmpq cimport *
 from sage.libs.flint.fmpz_poly cimport *
 from sage.libs.flint.fmpq_poly cimport *
+from sage.libs.flint.fmpq_poly_sage cimport *
+from sage.libs.gmp.mpz cimport *
+from sage.libs.gmp.mpq cimport *
 
-from sage.interfaces.singular import singular as singular_default
-
-from cypari2.gen import Gen as pari_gen
+from cypari2.gen cimport Gen as pari_gen
 
 from sage.rings.complex_arb cimport ComplexBall
 from sage.rings.integer cimport Integer, smallInteger
@@ -108,13 +107,11 @@ cdef class Polynomial_rational_flint(Polynomial):
     # Allocation & initialisation                                             #
     ###########################################################################
 
-    cdef Polynomial_rational_flint _new(self) noexcept:
+    cdef Polynomial_rational_flint _new(self):
         """
-        Quickly creates a new polynomial object in this class.
+        Quickly create a new polynomial object in this class.
 
-        OUTPUT:
-
-        - Polynomial of type Polynomial_rational_flint
+        OUTPUT: polynomial of type ``Polynomial_rational_flint``
 
         TESTS::
 
@@ -129,9 +126,9 @@ cdef class Polynomial_rational_flint(Polynomial):
         res._is_gen = 0
         return res
 
-    cpdef Polynomial _new_constant_poly(self, x, Parent P) noexcept:
+    cpdef Polynomial _new_constant_poly(self, x, Parent P):
         r"""
-        Quickly creates a new constant polynomial with value x in parent P
+        Quickly create a new constant polynomial with value x in parent P.
 
         ASSUMPTION:
 
@@ -167,7 +164,6 @@ cdef class Polynomial_rational_flint(Polynomial):
             fmpq_poly_set_si(res._poly, int(x))
         return res
 
-
     def __cinit__(self):
         """
         Initialises the underlying data structure.
@@ -181,7 +177,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
     def __dealloc__(self):
         """
-        Deallocates the underlying data structure.
+        Deallocate the underlying data structure.
 
         TESTS::
 
@@ -197,15 +193,15 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         INPUT:
 
-        - ``parent`` - Polynomial ring, the parent of ``self``
-        - ``x`` - Data for the new polynomial self, e.g. a polynomial, an
+        - ``parent`` -- polynomial ring, the parent of ``self``
+        - ``x`` -- data for the new polynomial ``self``, e.g. a polynomial, an
           integer, a rational, a list of rationals, a dictionary with keys
           the degrees and the rational coefficients, etc (default: ``None``)
-        - `check`` - Whether the integrity of the data needs to be verified,
+        - ``check`` -- whether the integrity of the data needs to be verified,
           largely ignored by this method (default: ``True``)
-        - ``is_gen`` - Whether self shall be initialised as the generator of
+        - ``is_gen`` -- whether ``self`` shall be initialised as the generator of
           the parent polynomial ring
-        - ``construct`` - Whether the element shall always be constructed
+        - ``construct`` -- whether the element shall always be constructed
           as an independent copy of any input data (default: ``False``)
 
         TESTS::
@@ -222,7 +218,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         cdef unsigned long n
         cdef Rational c
         cdef list L1
-        cdef mpq_t * L2
+        cdef fmpq_t q
 
         Polynomial.__init__(self, parent, is_gen=is_gen)
 
@@ -241,7 +237,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         elif isinstance(x, Rational):
             fmpq_poly_set_mpq(self._poly, (<Rational> x).value)
 
-        elif isinstance(x, list) or isinstance(x, tuple):
+        elif isinstance(x, (list, tuple)):
 
             if len(x) == 0:
                 return
@@ -253,14 +249,11 @@ cdef class Polynomial_rational_flint(Polynomial):
             L1 = [e if isinstance(e, Rational) else Rational(e) for e in x]
             n  = <unsigned long> len(x)
             sig_on()
-            L2 = <mpq_t *> check_allocarray(n, sizeof(mpq_t))
+            fmpq_poly_fit_length(self._poly, n)
             for deg from 0 <= deg < n:
-                mpq_init(L2[deg])
-                mpq_set(L2[deg], (<Rational> L1[deg]).value)
-            fmpq_poly_set_array_mpq(self._poly, L2, n)
-            for deg from 0 <= deg < n:
-                mpq_clear(L2[deg])
-            sig_free(L2)
+                fmpq_init_set_readonly(q, (<Rational> L1[deg]).value)
+                fmpq_poly_set_coeff_fmpq(self._poly, deg, q)
+                fmpq_clear_readonly(q)
             sig_off()
 
 #           deg = 0
@@ -270,7 +263,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 #               deg += 1
 
         elif isinstance(x, dict):
-            for deg, e in x.iteritems():
+            for deg, e in x.items():
                 c = Rational(e)
                 fmpq_poly_set_coeff_mpq(self._poly, deg, c.value)
 
@@ -332,13 +325,13 @@ cdef class Polynomial_rational_flint(Polynomial):
         fmpq_poly_set(res._poly, self._poly)
         return res
 
-    def _singular_(self, singular=singular_default):
+    def _singular_(self, singular=None):
         """
         Return a Singular representation of ``self``.
 
         INPUT:
 
-        - ``singular`` - Singular interpreter (default: default interpreter)
+        - ``singular`` -- Singular interpreter (default: default interpreter)
 
         EXAMPLES::
 
@@ -347,10 +340,12 @@ cdef class Polynomial_rational_flint(Polynomial):
             sage: singular(f)                                                           # needs sage.libs.singular
             3*x^2+2*x+5
         """
+        if singular is None:
+            from sage.interfaces.singular import singular
         self._parent._singular_(singular).set_ring()  # Expensive!
         return singular(self._singular_init_())
 
-    cpdef list list(self, bint copy=True) noexcept:
+    cpdef list list(self, bint copy=True):
         """
         Return a list with the coefficients of ``self``.
 
@@ -394,14 +389,14 @@ cdef class Polynomial_rational_flint(Polynomial):
         """
         return smallInteger(fmpq_poly_degree(self._poly))
 
-    cdef get_unsafe(self, Py_ssize_t n) noexcept:
+    cdef get_unsafe(self, Py_ssize_t n):
         """
         Return the `n`-th coefficient of ``self``.
 
         INPUT:
 
-        - ``n`` -- Degree of the monomial whose coefficient is to be
-          returned.
+        - ``n`` -- degree of the monomial whose coefficient is to be
+          returned
 
         EXAMPLES::
 
@@ -416,9 +411,9 @@ cdef class Polynomial_rational_flint(Polynomial):
         fmpq_poly_get_coeff_mpq(z.value, self._poly, n)
         return z
 
-    cpdef _unsafe_mutate(self, unsigned long n, value) noexcept:
+    cpdef _unsafe_mutate(self, unsigned long n, value):
         """
-        Sets the `n`-th coefficient of ``self`` to value.
+        Set the `n`-th coefficient of ``self`` to ``value``.
 
         TESTS::
 
@@ -435,6 +430,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         utmost care.
         """
         cdef bint do_sig = _do_sig(self._poly)
+        cdef fmpz_t tmpfz
 
         if isinstance(value, int):
             if do_sig: sig_str("FLINT exception")
@@ -442,7 +438,9 @@ cdef class Polynomial_rational_flint(Polynomial):
             if do_sig: sig_off()
         elif isinstance(value, Integer):
             if do_sig: sig_str("FLINT exception")
-            fmpq_poly_set_coeff_mpz(self._poly, n, (<Integer> value).value)
+            fmpz_init_set_readonly(tmpfz, (<Integer> value).value)
+            fmpq_poly_set_coeff_fmpz(self._poly, n, tmpfz)
+            fmpz_clear_readonly(tmpfz)
             if do_sig: sig_off()
         elif isinstance(value, Rational):
             if do_sig: sig_str("FLINT exception")
@@ -456,7 +454,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
     def __call__(self, *x, **kwds):
         """
-        Calls this polynomial with the given parameters, which can be
+        Call this polynomial with the given parameters, which can be
         interpreted as polynomial composition or evaluation by this
         method.
 
@@ -492,7 +490,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         cdef Polynomial_rational_flint f
         cdef Rational r
         cdef fmpz_t tmpfz
-        cdef fmpq_t tmpfq
+        cdef fmpq_t tmpfq, tmpfq1
         cdef RealBall arb_a, arb_z
         cdef ComplexBall acb_a, acb_z
 
@@ -508,13 +506,23 @@ cdef class Polynomial_rational_flint(Polynomial):
             elif isinstance(a, Rational):
                 r = Rational.__new__(Rational)
                 sig_str("FLINT exception")
-                fmpq_poly_evaluate_mpq(r.value, self._poly, (<Rational> a).value)
+                fmpq_init_set_readonly(tmpfq, (<Rational> a).value)
+                fmpq_init(tmpfq1)
+                fmpq_poly_evaluate_fmpq(tmpfq1, self._poly, tmpfq)
+                fmpq_get_mpq(r.value, tmpfq1)
+                fmpq_clear(tmpfq1)
+                fmpq_clear_readonly(tmpfq)
                 sig_off()
                 return r
             elif isinstance(a, Integer):
                 r = Rational.__new__(Rational)
                 sig_str("FLINT exception")
-                fmpq_poly_evaluate_mpz(r.value, self._poly, (<Integer> a).value)
+                fmpz_init_set_readonly(tmpfz, (<Integer> a).value)
+                fmpq_init(tmpfq)
+                fmpq_poly_evaluate_fmpz(tmpfq, self._poly, tmpfz)
+                fmpq_get_mpq(r.value, tmpfq)
+                fmpq_clear(tmpfq)
+                fmpz_clear_readonly(tmpfz)
                 sig_off()
                 return r
             elif isinstance(a, int):
@@ -550,13 +558,13 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         return Polynomial.__call__(self, *x, **kwds)
 
-    cpdef Polynomial truncate(self, long n) noexcept:
+    cpdef Polynomial truncate(self, long n):
         """
-        Return self truncated modulo `t^n`.
+        Return ``self`` truncated modulo `t^n`.
 
         INPUT:
 
-        - ``n`` - The power of `t` modulo which ``self`` is truncated
+        - ``n`` -- the power of `t` modulo which ``self`` is truncated
 
         EXAMPLES::
 
@@ -588,9 +596,9 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         INPUT:
 
-        - ``degree`` (``None`` or integral value that fits in an ``unsigned
-          long``, default: degree of ``self``) - if specified, truncate or zero
-          pad the list of coefficients to this degree before reversing it.
+        - ``degree`` -- ``None`` or integral value that fits in an ``unsigned
+          long`` (default: degree of ``self``); if specified, truncate or zero
+          pad the list of coefficients to this degree before reversing it
 
         EXAMPLES:
 
@@ -632,7 +640,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         We illustrate two ways in which the interpretation of ``degree`` as an
         unsigned long int may fail.  Firstly, an integral value which is
-        too large, yielding an ``OverflowError``::
+        too large, yielding an :exc:`OverflowError`::
 
             sage: R.<t> = QQ[]
             sage: f = 1 + t/2
@@ -691,7 +699,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
             sage: f.revert_series(-1)
             Traceback (most recent call last):
-            ValueError: argument n must be a non-negative integer, got -1
+            ValueError: argument n must be a nonnegative integer, got -1
 
             sage: g = - t^3/3 + t^5/5
             sage: g.revert_series(6)
@@ -703,7 +711,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         cdef Polynomial_rational_flint res = self._new()
         cdef unsigned long m
         if n < 0:
-            raise ValueError("argument n must be a non-negative integer, got {}".format(n))
+            raise ValueError("argument n must be a nonnegative integer, got {}".format(n))
         m = n
         if not self[0].is_zero() or not self[1].is_unit():
             raise ValueError("self must have constant coefficient 0 and a unit for coefficient {}^1".format(self.parent().gen()))
@@ -755,7 +763,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
     def __bool__(self):
         """
-        Return whether or not ``self`` is non-zero.
+        Return whether or not ``self`` is nonzero.
 
         EXAMPLES::
 
@@ -772,9 +780,9 @@ cdef class Polynomial_rational_flint(Polynomial):
     # Shifting                                                                #
     ###########################################################################
 
-    def __lshift__(self, n):
+    def __lshift__(self, long n):
         """
-        Notationally multiplies self by `t^n`.
+        Notationally multiply ``self`` by `t^n`.
 
         EXAMPLES::
 
@@ -785,29 +793,36 @@ cdef class Polynomial_rational_flint(Polynomial):
         TESTS::
 
             sage: R.<t> = QQ[]
+            sage: t << (-1)
+            1
+            sage: t << (-10)
+            0
             sage: f = R.random_element(1000)
             sage: (f << 23) >> 23 == f        # indirect doctest
             True
         """
-        cdef unsigned long k = <unsigned long> n
+        if n < 0:
+            assert n != LONG_MIN
+            return self >> (-n)
+
         cdef Polynomial_rational_flint f = <Polynomial_rational_flint> self
         cdef Polynomial_rational_flint res
         cdef bint do_sig
 
-        if k == 0 or fmpq_poly_is_zero(f._poly):
+        if n == 0 or fmpq_poly_is_zero(f._poly):
             return self
         else:
             res = f._new()
             do_sig = fmpq_poly_length(f._poly) > 5000 or n > 5000
 
             if do_sig: sig_str("FLINT exception")
-            fmpq_poly_shift_left(res._poly, f._poly, k)
+            fmpq_poly_shift_left(res._poly, f._poly, n)
             if do_sig: sig_off()
             return res
 
-    def __rshift__(self, n):
+    def __rshift__(self, long n):
         """
-        Notationally returns the quotient of Euclidean division of ``self``
+        Notationally return the quotient of Euclidean division of ``self``
         by `t^n`.
 
         EXAMPLES::
@@ -816,20 +831,25 @@ cdef class Polynomial_rational_flint(Polynomial):
             sage: f = 1 + t + t^2/2 + t^3/3 + t^4/4
             sage: f >> 2
             1/4*t^2 + 1/3*t + 1/2
+            sage: f >> (-2)
+            1/4*t^6 + 1/3*t^5 + 1/2*t^4 + t^3 + t^2
         """
-        cdef unsigned long k = <unsigned long> n
+        if n < 0:
+            assert n != LONG_MIN
+            return self << (-n)
+
         cdef Polynomial_rational_flint f = <Polynomial_rational_flint> self
         cdef Polynomial_rational_flint res
         cdef bint do_sig
 
-        if k == 0 or fmpq_poly_is_zero(f._poly):
+        if n == 0 or fmpq_poly_is_zero(f._poly):
             return self
         else:
             res = f._new()
             do_sig = _do_sig(f._poly)
 
             if do_sig: sig_str("FLINT exception")
-            fmpq_poly_shift_right(res._poly, f._poly, k)
+            fmpq_poly_shift_right(res._poly, f._poly, n)
             if do_sig: sig_off()
             return res
 
@@ -837,7 +857,7 @@ cdef class Polynomial_rational_flint(Polynomial):
     # Arithmetic                                                              #
     ###########################################################################
 
-    cpdef _add_(self, right) noexcept:
+    cpdef _add_(self, right):
         """
         Return the sum of two rational polynomials.
 
@@ -865,7 +885,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         if do_sig: sig_off()
         return res
 
-    cpdef _sub_(self, right) noexcept:
+    cpdef _sub_(self, right):
         """
         Return the difference of two rational polynomials.
 
@@ -893,7 +913,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         if do_sig: sig_off()
         return res
 
-    cpdef _neg_(self) noexcept:
+    cpdef _neg_(self):
         """
         Return the difference of two rational polynomials.
 
@@ -925,7 +945,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         Return the quotient and remainder of the Euclidean division of
         ``self`` and ``right``.
 
-        Raises a :class:`ZeroDivisionError` if ``right`` is zero.
+        Raises a :exc:`ZeroDivisionError` if ``right`` is zero.
 
         EXAMPLES::
 
@@ -1027,7 +1047,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         TESTS:
 
-        The following example used to crash (cf. :trac:`11771`)::
+        The following example used to crash (cf. :issue:`11771`)::
 
             sage: R.<t> = QQ[]
             sage: f = 10**383 * (t+1)
@@ -1047,7 +1067,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         sig_off()
         return d, s, t
 
-    cpdef _mul_(self, right) noexcept:
+    cpdef _mul_(self, right):
         """
         Return the product of ``self`` and ``right``.
 
@@ -1076,7 +1096,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         if do_sig: sig_off()
         return res
 
-    cpdef Polynomial _mul_trunc_(self, Polynomial right, long n) noexcept:
+    cpdef Polynomial _mul_trunc_(self, Polynomial right, long n):
         r"""
         Truncated multiplication.
 
@@ -1113,7 +1133,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         if do_sig: sig_off()
         return res
 
-    cpdef _rmul_(self, Element left) noexcept:
+    cpdef _rmul_(self, Element left):
         r"""
         Return ``left * self``, where ``left`` is a rational number.
 
@@ -1133,7 +1153,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         if do_sig: sig_off()
         return res
 
-    cpdef _lmul_(self, Element right) noexcept:
+    cpdef _lmul_(self, Element right):
         r"""
         Return ``self * right``, where ``right`` is a rational number.
 
@@ -1153,23 +1173,21 @@ cdef class Polynomial_rational_flint(Polynomial):
         if do_sig: sig_off()
         return res
 
-    def __pow__(Polynomial_rational_flint self, exp, ignored):
+    def __pow__(Polynomial_rational_flint self, exp, mod):
         """
-        Return self raised to the power of exp.
+        Return ``self`` raised to the power of ``exp``.
 
         The corner case of ``exp == 0`` is handled by returning the constant
         polynomial 1.  Note that this includes the case ``0^0 == 1``.
 
-        This method only supports integral values for exp that fit into
+        This method only supports integral values for ``exp`` that fit into
         a signed long int (except when this is a constant polynomial).
 
         INPUT:
 
-        - ``exp`` - Exponent
+        - ``exp`` -- exponent
 
-        OUTPUT:
-
-        Polynomial; this polynomial raised to the power of ``exp``
+        OUTPUT: polynomial; this polynomial raised to the power of ``exp``
 
         EXAMPLES::
 
@@ -1206,7 +1224,7 @@ cdef class Polynomial_rational_flint(Polynomial):
             ...
             OverflowError: Sage Integer too large to convert to C long
 
-        FLINT memory errors do not crash Sage (:trac:`17629`)::
+        FLINT memory errors do not crash Sage (:issue:`17629`)::
 
             sage: t^(sys.maxsize//2)
             Traceback (most recent call last):
@@ -1214,13 +1232,13 @@ cdef class Polynomial_rational_flint(Polynomial):
             RuntimeError: FLINT exception
 
         Flush the output buffer to get rid of stray output -- see
-        :trac:`28649`::
+        :issue:`28649`::
 
             sage: from sage.misc.misc_c import cyflush
             sage: cyflush()
             ...
 
-        Test fractional powers (:trac:`20086`)::
+        Test fractional powers (:issue:`20086`)::
 
             sage: P.<R> = QQ[]
             sage: (1/27*R^3 + 2/3*R^2 + 4*R + 8)^(2/3)
@@ -1261,9 +1279,22 @@ cdef class Polynomial_rational_flint(Polynomial):
             ...
             TypeError: no canonical coercion from Univariate Polynomial
             Ring in R over Rational Field to Rational Field
+
+        Check that using third argument raises an error::
+
+            sage: R.<x> = PolynomialRing(QQ)
+            sage: pow(x, 2, x)
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: pow() with a modulus is not implemented for this ring
         """
         cdef Polynomial_rational_flint res
         cdef long n
+
+        if mod is not None:
+            raise NotImplementedError(
+                "pow() with a modulus is not implemented for this ring"
+            )
 
         try:
             n = pyobject_to_long(exp)
@@ -1321,6 +1352,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         """
         cdef Polynomial_rational_flint res
         cdef bint do_sig
+        cdef fmpq_t tmpfq
 
         if right == 0:
             raise ZeroDivisionError("division by zero polynomial")
@@ -1331,8 +1363,9 @@ cdef class Polynomial_rational_flint(Polynomial):
                 do_sig = _do_sig(self._poly)
 
                 if do_sig: sig_str("FLINT exception")
-                fmpq_poly_scalar_div_mpq(res._poly, self._poly,
-                                                  (<Rational> QQ(right)).value)
+                fmpq_init_set_readonly(tmpfq, (<Rational> QQ(right)).value)
+                fmpq_poly_scalar_div_fmpq(res._poly, self._poly, tmpfq)
+                fmpq_clear_readonly(tmpfq)
                 if do_sig: sig_off()
                 return res
 
@@ -1345,7 +1378,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         sig_off()
         return res
 
-    cpdef Polynomial inverse_series_trunc(self, long prec) noexcept:
+    cpdef Polynomial inverse_series_trunc(self, long prec):
         r"""
         Return a polynomial approximation of precision ``prec`` of the inverse
         series of this polynomial.
@@ -1393,7 +1426,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         sig_off()
         return res
 
-    cpdef _mod_(self, right) noexcept:
+    cpdef _mod_(self, right):
         """
         Return the remainder of ``self`` and ``right`` obtain by Euclidean division.
 
@@ -1436,7 +1469,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         """
         Return the numerator of ``self``.
 
-        Representing self as the quotient of an integer polynomial and
+        Representing ``self`` as the quotient of an integer polynomial and
         a positive integer denominator (coprime to the content of the
         polynomial), returns the integer polynomial.
 
@@ -1469,25 +1502,20 @@ cdef class Polynomial_rational_flint(Polynomial):
             3
         """
         cdef Integer den = Integer.__new__(Integer)
-        if fmpq_poly_denref(self._poly) is NULL:
-            mpz_set_ui(den.value, 1)
-        else:
-            fmpz_get_mpz(den.value, <fmpz *> fmpq_poly_denref(self._poly))
+        fmpz_get_mpz(den.value, <fmpz *> fmpq_poly_denref(self._poly))
         return den
 
-    def _derivative(self, var = None):
+    def _derivative(self, var=None):
         """
         Return the derivative of this polynomial with respect to ``var``.
 
         INPUT:
 
-        -  ``var`` - Must be either (equal to) the generator of the polynomial
-           ring to which this polynomial belongs, or ``None``; either way the
-           behaviour is the same.
+        - ``var`` -- must be either (equal to) the generator of the polynomial
+          ring to which this polynomial belongs, or ``None``; either way the
+          behaviour is the same
 
-        OUTPUT:
-
-        -  Derivative as a ``Polynomial_rational_flint``
+        OUTPUT: derivative as a ``Polynomial_rational_flint``
 
         .. SEEALSO:: :meth:`~Polynomial.derivative`
 
@@ -1504,7 +1532,7 @@ cdef class Polynomial_rational_flint(Polynomial):
             ...
             ValueError: cannot differentiate with respect to 2*x
 
-        Check that :trac:`28187` is fixed::
+        Check that :issue:`28187` is fixed::
 
             sage: x = var("x")                                                          # needs sage.symbolic
             sage: f._derivative(x)                                                      # needs sage.symbolic
@@ -1591,7 +1619,7 @@ cdef class Polynomial_rational_flint(Polynomial):
         ring.
 
         By definition, over any integral domain, an element `r` is irreducible
-        if and only if it is non-zero, not a unit and whenever `r = ab` then
+        if and only if it is nonzero, not a unit and whenever `r = ab` then
         `a` or `b` is a unit.
 
         EXAMPLES::
@@ -1620,7 +1648,6 @@ cdef class Polynomial_rational_flint(Polynomial):
            True
            sage: f.is_irreducible.cache
            True
-
         """
         cdef Polynomial_integer_dense_flint primitive
         cdef unsigned long length = fmpq_poly_length(self._poly)
@@ -1918,7 +1945,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
     def _cos_series(self, long prec):
         r"""
-        Return the cosine of this polynomial up to precision ``prec``
+        Return the cosine of this polynomial up to precision ``prec``.
 
         EXAMPLES::
 
@@ -2061,25 +2088,25 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         INPUT:
 
-        -  ``self`` - Irreducible polynomial
+        - ``self`` -- irreducible polynomial
 
-        -  ``pari_group`` - bool (default: ``False``); if ``True`` instead
-           return the Galois group as a PARI group.  This has a useful label
-           in it, and may be slightly faster since it doesn't require looking
-           up a group in GAP.  To get a permutation group from a PARI
-           group ``P``, type ``PermutationGroup(P)``.
+        - ``pari_group`` -- boolean (default: ``False``); if ``True`` instead
+          return the Galois group as a PARI group.  This has a useful label
+          in it, and may be slightly faster since it doesn't require looking
+          up a group in GAP.  To get a permutation group from a PARI
+          group ``P``, type ``PermutationGroup(P)``.  This option requires
+          ``algorithm='pari'``, which is only supported through degree 11.
 
-        -  ``algorithm`` - ``'pari'``, ``'gap'``, ``'kash'``, ``'magma'`` (default:
-           ``'pari'``, for degrees is at most 11;
-           ``'gap'``, for degrees from 12 to 15;
-           ``'kash'``, for degrees from 16 or more).
+        - ``algorithm`` -- ``'pari'``, ``'gap'``, or ``'magma'`` (default:
+          ``'pari'``; for degrees greater than 11, ``'gap'`` is attempted
+          instead)
 
         OUTPUT: Galois group
 
         ALGORITHM:
 
-        The Galois group is computed using PARI in C library mode, or possibly
-        GAP, KASH, or MAGMA.
+        The Galois group is computed using PARI in C library mode, GAP, or
+        MAGMA.
 
         .. NOTE::
 
@@ -2091,19 +2118,31 @@ cdef class Polynomial_rational_flint(Polynomial):
 
             GAP uses the "Transitive Groups Libraries" from the "TransGrp"
             GAP package which comes installed with the "gap" Sage package.
+            The library provides transitive groups through degree 48, but the
+            data for degrees 32 and 48 must be downloaded separately because
+            of their size.  Sage checks at runtime whether the data for the
+            requested degree are installed.
+
+            GAP documents its Galois group computation for degrees up to 15,
+            but it can compute some examples of higher degree.  Such
+            computations may be expensive or fail even when GAP's transitive
+            groups database contains the required degree.
+
+            Sage's MAGMA interface identifies the result using MAGMA's
+            ``TransitiveGroupIdentification``, which is supported only
+            through degree 30.
 
             MAGMA does not return a provably correct result.  Please see the
             MAGMA documentation for how to obtain a provably correct result.
 
         EXAMPLES::
 
-            sage: # needs sage.libs.pari
             sage: R.<x> = QQ[]
             sage: f = x^4 - 17*x^3 - 2*x + 1
             sage: G = f.galois_group(); G
             Transitive group number 5 of degree 4
             sage: G.gens()
-            ((1,2), (1,2,3,4))
+            ((1,2,3,4), (1,2))
             sage: G.order()
             24
 
@@ -2114,26 +2153,17 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         ::
 
-            sage: # needs sage.libs.pari
             sage: f = x^4 - 17*x^3 - 2*x + 1
             sage: G = f.galois_group(pari_group=True); G
             PARI group [24, -1, 5, "S4"] of degree 4
             sage: PermutationGroup(G)
             Transitive group number 5 of degree 4
 
-        You can use KASH or GAP to compute Galois groups as well.  The advantage is
-        that KASH (resp. GAP) can compute Galois groups of fields up to
-        degree 23 (resp. 15), whereas PARI only goes to degree 11.
-        (In my not-so-thorough experiments PARI is faster than KASH.)
+        You can also select GAP explicitly.
 
         ::
 
             sage: R.<x> = QQ[]
-            sage: f = x^4 - 17*x^3 - 2*x + 1
-            sage: f.galois_group(algorithm='kash')   # optional - kash
-            Transitive group number 5 of degree 4
-
-            sage: # needs sage.libs.gap
             sage: f = x^4 - 17*x^3 - 2*x + 1
             sage: f.galois_group(algorithm='gap')
             Transitive group number 5 of degree 4
@@ -2145,7 +2175,13 @@ cdef class Polynomial_rational_flint(Polynomial):
             Transitive group number 183 of degree 12
 
             sage: f.galois_group(algorithm='magma')  # optional - magma
-            Transitive group number 5 of degree 4
+            Transitive group number 183 of degree 12
+
+        The default fallback to GAP is tested here in degree 16 (see
+        :issue:`42520`)::
+
+            sage: (x^16 - x - 1).galois_group()
+            Transitive group number 1954 of degree 16
 
         TESTS:
 
@@ -2158,8 +2194,43 @@ cdef class Polynomial_rational_flint(Polynomial):
             ...
             ValueError: The polynomial must be irreducible
 
+        Sage handles the degree 1 case directly::
+
+            sage: (t - 1).galois_group(algorithm='gap')
+            Transitive group number 1 of degree 1
+
+        The data for degrees 32 and 48 are supplemental downloads.  Degrees
+        outside the range of GAP's transitive groups library give a useful
+        error::
+
+            sage: (t^49 - t - 1).galois_group(algorithm='gap')
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: GAP's transitive groups database only covers degrees through 48; Sage's Magma interface can only identify transitive groups through degree 30
+
+        The MAGMA interface has the latter limitation even though MAGMA can
+        compute Galois groups in higher degrees::
+
+            sage: (t^31 - t - 1).galois_group(algorithm='magma')
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: Sage's Magma interface can only identify transitive groups through degree 30
+
+        A request for a PARI group is never silently handled by another
+        algorithm::
+
+            sage: (t^12 - t - 1).galois_group(pari_group=True)
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: PARI only supports Galois group computations through degree 11; use pari_group=False to allow GAP
+
+            sage: (t^4 - t - 1).galois_group(pari_group=True, algorithm='gap')
+            Traceback (most recent call last):
+            ...
+            ValueError: pari_group=True requires algorithm='pari'
+
         Variable names that are reserved in PARI, such as ``zeta``,
-        are supported (see :trac:`20631`)::
+        are supported (see :issue:`20631`)::
 
             sage: R.<zeta> = QQ[]
             sage: (zeta^2 + zeta + 1).galois_group(pari_group=True)                     # needs sage.libs.pari
@@ -2172,53 +2243,53 @@ cdef class Polynomial_rational_flint(Polynomial):
         if not self.is_irreducible():
             raise ValueError("The polynomial must be irreducible")
 
-        if self.degree() > 11 and algorithm == 'pari':
-            if self.degree() < 16:
-                algorithm = 'gap'
-            else:
-                algorithm = 'kash'
+        if pari_group and algorithm != 'pari':
+            raise ValueError("pari_group=True requires algorithm='pari'")
 
-        if self.degree() > 21 and algorithm == 'kash':
-            raise NotImplementedError("Galois group computation is "
-                "supported for degrees up to 11 using PARI, or up to 21 "
-                "if KASH is installed.  Try "
-                "algorithm='magma' if you have magma.")
+        if self.degree() > 11 and algorithm == 'pari':
+            if pari_group:
+                raise NotImplementedError(
+                    "PARI only supports Galois group computations through "
+                    "degree 11; use pari_group=False to allow GAP")
+            algorithm = 'gap'
 
         if algorithm == 'pari':
             G = self._pari_with_name().Polrev().polgalois()
             H = PariGroup(G, self.degree())
             if pari_group:
                 return H
-            else:
-                return PermutationGroup(H)
+            return PermutationGroup(H)
 
-        elif algorithm == 'kash':
-            try:
-                from sage.interfaces.kash import kash
-                kash.eval('X := PolynomialRing(RationalField()).1')
-                s = self._repr(name='X')
-                G = kash('Galois(%s)'%s)
-                d = int(kash.eval('%s.ext1'%G.name()))
-                n = int(kash.eval('%s.ext2'%G.name()))
-                return TransitiveGroup(d, n)
-            except RuntimeError as msg:
-                raise NotImplementedError(str(msg) + "\nSorry, " +
-                    "computation of Galois groups of fields of degree " +
-                    "bigger than 11 is not yet implemented.  Try installing " +
-                    "the optional free (closed source) KASH software, which " +
-                    "supports degrees up to 21, or use algorithm='magma' if " +
-                    "you have magma.")
-
-        elif algorithm == 'gap':
-            if self.degree() > 15:
-                raise NotImplementedError("Galois group computation is " +
-                    "supported for degrees up to 15 using GAP. Try " +
-                    "algorithm='kash'.")
+        if algorithm == 'gap':
             from sage.libs.gap.libgap import libgap
+            n = self.degree()
+            if n == 1:
+                return TransitiveGroup(1, 1)
+            if not libgap.TransitiveGroupsAvailable(n):
+                if n in (32, 48):
+                    raise NotImplementedError(
+                        f"GAP's transitive groups data for degree {n} are not "
+                        "installed; they are available as a supplemental "
+                        "download from the GAP TransGrp package; Sage's Magma "
+                        "interface can only identify transitive groups through "
+                        "degree 30")
+                if n > 48:
+                    raise NotImplementedError(
+                        "GAP's transitive groups database only covers degrees "
+                        "through 48; Sage's Magma interface can only identify "
+                        "transitive groups through degree 30")
+                raise NotImplementedError(
+                    f"GAP's transitive groups data for degree {n} are not "
+                    "available; Sage's Magma interface can only identify "
+                    "transitive groups through degree 30")
             fgap = libgap(self)
-            return TransitiveGroup(self.degree(), fgap.GaloisType())
+            return TransitiveGroup(n, fgap.GaloisType())
 
-        elif algorithm == 'magma':
+        if algorithm == 'magma':
+            if self.degree() > 30:
+                raise NotImplementedError(
+                    "Sage's Magma interface can only identify transitive "
+                    "groups through degree 30")
             from sage.interfaces.magma import magma
             X = magma(self).GaloisGroup()
             try:
@@ -2231,21 +2302,20 @@ cdef class Polynomial_rational_flint(Polynomial):
                     "group.\n%s" % X)
             return TransitiveGroup(d, n)
 
-        else:
-            raise ValueError("Algorithm %s not supported." % algorithm)
+        raise ValueError("Algorithm %s not supported." % algorithm)
 
     def factor_mod(self, p):
         """
         Return the factorization of ``self`` modulo the prime `p`.
 
         Assumes that the degree of this polynomial is at least one, and raises
-        a :class:`ValueError` otherwise.
+        a :exc:`ValueError` otherwise.
 
         INPUT:
 
-        -  ``p`` - Prime number
+        - ``p`` -- prime number
 
-        OUTPUT: Factorization of this polynomial  modulo `p`
+        OUTPUT: factorization of this polynomial  modulo `p`
 
         EXAMPLES::
 
@@ -2256,12 +2326,11 @@ cdef class Polynomial_rational_flint(Polynomial):
             (x + 2)^5
 
         Variable names that are reserved in PARI, such as ``zeta``,
-        are supported (see :trac:`20631`)::
+        are supported (see :issue:`20631`)::
 
             sage: R.<zeta> = QQ[]
             sage: (zeta^2 + zeta + 1).factor_mod(7)
             (zeta + 3) * (zeta + 5)
-
         """
         from sage.rings.finite_rings.finite_field_constructor import FiniteField
 
@@ -2284,15 +2353,14 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         INPUT:
 
-        -  ``p`` - Prime number
+        - ``p`` -- prime number
 
-        -  ``prec`` - Integer; the precision
+        - ``prec`` -- integer; the precision
 
         OUTPUT: factorization of ``self`` viewed as a `p`-adic polynomial
 
         EXAMPLES::
 
-            sage: # needs sage.rings.padic
             sage: R.<x> = QQ[]
             sage: f = x^3 - 2
             sage: f.factor_padic(2)
@@ -2311,9 +2379,8 @@ cdef class Polynomial_rational_flint(Polynomial):
         The input polynomial is considered to have "infinite" precision,
         therefore the `p`-adic factorization of the polynomial is not
         the same as first coercing to `\QQ_p` and then factoring
-        (see also :trac:`15422`)::
+        (see also :issue:`15422`)::
 
-            sage: # needs sage.rings.padic
             sage: f = x^2 - 3^6
             sage: f.factor_padic(3, 5)
             ((1 + O(3^5))*x + 3^3 + O(3^5)) * ((1 + O(3^5))*x + 2*3^3 + 2*3^4 + O(3^5))
@@ -2333,11 +2400,10 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         Try some bogus inputs::
 
-            sage: # needs sage.rings.padic
             sage: f.factor_padic(3, -1)
             Traceback (most recent call last):
             ...
-            ValueError: prec_cap must be non-negative
+            ValueError: prec_cap must be nonnegative
             sage: f.factor_padic(6, 10)
             Traceback (most recent call last):
             ...
@@ -2372,8 +2438,8 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         INPUT:
 
-        -  ``p`` - Prime number; coerceable to :class:`Integer`
-        -  ``e`` - Exponent; coerceable to :class:`Integer`
+        - ``p`` -- prime number; coerceable to :class:`Integer`
+        - ``e`` -- exponent; coerceable to :class:`Integer`
 
         OUTPUT: Hensel lifts; list of polynomials over `\ZZ / p^e \ZZ`
 
@@ -2400,7 +2466,7 @@ cdef class Polynomial_rational_flint(Polynomial):
             [x + 48]
 
         Variable names that are reserved in PARI, such as ``I``, are
-        supported (see :trac:`20631`)::
+        supported (see :issue:`20631`)::
 
             sage: R.<I> = QQ[]
             sage: (I^2 + 1).hensel_lift(5, 3)
@@ -2409,7 +2475,6 @@ cdef class Polynomial_rational_flint(Polynomial):
             Traceback (most recent call last):
             ...
             ValueError: I^2 + 1 is not square-free modulo 2
-
         """
         from sage.rings.finite_rings.integer_mod_ring import IntegerModRing
 
@@ -2454,7 +2519,7 @@ cdef class Polynomial_rational_flint(Polynomial):
 
         The discriminant of constant polynomials is defined to be 0.
 
-        OUTPUT: Discriminant, an element of the base ring of the polynomial ring
+        OUTPUT: discriminant, an element of the base ring of the polynomial ring
 
         .. NOTE::
 
@@ -2506,12 +2571,11 @@ cdef class Polynomial_rational_flint(Polynomial):
             1
 
         Variable names that are reserved in PARI, such as ``I``, are
-        supported (see :trac:`20631`)::
+        supported (see :issue:`20631`)::
 
             sage: R.<I> = QQ[]
             sage: (I^2 + 1).discriminant()
             -4
-
         """
         return QQ(self._pari_with_name().poldisc())
 
@@ -2541,7 +2605,6 @@ cdef class Polynomial_rational_flint(Polynomial):
             sage: u = x^7 - 2
             sage: u.galois_group_davenport_smith_test()
             0
-
         """
         from sage.arith.misc import primes_first_n
         from sage.rings.finite_rings.integer_mod_ring import IntegerModRing

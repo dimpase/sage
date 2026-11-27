@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Ariki-Koike Algebras
 
@@ -8,7 +7,7 @@ a natural generalization of the Iwahori-Hecke algebras of types `A` and `B`
 Soon afterwards,  Broué and Malle defined analogues of the Hecke
 algebras for all complex reflection groups
 
-Fix non-negative integers `r` an `n`. The Ariki-Koike algebras are
+Fix nonnegative integers `r` an `n`. The Ariki-Koike algebras are
 deformations of the group algebra of the complex reflection group
 `G(r, 1, n) = \ZZ / r\ZZ \wr \mathfrak{S}_n`. If `R` is a ring containing a
 *Hecke parameter* `q` and *cyclotomic parameters* `u_0, \ldots, u_{r-1}` then
@@ -35,6 +34,8 @@ REFERENCES:
 - [AK1994]_
 - [BM1993]_
 - [MM1998]_
+
+.. autoclass:: sage.algebras.hecke_algebras.ariki_koike_algebra::_Basis
 """
 
 #*****************************************************************************
@@ -45,34 +46,35 @@ REFERENCES:
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 #*****************************************************************************
 
-
+from sage.categories.algebras import Algebras
+from sage.categories.cartesian_product import cartesian_product
+from sage.categories.realizations import Category_realization_of_parent, Realizations
+from sage.categories.rings import Rings
+from sage.combinat.free_module import CombinatorialFreeModule
+from sage.combinat.permutation import Permutations
+from sage.data_structures.blas_dict import iaxpy
+from sage.misc.bindable_class import BindableClass
 from sage.misc.cachefunc import cached_method
 from sage.misc.lazy_attribute import lazy_attribute
 from sage.misc.misc_c import prod
-from sage.misc.bindable_class import BindableClass
+from sage.rings.integer_ring import ZZ
+from sage.rings.polynomial.laurent_polynomial_ring import LaurentPolynomialRing
+from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
+from sage.sets.family import Family
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
-from sage.categories.algebras import Algebras
-from sage.categories.rings import Rings
-from sage.categories.realizations import Realizations, Category_realization_of_parent
-from sage.categories.cartesian_product import cartesian_product
-from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-from sage.rings.polynomial.laurent_polynomial_ring import LaurentPolynomialRing
-from sage.rings.integer_ring import ZZ
-from sage.combinat.free_module import CombinatorialFreeModule
-from sage.combinat.permutation import Permutations
-from sage.sets.family import Family
-from sage.data_structures.blas_dict import iaxpy
 
 # ABC for basis classes
+
+
 class _Basis(CombinatorialFreeModule, BindableClass):
     r"""
     Abstract base class for bases of the Ariki-Koike algebra.
     """
-    def __init__(self, algebra, prefix='AK'):
+    def __init__(self, algebra, prefix='AK') -> None:
         r"""
         Initialize ``self``.
 
@@ -96,7 +98,7 @@ class _Basis(CombinatorialFreeModule, BindableClass):
                                          category=algebra._BasesCategory())
 
     @cached_method
-    def one_basis(self):
+    def one_basis(self) -> tuple:
         r"""
         Return the index of the basis element of `1`.
 
@@ -111,6 +113,7 @@ class _Basis(CombinatorialFreeModule, BindableClass):
             ((0, 0, 0), [1, 2, 3])
         """
         return (self._zero_tuple, self._one_perm)
+
 
 class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
     r"""
@@ -189,6 +192,8 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
       default is the generators of `\ZZ[u_1, \ldots, u_r]`
     - ``R`` -- (optional) a commutative ring containing ``q`` and ``u``;
       the default is the parent of `q` and `u_1, \ldots, u_r`
+    - ``use_fraction_field`` -- (default: ``False``) whether to use the
+      fraction field or not
 
     EXAMPLES:
 
@@ -207,14 +212,14 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
         sage: T1 * L1 * T2 * L3 * T1 * T2
         -(q-q^2)*L2*L3*T[2] + q*L1*L2*T[2,1] - (1-q)*L1*L2*T[2,1,2]
         sage: L1^3
-        u0*u1*u2 + ((-u0*u1-u0*u2-u1*u2))*L1 + ((u0+u1+u2))*L1^2
+        u0*u1*u2 - ((u0*u1+u0*u2+u1*u2))*L1 + ((u0+u1+u2))*L1^2
         sage: L3 * L2 * L1
         L1*L2*L3
         sage: u = LT.u()
         sage: q = LT.q()
         sage: (q + 2*u[0]) * (T1 * T2) * L3
-        (-2*u0+(2*u0-1)*q+q^2)*L3*T[1] + (-2*u0+(2*u0-1)*q+q^2)*L2*T[2]
-         + (2*u0+q)*L1*T[1,2]
+        -(2*u0+(-2*u0+1)*q-q^2)*L3*T[1] - (2*u0+(-2*u0+1)*q-q^2)*L2*T[2]
+        + (2*u0+q)*L1*T[1,2]
 
     We check the defining relations::
 
@@ -263,7 +268,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
         True
     """
     @staticmethod
-    def __classcall_private__(cls, r, n, q=None, u=None, R=None):
+    def __classcall_private__(cls, r, n, q=None, u=None, R=None, use_fraction_field=False):
         r"""
         Standardize input to ensure a unique representation.
 
@@ -293,8 +298,8 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 if q is None:
                     q = 'q'
         else:
-            if not isinstance(u, (list,tuple)):
-                u = [u]*r
+            if not isinstance(u, (list, tuple)):
+                u = [u] * r
             if R is None:
                 from sage.structure.element import get_coercion_model
                 cm = get_coercion_model()
@@ -306,14 +311,15 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                     R = cm.common_parent(q.parent(), *[val.parent() for val in u])
             elif q is None:
                 q = 'q'
-            u = [R(val) for val in u]
         if R not in Rings().Commutative():
             raise TypeError("base ring must be a commutative ring")
+        if use_fraction_field:
+            R = R.fraction_field()
         q = R(q)
-        u = tuple(u)
+        u = tuple([R(val) for val in u])
         return super().__classcall__(cls, r, n, q, u, R)
 
-    def __init__(self, r, n, q, u, R):
+    def __init__(self, r, n, q, u, R) -> None:
         r"""
         Initialize ``self``.
 
@@ -340,7 +346,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
         T.module_morphism(LT._from_T_basis, codomain=LT).register_as_coercion()
         LT.module_morphism(T._from_LT_basis, codomain=T).register_as_coercion()
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
@@ -356,7 +362,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
         return "Ariki-Koike algebra of rank {} and order {} with q={} and u={} over {}".format(
             self._r, self._n, self._q, self._u, self.base_ring())
 
-    def _latex_(self):
+    def _latex_(self) -> str:
         r"""
         Return a latex representation of ``self``.
 
@@ -382,7 +388,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
 
     q = hecke_parameter
 
-    def cyclotomic_parameters(self):
+    def cyclotomic_parameters(self) -> tuple:
         r"""
         Return the cyclotomic parameters `u` of ``self``.
 
@@ -409,11 +415,26 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
         """
         return self.LT()
 
+    def specht_module(self, la):
+        r"""
+        Return the Specht module of ``self`` corresponding to the shape ``la``.
+
+        EXAMPLES::
+
+            sage: AK = algebras.ArikiKoike(4, 6)
+            sage: AK.specht_module([[2], [], [1,1,1], [1]])
+            Specht module of shape ([2], [], [1, 1, 1], [1]) for
+             Ariki-Koike algebra of rank 4 and order 6 with q=q and u=(u0, u1, u2, u3)
+             over ... over Integer Ring
+        """
+        from sage.algebras.hecke_algebras.ariki_koike_specht_modules import SpechtModule
+        return SpechtModule(self, la)
+
     class _BasesCategory(Category_realization_of_parent):
         r"""
         The category of bases of a Ariki-Koike algebra.
         """
-        def __init__(self, base):
+        def __init__(self, base) -> None:
             r"""
             Initialize ``self``.
 
@@ -430,7 +451,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             """
             Category_realization_of_parent.__init__(self, base)
 
-        def super_categories(self):
+        def super_categories(self) -> list:
             r"""
             The super categories of ``self``.
 
@@ -442,11 +463,10 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 [Category of realizations of Ariki-Koike algebra of rank 5 and order 2
                     with q=q and u=(u0, u1, u2, u3, u4) over ...,
                  Category of finite dimensional algebras with basis over ...]
-
             """
             return [Realizations(self.base()), self.base()._category]
 
-        def _repr_(self):
+        def _repr_(self) -> str:
             r"""
             Return the representation of ``self``.
 
@@ -465,7 +485,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             cases, these are just default implementations that will get
             specialized in a basis.
             """
-            def _repr_(self):
+            def _repr_(self) -> str:
                 r"""
                 Text representation of this basis of Iwahori-Hecke algebra.
 
@@ -495,7 +515,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
 
             q = hecke_parameter
 
-            def cyclotomic_parameters(self):
+            def cyclotomic_parameters(self) -> tuple:
                 r"""
                 Return the cyclotomic parameters `u` of ``self``.
 
@@ -510,7 +530,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             u = cyclotomic_parameters
 
             @cached_method
-            def gens(self):
+            def gens(self) -> tuple:
                 r"""
                 Return the generators of ``self``.
 
@@ -543,7 +563,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 from sage.arith.misc import factorial
                 return self._r**self._n * factorial(self._n)
 
-            def some_elements(self):
+            def some_elements(self) -> list:
                 r"""
                 Return a list of elements of ``self``.
 
@@ -561,6 +581,24 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                     elts += [self.L(2)**(self._r//2)]
                 return elts
 
+            def specht_module(self, la):
+                r"""
+                Return the Specht module of ``self`` corresponding
+                to the shape ``la``.
+
+                EXAMPLES::
+
+                    sage: AK = algebras.ArikiKoike(4, 3)
+                    sage: LT = AK.LT()
+                    sage: S1 = LT.specht_module([[1], [], [1,1], []])
+                    sage: T = AK.T()
+                    sage: S2 = T.specht_module([[1], [], [1,1], []])
+                    sage: S1 is S2
+                    True
+                """
+                from sage.algebras.hecke_algebras.ariki_koike_specht_modules import SpechtModule
+                return SpechtModule(self.realization_of(), la)
+
     # -----------------------------------------------------
     # Basis classes
     # -----------------------------------------------------
@@ -574,7 +612,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
         This was the basis defined in [AK1994]_ except using the
         renormalized Jucys-Murphy elements.
         """
-        def __init__(self, algebra):
+        def __init__(self, algebra) -> None:
             r"""
             Initialize ``self``.
 
@@ -592,7 +630,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             _Basis.__init__(self, algebra, prefix='LT')
             self._assign_names(self.algebra_generators().keys())
 
-        def _repr_term(self, m):
+        def _repr_term(self, m) -> str:
             r"""
             Return a string representation of the basis element indexed by ``m``.
 
@@ -602,20 +640,17 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: LT._repr_term( ((1, 0, 2), Permutation([3,2,1])) )
                 'L1*L3^2*T[2,1,2]'
             """
-            gen_str = lambda e: '' if e == 1 else '^%s' % e
-            lhs = '*'.join('L%s' % (j+1) + gen_str(i)
-                           for j,i in enumerate(m[0]) if i > 0)
+            lhs = '*'.join(f'L{j + 1}' + ('' if i == 1 else f'^{i}')
+                           for j, i in enumerate(m[0]) if i > 0)
             redword = m[1].reduced_word()
             if not redword:
-                if not lhs:
-                    return '1'
-                return lhs
+                return lhs if lhs else '1'
             rhs = 'T[{}]'.format(','.join(str(i) for i in redword))
             if not lhs:
                 return rhs
             return lhs + '*' + rhs
 
-        def _latex_term(self, m):
+        def _latex_term(self, m) -> str:
             r"""
             Return a latex representation for the basis element indexed by ``m``.
 
@@ -625,15 +660,12 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: LT._latex_term( ((1, 0, 2), Permutation([3,2,1])) )
                 'L_{1} L_{3}^{2} T_{2} T_{1} T_{2}'
             """
-            gen_str = lambda e: '' if e == 1 else '^{%s}' % e
-            lhs = ' '.join('L_{%s}' % (j+1) + gen_str(i)
-                           for j,i in enumerate(m[0]) if i > 0)
+            lhs = ' '.join(f'L_{{{j + 1}}}'+ ('' if i == 1 else f'^{{{i}}}')
+                           for j, i in enumerate(m[0]) if i > 0)
             redword = m[1].reduced_word()
             if not redword:
-                if not lhs:
-                    return '1'
-                return lhs
-            return lhs + ' ' + ' '.join("T_{%d}" % i for i in redword)
+                return lhs if lhs else '1'
+            return lhs + ' ' + ' '.join(f"T_{{{i}}}" for i in redword)
 
         def _from_T_basis(self, t):
             r"""
@@ -664,11 +696,11 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             ret = self.one()
             T = list(self._zero_tuple)
             one = self.base_ring().one()
-            for i,k in enumerate(t[0]):
+            for i, k in enumerate(t[0]):
                 if k == 0:
                     continue
                 perm = self._Pn.prod(self._Pn.simple_reflection(j)
-                                     for j in range(1,i+1))
+                                     for j in range(1, i + 1))
                 ret = ret * self._from_dict({(self._zero_tuple, perm): one},
                                             remove_zeros=False, coerce=False)
                 T[0] = k
@@ -698,10 +730,10 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 for i in range(self._n):
                     r = list(self._zero_tuple) # Make a copy
                     r[i] = 1
-                    d['L%s' % (i+1)] = self.monomial( (tuple(r), self._one_perm) )
+                    d['L%s' % (i+1)] = self.monomial((tuple(r), self._one_perm))
             G = self._Pn.group_generators()
             for i in range(1, self._n):
-                d['T%s' % i] = self.monomial( (self._zero_tuple, G[i]) )
+                d['T%s' % i] = self.monomial((self._zero_tuple, G[i]))
             return Family(sorted(d), lambda i: d[i])
 
         def T(self, i=None):
@@ -749,17 +781,17 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
 
                 sage: LT = algebras.ArikiKoike(1, 3).LT()
                 sage: LT.L(2)
-                u + (-u*q^-1+u)*T[1]
+                u - (u*q^-1-u)*T[1]
                 sage: LT.L()
                 [u,
-                 u + (-u*q^-1+u)*T[1],
-                 u + (-u*q^-1+u)*T[2] + (-u*q^-2+u*q^-1)*T[2,1,2]]
+                 u - (u*q^-1-u)*T[1],
+                 u - (u*q^-1-u)*T[2] - (u*q^-2-u*q^-1)*T[2,1,2]]
             """
             G = self.algebra_generators()
             if i is None:
                 if self._r == 1:
-                    return [self._Li_power(j, 1) for j in range(1, self._n+1)]
-                return [G['L%s' % j] for j in range(1, self._n+1)]
+                    return [self._Li_power(j, 1) for j in range(1, self._n + 1)]
+                return [G['L%s' % j] for j in range(1, self._n + 1)]
             if self._r == 1:
                 return self._Li_power(i, 1)
             return G['L%s' % i]
@@ -784,18 +816,18 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: L1^2 * T1 * L1^2 * T1
                 q*L1^2*L2^2 + (1-q)*L1^3*L2*T[1]
                 sage: L1^3 * T1 * L1^2 * T1
-                (-u0*u1*u2*u3+u0*u1*u2*u3*q)*L2*T[1]
-                 + ((u0*u1*u2+u0*u1*u3+u0*u2*u3+u1*u2*u3)+(-u0*u1*u2-u0*u1*u3-u0*u2*u3-u1*u2*u3)*q)*L1*L2*T[1]
-                 + ((-u0*u1-u0*u2-u1*u2-u0*u3-u1*u3-u2*u3)+(u0*u1+u0*u2+u1*u2+u0*u3+u1*u3+u2*u3)*q)*L1^2*L2*T[1]
-                 + ((u0+u1+u2+u3)+(-u0-u1-u2-u3)*q)*L1^3*L2*T[1] + q*L1^3*L2^2
+                -(u0*u1*u2*u3-u0*u1*u2*u3*q)*L2*T[1]
+                + ((u0*u1*u2+u0*u1*u3+u0*u2*u3+u1*u2*u3)+(-u0*u1*u2-u0*u1*u3-u0*u2*u3-u1*u2*u3)*q)*L1*L2*T[1]
+                - ((u0*u1+u0*u2+u1*u2+u0*u3+u1*u3+u2*u3)+(-u0*u1-u0*u2-u1*u2-u0*u3-u1*u3-u2*u3)*q)*L1^2*L2*T[1]
+                + ((u0+u1+u2+u3)+(-u0-u1-u2-u3)*q)*L1^3*L2*T[1] + q*L1^3*L2^2
 
                 sage: L1^2 * T1 * L1^3 * T1
-                (-u0*u1*u2*u3+u0*u1*u2*u3*q)*L2*T[1]
-                 + ((u0*u1*u2+u0*u1*u3+u0*u2*u3+u1*u2*u3)+(-u0*u1*u2-u0*u1*u3-u0*u2*u3-u1*u2*u3)*q)*L1*L2*T[1]
-                 + ((-u0*u1-u0*u2-u1*u2-u0*u3-u1*u3-u2*u3)+(u0*u1+u0*u2+u1*u2+u0*u3+u1*u3+u2*u3)*q)*L1^2*L2*T[1]
-                 + q*L1^2*L2^3
-                 + ((u0+u1+u2+u3)+(-u0-u1-u2-u3)*q)*L1^3*L2*T[1]
-                 + (1-q)*L1^3*L2^2*T[1]
+                -(u0*u1*u2*u3-u0*u1*u2*u3*q)*L2*T[1]
+                + ((u0*u1*u2+u0*u1*u3+u0*u2*u3+u1*u2*u3)+(-u0*u1*u2-u0*u1*u3-u0*u2*u3-u1*u2*u3)*q)*L1*L2*T[1]
+                - ((u0*u1+u0*u2+u1*u2+u0*u3+u1*u3+u2*u3)+(-u0*u1-u0*u2-u1*u2-u0*u3-u1*u3-u2*u3)*q)*L1^2*L2*T[1]
+                + q*L1^2*L2^3
+                + ((u0+u1+u2+u3)+(-u0-u1-u2-u3)*q)*L1^3*L2*T[1]
+                + (1-q)*L1^3*L2^2*T[1]
 
                 sage: L1^2 * T1*T2*T1 * L2 * L3 * T2
                 (q-2*q^2+q^3)*L1^2*L2*L3 - (1-2*q+2*q^2-q^3)*L1^2*L2*L3*T[2]
@@ -815,8 +847,8 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             #   otherwise we may end up in an infinite loop...
 
             # Product is of the form L1*T1*L2*T2: separate the L's and permutations
-            L1,T1 = m1
-            L2,T2 = m2
+            L1, T1 = m1
+            L2, T2 = m2
 
             if sum(L2) == 0:
                 # Compute and return the product of T1 and T2, whilst fixing L
@@ -856,9 +888,9 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             # combination of standard basis elements using the method and then,
             # recursively, multiply on the left and right by L1 and T2,
             # respectively. In other words, we multiply as L1*(T1*L2)*T2.
-            return ( self.monomial((L1, self._one_perm))
-                     * self._product_Tw_L(T1, L2)
-                     * self.monomial((self._zero_tuple, T2)) )
+            return (self.monomial((L1, self._one_perm))
+                    * self._product_Tw_L(T1, L2)
+                    * self.monomial((self._zero_tuple, T2)))
 
         def _product_LTwTv(self, L, w, v):
             r"""
@@ -894,9 +926,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             - ``w`` -- the permutation ``w``
             - ``v`` -- the permutation ``v``
 
-            OUTPUT:
-
-            The corresponding element represented as a ``dict``.
+            OUTPUT: the corresponding element represented as a ``dict``
 
             EXAMPLES::
 
@@ -916,18 +946,17 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             ret = {v: self.base_ring().one()}
             qm1 = self._q - self.base_ring().one()
             for i in reversed(w.reduced_word()):
-                temp = {} # start from 0
-                for p in ret:
-                    c = ret[p]
+                temp = {}  # start from 0
+                for p, c in ret.items():
                     # We have to flip the side due to Sage's
                     # convention for multiplying permutations
-                    pi = p.apply_simple_reflection(i, side="left")
-                    if p.has_descent(i, side="left"):
+                    pi = p.apply_simple_reflection(i, side='left')
+                    if p.has_descent(i, side='left'):
                         iaxpy(1, {p: c * qm1, pi: c * self._q}, temp)
                     else:
                         iaxpy(1, {pi: c}, temp)
                 ret = temp
-            return {(L, p): ret[p] for p in ret}
+            return {(L, p): c for p, c in ret.items()}
 
         def _product_Tw_L(self, w, L):
             r"""
@@ -953,7 +982,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             INPUT:
 
             - ``w`` -- a permutation
-            - ``L`` -- a tuple `(a_1, \ldots, a_n)`
+            - ``L`` -- tuple `(a_1, \ldots, a_n)`
 
             EXAMPLES::
 
@@ -973,10 +1002,9 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             q = self._q
             one = q.parent().one()
             for i in w.reduced_word()[::-1]:
-                iL = {} # this will become T_i * L, written in standard form
-                for lv in wL:
-                    c = wL[lv]
-                    L = list(lv[0]) # make a copy
+                iL = {}  # this will become T_i * L, written in standard form
+                for lv, c in wL.items():
+                    L = list(lv[0])  # make a copy
                     v = lv[1]
                     a, b = L[i-1], L[i]
                     L[i-1], L[i] = L[i], L[i-1] # swap L_i=L[i-1] and L_{i+1}=L[i]
@@ -985,7 +1013,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                     iaxpy(c, self._product_LTwTv(tuple(L), self._Pn.simple_reflections()[i], v), iL) # need T_i*T_v
 
                     if a < b:
-                        Ls = [ list(L) for k in range(b-a) ] # make copies of L
+                        Ls = [list(L) for k in range(b-a)] # make copies of L
                         for k in range(b-a):
                             Ls[k][i-1] = a + k
                             Ls[k][i] = b - k
@@ -993,14 +1021,14 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                         iaxpy(1, {(tuple(l), v): c for l in Ls}, iL)
 
                     elif a > b:
-                        Ls = [ list(L) for k in range(a-b) ] # make copies of L
+                        Ls = [list(L) for k in range(a-b)] # make copies of L
                         for k in range(a-b):
                             Ls[k][i-1] = b + k
                             Ls[k][i] = a - k
                         c *= (one - q)
                         iaxpy(1, {(tuple(l), v): c for l in Ls}, iL)
 
-                wL = iL # replace wL with iL and repeat
+                wL = iL  # replace wL with iL and repeat
             return self._from_dict(wL, remove_zeros=False, coerce=False)
 
         @cached_method
@@ -1025,7 +1053,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                     sage: H = algebras.ArikiKoike(3, 2).LT()
                     sage: L2 = H.L(2)
                     sage: H._Li_power(2, 4)
-                    ((u0^2*u1*u2+u0*u1^2*u2+u0*u1*u2^2)) + ...
+                    ((u0^2*u1*u2+u0*u1^2*u2+u0*u1*u2^2)) ...
                      - (q^-1-1)*L1*L2^3*T[1] ...
                      - (q^-1-1)*L1^3*L2*T[1]
                     sage: H._Li_power(2, 4) == L2^4
@@ -1042,20 +1070,20 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 L_1^0 = 1
                 L_1^1 = L1
                 L_1^2 = L1^2
-                L_1^3 = u0*u1*u2 + ((-u0*u1-u0*u2-u1*u2))*L1 + ((u0+u1+u2))*L1^2
+                L_1^3 = u0*u1*u2 - ((u0*u1+u0*u2+u1*u2))*L1 + ((u0+u1+u2))*L1^2
                 L_2^0 = 1
                 L_2^1 = L2
                 L_2^2 = L2^2
-                L_2^3 = u0*u1*u2 + (-u0*u1*u2*q^-1+u0*u1*u2)*T[1]
-                 + ((-u0*u1-u0*u2-u1*u2))*L2 + ((u0+u1+u2))*L2^2
+                L_2^3 = u0*u1*u2 - (u0*u1*u2*q^-1-u0*u1*u2)*T[1]
+                 - ((u0*u1+u0*u2+u1*u2))*L2 + ((u0+u1+u2))*L2^2
                  + ((u0+u1+u2)*q^-1+(-u0-u1-u2))*L1*L2*T[1]
                  - (q^-1-1)*L1*L2^2*T[1] - (q^-1-1)*L1^2*L2*T[1]
                 L_3^0 = 1
                 L_3^1 = L3
                 L_3^2 = L3^2
-                L_3^3 = u0*u1*u2 + (-u0*u1*u2*q^-1+u0*u1*u2)*T[2]
-                + (-u0*u1*u2*q^-2+u0*u1*u2*q^-1)*T[2,1,2]
-                + ((-u0*u1-u0*u2-u1*u2))*L3 + ((u0+u1+u2))*L3^2
+                L_3^3 = u0*u1*u2 - (u0*u1*u2*q^-1-u0*u1*u2)*T[2]
+                - (u0*u1*u2*q^-2-u0*u1*u2*q^-1)*T[2,1,2]
+                - ((u0*u1+u0*u2+u1*u2))*L3 + ((u0+u1+u2))*L3^2
                 + ((u0+u1+u2)*q^-1+(-u0-u1-u2))*L2*L3*T[2]
                 - (q^-1-1)*L2*L3^2*T[2] - (q^-1-1)*L2^2*L3*T[2]
                 + ((u0+u1+u2)*q^-2+(-2*u0-2*u1-2*u2)*q^-1+(u0+u1+u2))*L1*L3*T[1,2]
@@ -1068,29 +1096,30 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             # in the (i-1)th and i-th positions, respectively
             def Ltuple(a, b):
                 return tuple([b if j == i else a if j == i-1 else 0
-                              for j in range(1,self._n+1)])
+                              for j in range(1, self._n + 1)])
 
             # return "small" powers of the generators without change
             if m < self._r:
-                return self.monomial( (Ltuple(0, m), self._one_perm) )
+                return self.monomial((Ltuple(0, m), self._one_perm))
 
             if i > 1:
                 si = self._Pn.simple_reflections()[i-1]
                 qsum = self.base_ring().one() - self._q**-1
                 # by calling _Li_power we avoid infinite recursion here
-                return ( self.sum_of_terms( ((Ltuple(c, m-c), si), qsum) for c in range(1, m) )
-                         + self._q**-1 * self.T(i-1) * self._Li_power(i-1, m) * self.T(i-1) )
+                return (self.sum_of_terms(((Ltuple(c, m-c), si), qsum) for c in range(1, m))
+                         + self._q**-1 * self.T(i-1) * self._Li_power(i-1, m) * self.T(i-1))
 
             # now left with the case i = 1 and m >= r
             if m > self._r:
                 return self.monomial((Ltuple(0, 1), self._one_perm)) * self._Li_power(i,m-1)
 
             z = PolynomialRing(self.base_ring(), 'DUMMY').gen()
-            p = list(prod(z - val for val in self._u))#[:-1]
-            p.pop() # remove the highest power
+            p = list(prod(z - val for val in self._u))  # [:-1]
+            p.pop()  # remove the highest power
             zero = self.base_ring().zero()
             return self._from_dict({(Ltuple(0, exp), self._one_perm): -coeff
-                                    for exp,coeff in enumerate(p) if coeff != zero},
+                                    for exp, coeff in enumerate(p)
+                                    if coeff != zero},
                                    remove_zeros=False, coerce=False)
 
         @cached_method
@@ -1142,11 +1171,11 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 """
                 if len(self) != 1:
                     raise NotImplementedError("inverse only implemented for monomials")
-                l,w = self.support_of_term()
+                l, w = self.support_of_term()
                 if sum(l) != 0:
                     raise NotImplementedError("inverse only implemented for monomials in T variables")
                 H = self.parent()
-                return ~self[l,w] * H.prod(H.inverse_T(i) for i in reversed(w.reduced_word()))
+                return ~self[l, w] * H.prod(H.inverse_T(i) for i in reversed(w.reduced_word()))
 
     class T(_Basis):
         r"""
@@ -1163,7 +1192,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
         `T_{1,k} = T_0^k`) and `w` is a reduced expression of an
         element in `\mathfrak{S}_n`.
         """
-        def __init__(self, algebra):
+        def __init__(self, algebra) -> None:
             r"""
             Initialize ``self``.
 
@@ -1181,7 +1210,19 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             _Basis.__init__(self, algebra, prefix='T')
             self._assign_names(['T%s' % i for i in range(self._n)])
 
-        def _repr_term(self, t):
+        def _basis_to_word(self, t):
+            """
+            Return the basis element indexed by ``m`` to a word.
+            """
+            redword = []
+            for i, k in enumerate(t[0]):
+                if not k:
+                    continue
+                redword.extend(list(range(i, 0, -1)) + [0]*k)
+            redword.extend(t[1].reduced_word())
+            return redword
+
+        def _repr_term(self, t) -> str:
             r"""
             Return a string representation of the basis element indexed by ``m``.
 
@@ -1191,18 +1232,13 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: T._repr_term( ((1,0,2), Permutation([3,2,1])) )
                 'T[0,2,1,0,0,2,1,2]'
             """
-            redword = []
-            for i,k in enumerate(t[0]):
-                if k == 0:
-                    continue
-                redword += list(reversed(range(1,i+1))) + [0]*k
-            redword += t[1].reduced_word()
-            if len(redword) == 0:
+            redword = self._basis_to_word(t)
+            if not redword:
                 return "1"
             return (self._print_options['prefix']
                     + '[%s]' % ','.join('%d' % i for i in redword))
 
-        def _latex_term(self, t):
+        def _latex_term(self, t) -> str:
             r"""
             Return a latex representation for the basis element indexed by ``m``.
 
@@ -1210,15 +1246,10 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
 
                 sage: T = algebras.ArikiKoike(4, 3).T()
                 sage: T._latex_term( ((1,0,2), Permutation([3,2,1])) )
-                'T_{0}T_{1}T_{0}T_{0}T_{2}T_{1}T_{2}'
+                'T_{0}T_{2}T_{1}T_{0}T_{0}T_{2}T_{1}T_{2}'
             """
-            redword = []
-            for i,k in enumerate(t[0]):
-                if k == 0:
-                    continue
-                redword += list(reversed(range(1,i))) + [0]*k
-            redword += t[1].reduced_word()
-            if len(redword) == 0:
+            redword = self._basis_to_word(t)
+            if not redword:
                 return "1"
             return ''.join("%s_{%d}" % (self._print_options['prefix'], i)
                            for i in redword)
@@ -1254,7 +1285,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 True
             """
             ret = self.prod(self.L(i+1)**k for i,k in enumerate(m[0]))
-            return ret * self.monomial( (self._zero_tuple, m[1]) )
+            return ret * self.monomial((self._zero_tuple, m[1]))
 
         @cached_method
         def algebra_generators(self):
@@ -1297,9 +1328,9 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 return [self.T(j) for j in range(self._n)]
 
             if i == 0:
-                return self.monomial( ((1,) + self._zero_tuple[1:], self._one_perm) )
+                return self.monomial(((1,) + self._zero_tuple[1:], self._one_perm))
             s = self._Pn.simple_reflections()
-            return self.monomial( (self._zero_tuple, s[i]) )
+            return self.monomial((self._zero_tuple, s[i]))
 
         @cached_method
         def L(self, i=None):
@@ -1337,11 +1368,11 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
 
                 sage: T = algebras.ArikiKoike(1, 3).T()
                 sage: T.L(2)
-                u + (-u*q^-1+u)*T[1]
+                u - (u*q^-1-u)*T[1]
                 sage: T.L()
                 [u,
-                 u + (-u*q^-1+u)*T[1],
-                 u + (-u*q^-1+u)*T[2] + (-u*q^-2+u*q^-1)*T[2,1,2]]
+                 u - (u*q^-1-u)*T[1],
+                 u - (u*q^-1-u)*T[2] - (u*q^-2-u*q^-1)*T[2,1,2]]
 
             TESTS:
 
@@ -1364,13 +1395,12 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 True
             """
             if i is None:
-                return [self.L(j) for j in range(1, self._n+1)]
+                return [self.L(j) for j in range(1, self._n + 1)]
 
             if i == 1:
                 if self._r == 1:
                     return self.from_base_ring(self._u[0])
-                else:
-                    return self.T(0)
+                return self.T(0)
             T = self.T()
             return self._q**-1 * T[i-1] * self.L(i-1) * T[i-1]
 
@@ -1393,10 +1423,10 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: T2 * (T2 * T1 * T0)
                 -(1-q)*T[2,1,0] + q*T[1,0]
                 sage: (T1 * T0 * T1 * T0) * T0
-                (-u0*u1)*T[1,0,1] + ((u0+u1))*T[0,1,0,1]
+                -u0*u1*T[1,0,1] + ((u0+u1))*T[0,1,0,1]
                 sage: (T0 * T1 * T0 * T1) * (T0 * T1)
-                (-u0*u1*q)*T[1,0] + (u0*u1-u0*u1*q)*T[1,0,1]
-                 + ((u0+u1)*q)*T[0,1,0] + ((-u0-u1)+(u0+u1)*q)*T[0,1,0,1]
+                -u0*u1*q*T[1,0] + (u0*u1-u0*u1*q)*T[1,0,1]
+                 + ((u0+u1)*q)*T[0,1,0] - ((u0+u1)+(-u0-u1)*q)*T[0,1,0,1]
                 sage: T1 * (T0 * T2 * T1 * T0)
                 T[1,0,2,1,0]
                 sage: (T1 * T2) * (T2 * T1 * T0)
@@ -1423,7 +1453,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: T = algebras.ArikiKoike(2, 3).T()
                 sage: T0, T1, T2 = T.T()
                 sage: (T1 * T0 * T1) * (T0 * T0)
-                (-u0*u1)*T[1,0,1] + ((u0+u1))*T[0,1,0,1]
+                -u0*u1*T[1,0,1] + ((u0+u1))*T[0,1,0,1]
                 sage: T1 * T.L(3) * T2 * T1 * T0 - T1 * (T.L(3) * T2 * T1 * T0)
                 0
 
@@ -1456,8 +1486,8 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                     return self._from_dict({m2: one}, remove_zeros=False)
                 if t2 == self._zero_tuple:
                     return self._from_dict({(t1, s2): one}, remove_zeros=False)
-                k1 = max(k for k,a in enumerate(t1) if a != 0)
-                k2 = min(k for k,a in enumerate(t2) if a != 0)
+                k1 = max(k for k, a in enumerate(t1) if a != 0)
+                k2 = min(k for k, a in enumerate(t2) if a != 0)
                 if k1 < k2:
                     T = list(t1)
                     for k in range(k2, len(t2)):
@@ -1474,7 +1504,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 return L * M * R
 
             # The current product of T's and the type A Hecke algebra
-            tprod = [( [(k, a) for k, a in enumerate(t2) if a != 0], {s2: one} )]
+            tprod = [([(k, a) for k, a in enumerate(t2) if a != 0], {s2: one})]
 
             # s1 through t2
             for i in reversed(s1.reduced_word()):
@@ -1514,8 +1544,8 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                         c = sprod[p]
                         # We have to flip the side due to Sage's
                         # convention for multiplying permutations
-                        pj = p.apply_simple_reflection(j, side="left")
-                        if p.has_descent(j, side="left"):
+                        pj = p.apply_simple_reflection(j, side='left')
+                        if p.has_descent(j, side='left'):
                             iaxpy(1, {p: c * qm1, pj: c * self._q}, temp)
                         else:
                             iaxpy(1, {pj: c}, temp)
@@ -1524,7 +1554,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
 
             # Compute t1 * T * sprod
             def compute(T, sprod):
-                if not T: # T=1, so just do t1 * sprod, each of which is in order
+                if not T:  # T=1, so just do t1 * sprod, each of which is in order
                     return self._from_dict({(t1, s): sprod[s] for s in sprod},
                                            remove_zeros=False, coerce=False)
 
@@ -1559,9 +1589,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
             r"""
             Return `p` such that `T0^{r-1} - p = \prod_{i=0}^{r-1} (T_0 - u_i)`.
 
-            OUTPUT:
-
-            A ``dict`` representing the polynomial `p`.
+            OUTPUT: a ``dict`` representing the polynomial `p`
 
             EXAMPLES::
 
@@ -1637,19 +1665,19 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: T._product_TT(1, 2, 0, 1)
                 T[1,0,0,0]
                 sage: T._product_TT(1, 3, 0, 1)
-                (-u0*u1*u2*u3)*T[1]
+                -u0*u1*u2*u3*T[1]
                  + ((u0*u1*u2+u0*u1*u3+u0*u2*u3+u1*u2*u3))*T[1,0]
-                 + ((-u0*u1-u0*u2-u1*u2-u0*u3-u1*u3-u2*u3))*T[1,0,0]
+                 - ((u0*u1+u0*u2+u1*u2+u0*u3+u1*u3+u2*u3))*T[1,0,0]
                  + ((u0+u1+u2+u3))*T[1,0,0,0]
                 sage: T._product_TT(1, 2, 0, 2)
-                (-u0*u1*u2*u3)*T[1]
+                -u0*u1*u2*u3*T[1]
                  + ((u0*u1*u2+u0*u1*u3+u0*u2*u3+u1*u2*u3))*T[1,0]
-                 + ((-u0*u1-u0*u2-u1*u2-u0*u3-u1*u3-u2*u3))*T[1,0,0]
+                 - ((u0*u1+u0*u2+u1*u2+u0*u3+u1*u3+u2*u3))*T[1,0,0]
                  + ((u0+u1+u2+u3))*T[1,0,0,0]
                 sage: T._product_TT(2, 1, 0, 3)
-                (-u0*u1*u2*u3)*T[2,1]
+                -u0*u1*u2*u3*T[2,1]
                  + ((u0*u1*u2+u0*u1*u3+u0*u2*u3+u1*u2*u3))*T[2,1,0]
-                 + ((-u0*u1-u0*u2-u1*u2-u0*u3-u1*u3-u2*u3))*T[2,1,0,0]
+                 - ((u0*u1+u0*u2+u1*u2+u0*u3+u1*u3+u2*u3))*T[2,1,0,0]
                  + ((u0+u1+u2+u3))*T[2,1,0,0,0]
 
             TESTS::
@@ -1657,22 +1685,19 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 sage: H = algebras.ArikiKoike(3, 4)
                 sage: T = H.T()
                 sage: T._product_TT(1, 2, 1, 2)
-                (-u0*u1*u2+u0*u1*u2*q)*T[1,0]
-                 + (u0*u1*u2-u0*u1*u2*q)*T[0,1]
+                -(u0*u1*u2-u0*u1*u2*q)*T[1,0] + (u0*u1*u2-u0*u1*u2*q)*T[0,1]
                  + ((u0+u1+u2)+(-u0-u1-u2)*q)*T[0,1,0,0]
-                 + ((-u0-u1-u2)+(u0+u1+u2)*q)*T[0,0,1,0]
-                 + T[0,0,1,0,0,1]
+                 - ((u0+u1+u2)+(-u0-u1-u2)*q)*T[0,0,1,0] + T[0,0,1,0,0,1]
                 sage: T._product_TT(2,2,2,2)
-                (-u0*u1*u2+u0*u1*u2*q)*T[2,1,0,2]
+                -(u0*u1*u2-u0*u1*u2*q)*T[2,1,0,2]
                  + (u0*u1*u2-u0*u1*u2*q)*T[1,0,2,1]
                  + ((u0+u1+u2)+(-u0-u1-u2)*q)*T[1,0,2,1,0,0]
-                 + ((-u0-u1-u2)+(u0+u1+u2)*q)*T[1,0,0,2,1,0]
-                 + T[1,0,0,2,1,0,0,1]
+                 - ((u0+u1+u2)+(-u0-u1-u2)*q)*T[1,0,0,2,1,0] + T[1,0,0,2,1,0,0,1]
                 sage: T._product_TT(3,2,3,2)
-                (-u0*u1*u2+u0*u1*u2*q)*T[3,2,1,0,3,2]
+                -(u0*u1*u2-u0*u1*u2*q)*T[3,2,1,0,3,2]
                  + (u0*u1*u2-u0*u1*u2*q)*T[2,1,0,3,2,1]
                  + ((u0+u1+u2)+(-u0-u1-u2)*q)*T[2,1,0,3,2,1,0,0]
-                 + ((-u0-u1-u2)+(u0+u1+u2)*q)*T[2,1,0,0,3,2,1,0]
+                 - ((u0+u1+u2)+(-u0-u1-u2)*q)*T[2,1,0,0,3,2,1,0]
                  + T[2,1,0,0,3,2,1,0,0,1]
             """
             # Quadratic relation: S_i^2 - (q - 1) S_i - q == 0
@@ -1695,7 +1720,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                     # Note that kp is 0-based, but our 0-index in the T portion
                     #   is the power of T_0
                     perm = self._Pn.one()
-                    for j in range(1, kp+1):
+                    for j in range(1, kp + 1):
                         perm = perm.apply_simple_reflection_left(j)
                     return (self._zero_tuple, perm)
                 p = self._reduced_T0_power(a + b)
@@ -1720,7 +1745,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                 T[ind] = exp
                 T[indp] = i
                 return tuple(T)
-            for i in range(1, b+1):
+            for i in range(1, b + 1):
                 if a + b - i == i:
                     continue
                 if a + b - i < self._r:
@@ -1751,7 +1776,7 @@ class ArikiKoikeAlgebra(Parent, UniqueRepresentation):
                         # We need to add back in the permutation for the "T_{k',0}"
                         #    in the reduction from T_{k',a+b-i}
                         perm = self._Pn.one()
-                        for j in range(1, kp+1):  # Recall kp is 0-based
+                        for j in range(1, kp + 1):  # Recall kp is 0-based
                             perm = perm.apply_simple_reflection_left(j)
                         tind = T_index(0, kp, i, k-1)
                         temp[(tind, perm)] = temp[(tind, self._one_perm)]

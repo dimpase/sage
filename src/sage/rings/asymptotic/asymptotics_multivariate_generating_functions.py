@@ -185,7 +185,7 @@ AUTHORS:
 Classes and Methods
 ===================
 """
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2008 Alexander Raichev <tortoise.said@gmail.com>
 #       Copyright (C) 2014, 2016 Daniel Krenn <dev@danielkrenn.at>
 #
@@ -193,23 +193,25 @@ Classes and Methods
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from functools import total_ordering
 from itertools import combinations_with_replacement
-from sage.structure.element import RingElement
-from sage.structure.unique_representation import UniqueRepresentation
-from sage.rings.ring import Ring
-from sage.calculus.var import var
-from sage.calculus.functional import diff
-from sage.symbolic.ring import SR
+
+from sage.categories.rings import Rings
+from sage.misc.lazy_import import lazy_import
 from sage.misc.misc_c import prod
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
-from sage.categories.rings import Rings
+from sage.structure.element import RingElement
+from sage.structure.parent import Parent
 from sage.structure.richcmp import richcmp_by_eq_and_lt
+from sage.structure.unique_representation import UniqueRepresentation
+
+lazy_import("sage.calculus.functional", "diff")
+lazy_import("sage.symbolic.ring", "SR")
 
 
 @total_ordering
@@ -232,7 +234,7 @@ class FractionWithFactoredDenominator(RingElement):
 
     - ``numerator`` -- an element `p`; this can be of any ring from which
       parent's base has coercion in
-    - ``denominator_factored`` -- a list of the form
+    - ``denominator_factored`` -- list of the form
       `[(q_1, e_1), \ldots, (q_n, e_n)]`, where the `q_1, \ldots, q_n` are
       distinct irreducible elements of `R` and the `e_i` are positive
       integers
@@ -340,9 +342,8 @@ class FractionWithFactoredDenominator(RingElement):
 
         from sage.rings.semirings.non_negative_integer_semiring import NN
         self._numerator = parent._numerator_ring(numerator)
-        self._denominator_factored = list(
-            (parent._denominator_ring(d), NN(n))
-            for d, n in denominator_factored)
+        self._denominator_factored = [(parent._denominator_ring(d), NN(n))
+                                      for d, n in denominator_factored]
 
         R = self.denominator_ring
         if numerator in R and reduce:
@@ -350,7 +351,7 @@ class FractionWithFactoredDenominator(RingElement):
             numer = R(self._numerator)
             df = self._denominator_factored
             new_df = []
-            for (q, e) in df:
+            for q, e in df:
                 ee = e
                 quo, rem = numer.quo_rem(q)
                 while rem == 0 and ee > 0:
@@ -366,9 +367,7 @@ class FractionWithFactoredDenominator(RingElement):
         r"""
         Return the numerator of ``self``.
 
-        OUTPUT:
-
-        The numerator.
+        OUTPUT: the numerator
 
         EXAMPLES::
 
@@ -436,9 +435,7 @@ class FractionWithFactoredDenominator(RingElement):
         r"""
         Return the ring of the denominator.
 
-        OUTPUT:
-
-        A ring.
+        OUTPUT: a ring
 
         EXAMPLES::
 
@@ -464,9 +461,7 @@ class FractionWithFactoredDenominator(RingElement):
         r"""
         Return the ring of the numerator.
 
-        OUTPUT:
-
-        A ring.
+        OUTPUT: a ring
 
         EXAMPLES::
 
@@ -491,9 +486,7 @@ class FractionWithFactoredDenominator(RingElement):
         r"""
         Return the number of indeterminates of ``self.denominator_ring``.
 
-        OUTPUT:
-
-        An integer.
+        OUTPUT: integer
 
         EXAMPLES::
 
@@ -507,10 +500,10 @@ class FractionWithFactoredDenominator(RingElement):
             sage: F.dimension()
             2
         """
-        from sage.rings.polynomial.polynomial_ring import is_PolynomialRing
-        from sage.rings.polynomial.multi_polynomial_ring_base import is_MPolynomialRing
+        from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
+        from sage.rings.polynomial.multi_polynomial_ring_base import MPolynomialRing_base
         R = self.denominator_ring
-        if is_PolynomialRing(R) or is_MPolynomialRing(R):
+        if isinstance(R, (PolynomialRing_generic, MPolynomialRing_base)):
             return R.ngens()
         raise NotImplementedError('only polynomial rings are supported as base')
 
@@ -518,9 +511,7 @@ class FractionWithFactoredDenominator(RingElement):
         r"""
         Convert ``self`` into a quotient.
 
-        OUTPUT:
-
-        An element.
+        OUTPUT: an element
 
         EXAMPLES::
 
@@ -539,13 +530,11 @@ class FractionWithFactoredDenominator(RingElement):
         """
         return self.numerator() / self.denominator()
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
         Return a string representation of ``self``.
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -572,9 +561,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         - ``other`` -- an instance of :class:`FractionWithFactoredDenominator`
 
-        OUTPUT:
-
-        ``True`` or ``False``.
+        OUTPUT: boolean
 
         It can be assumed that ``self`` and ``other`` have the same parent.
 
@@ -657,9 +644,7 @@ class FractionWithFactoredDenominator(RingElement):
         denominators are equal and the numerator of ``A`` is less than that
         of ``B`` in their ring).
 
-        OUTPUT:
-
-        A tuple.
+        OUTPUT: a tuple
 
         EXAMPLES::
 
@@ -717,9 +702,7 @@ class FractionWithFactoredDenominator(RingElement):
             factorization of the denominator. This gives a speed up for
             non-small instances.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         EXAMPLES::
 
@@ -907,9 +890,7 @@ class FractionWithFactoredDenominator(RingElement):
 
             Recursive. Only works for multivariate ``self``.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         EXAMPLES::
 
@@ -967,15 +948,13 @@ class FractionWithFactoredDenominator(RingElement):
 
         The algebraic dependence certificate is the ideal `J` of
         annihilating polynomials for the set of polynomials
-        ``[q^e for (q, e) in self.denominator_factored()]``,
+        ``[q^e for q, e in self.denominator_factored()]``,
         which could be the zero ideal.
         The ideal `J` lies in a polynomial ring over the field
         ``self.denominator_ring.base_ring()`` that has
         ``m = len(self.denominator_factored())`` indeterminates.
 
-        OUTPUT:
-
-        An ideal.
+        OUTPUT: an ideal
 
         EXAMPLES::
 
@@ -1085,9 +1064,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         The algorithm used comes from [Rai2012]_.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         EXAMPLES::
 
@@ -1208,9 +1185,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         The algorithm used comes from [Rai2012]_.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         EXAMPLES::
 
@@ -1314,9 +1289,7 @@ class FractionWithFactoredDenominator(RingElement):
         The algorithm used here comes from the proof of Theorem 17.4 of
         [AY1983]_.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         EXAMPLES::
 
@@ -1335,7 +1308,7 @@ class FractionWithFactoredDenominator(RingElement):
             sage: FFPD(1, [(x, 1), (y, 2)]).cohomology_decomposition()
             (0, [])
 
-        The following example was fixed in :trac:`29465`::
+        The following example was fixed in :issue:`29465`::
 
             sage: p = 1
             sage: qs = [(x*y - 1, 1), (x**2 + y**2 - 1, 2)]
@@ -1351,14 +1324,14 @@ class FractionWithFactoredDenominator(RingElement):
         R = self.denominator_ring
         df = self.denominator_factored()
         n = len(df)
-        if sum(e for (q, e) in df) <= n:
+        if sum(e for _, e in df) <= n:
             # No decomposing possible.
             return FractionWithFactoredDenominatorSum([self])
 
         # Otherwise decompose recursively.
         decomp = FractionWithFactoredDenominatorSum()
         p = self.numerator()
-        qs = [q for (q, e) in df]
+        qs = [q for q, _ in df]
         # sort according to the term order of R
         X = sorted(R.gens())
         var_sets_n = sorted(sorted(s) for s in Set(X).subsets(n))
@@ -1414,7 +1387,7 @@ class FractionWithFactoredDenominator(RingElement):
             # The parity epsilon from [AY1983, eq. (17.11)] does not
             # enter this computation, since we do not order the
             # coordinates x to the front of X in the representation of
-            # this differential form (:trac:`29465`).
+            # this differential form (:issue:`29465`).
             iteration1.append(Par((-1) ** J * det / new_df[J][1], new_df))
 
         # Now decompose each FFPD of iteration1.
@@ -1441,9 +1414,7 @@ class FractionWithFactoredDenominator(RingElement):
           respect to which to compute asymptotics;
           if ``None`` is given, we set ``asy_var = var('r')``
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         The output results from a Leinartas decomposition followed by a
         cohomology decomposition.
@@ -1492,7 +1463,7 @@ class FractionWithFactoredDenominator(RingElement):
         # Compute the cohomology decomposition for each
         # Cauchy differential form generated by each element of decomp.
         if asy_var is None:
-            asy_var = var('r')
+            asy_var = SR.var('r')
         cauchy_stuff = prod([X[j] ** (-alpha[j] * asy_var - 1)
                              for j in range(d)])
         decomp2 = FractionWithFactoredDenominatorSum()
@@ -1507,7 +1478,7 @@ class FractionWithFactoredDenominator(RingElement):
         for f in decomp2:
             ff = self.parent()((f.numerator() /
                                 cauchy_stuff).simplify_full().collect(asy_var),
-                      f.denominator_factored())
+                               f.denominator_factored())
             decomp3.append(ff)
 
         return decomp3
@@ -1539,20 +1510,19 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``p`` -- a dictionary with keys that can be coerced to equal
+        - ``p`` -- dictionary with keys that can be coerced to equal
           ``self.denominator_ring.gens()``
-        - ``alpha`` -- a tuple of length ``self.dimension()`` of
-          positive integers or, if `p` is a smooth point,
-          possibly of symbolic variables
-        - ``N`` -- a positive integer
+        - ``alpha`` -- tuple of length ``self.dimension()`` of positive
+          integers or, if `p` is a smooth point, possibly of symbolic variables
+        - ``N`` -- positive integer
         - ``asy_var`` -- (default: ``None``) a symbolic variable for the
-          asymptotic expansion; if ``none`` is given, then
-          ``var('r')`` will be assigned
-        - ``numerical`` -- (default: 0) a natural number;
-          if ``numerical`` is greater than 0, then return a numerical
-          approximation of `F_{r \alpha}` with ``numerical`` digits of
-          precision; otherwise return exact values
-        - ``verbose`` -- (default: ``False``) print the current state of
+          asymptotic expansion; if ``none`` is given, then ``var('r')`` will be
+          assigned
+        - ``numerical`` -- (default: 0) a natural number; if ``numerical`` is
+          greater than 0, then return a numerical approximation of
+          `F_{r \alpha}` with ``numerical`` digits of precision; otherwise
+          return exact values
+        - ``verbose`` -- boolean (default: ``False``); print the current state of
           the algorithm
 
         OUTPUT:
@@ -1634,7 +1604,7 @@ class FractionWithFactoredDenominator(RingElement):
         p = coerce_point(R, p)
 
         if asy_var is None:
-            asy_var = var('r')
+            asy_var = SR.var('r')
         d = self.dimension()
         X = list(R.gens())
         alpha = list(alpha)
@@ -1646,7 +1616,7 @@ class FractionWithFactoredDenominator(RingElement):
         # (X[i]*diff(h, X[i])).subs(p) != 0.
         # Assuming such an i exists.
         i = d - 1
-        while 0 in [(X[i] * diff(h, X[i])).subs(p) for (h, e) in df]:
+        while not all((X[i] * diff(h, X[i])).subs(p) for h, _ in df):
             i -= 1
         coordinate = i
 
@@ -1674,29 +1644,26 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``p`` -- a dictionary with keys that can be coerced to equal
+        - ``p`` -- dictionary with keys that can be coerced to equal
           ``self.denominator_ring.gens()``
-        - ``alpha`` -- a tuple of length ``d = self.dimension()`` of
-          positive integers or, if `p` is a smooth point,
-          possibly of symbolic variables
-        - ``N`` -- a positive integer
-        - ``asy_var`` -- (optional; default: ``None``) a symbolic variable;
-          the variable of the asymptotic expansion,
-          if none is given, ``var('r')`` will be assigned
-        - ``coordinate`` -- (optional; default: ``None``) an integer in
-          `\{0, \ldots, d-1\}` indicating a convenient coordinate to base
-          the asymptotic calculations on; if ``None`` is assigned, then
-          choose ``coordinate=d-1``
-        - ``numerical`` -- (optional; default: 0) a natural number;
-          if numerical is greater than 0, then return a numerical approximation
-          of the Maclaurin ray coefficients of ``self`` with ``numerical``
-          digits of precision; otherwise return exact values
-        - ``verbose`` -- (default: ``False``) print the current state of
-          the algorithm
+        - ``alpha`` -- tuple of length ``d = self.dimension()`` of positive
+          integers or, if `p` is a smooth point, possibly of symbolic variables
+        - ``N`` -- positive integer
+        - ``asy_var`` -- (default: ``None``) a symbolic variable; the variable
+          of the asymptotic expansion, if none is given, ``var('r')`` will be
+          assigned
+        - ``coordinate`` -- (default: ``None``) an integer in
+          `\{0, \ldots, d-1\}` indicating a convenient coordinate to base the
+          asymptotic calculations on; if ``None`` is assigned, then choose
+          ``coordinate=d-1``
+        - ``numerical`` -- (default: 0) a natural number; if numerical is
+          greater than 0, then return a numerical approximation of the
+          Maclaurin ray coefficients of ``self`` with ``numerical`` digits of
+          precision; otherwise return exact values
+        - ``verbose`` -- boolean (default: ``False``); print the current state
+          of the algorithm
 
-        OUTPUT:
-
-        The asymptotic expansion.
+        OUTPUT: the asymptotic expansion
 
         EXAMPLES::
 
@@ -1802,7 +1769,7 @@ class FractionWithFactoredDenominator(RingElement):
         if vector(p.values()) in QQ ** d:
             P = p
         else:
-            sP = [var('p' + str(j)) for j in range(d)]
+            sP = [SR.var('p' + str(j)) for j in range(d)]
             P = {X[j]: sP[j] for j in range(d)}
             p = {sP[j]: p[X[j]] for j in range(d)}
 
@@ -1820,7 +1787,7 @@ class FractionWithFactoredDenominator(RingElement):
         L = [str(elt) for elt in X]
         while t in L:
             t = t + 't'
-        T = [var(t + str(i)) for i in range(d - 1)]
+        T = [SR.var(t + str(i)) for i in range(d - 1)]
         e = {X[i]: P[X[i]] * exp(I * T[i]) for i in range(d - 1)}
         ht = h.subs(e)
         At = A.subs(e)
@@ -1953,7 +1920,7 @@ class FractionWithFactoredDenominator(RingElement):
                 for k in range(N):
                     L.append(sum([(-1) ** l * gamma((2 * k + v * l + 1) / v) /
                                   (factorial(l) * factorial(2 * k + v * l)) *
-                                  DD[(k, l)] for l in range(0, 2 * k + 1)]))
+                                  DD[(k, l)] for l in range(2 * k + 1)]))
                 chunk = (a ** (-1 / v) / (pi * v) *
                          sum([alpha[d - 1] ** (-(2 * k + 1) / v) *
                               L[k] * asy_var ** (-(2 * k + 1) / v)
@@ -1966,7 +1933,7 @@ class FractionWithFactoredDenominator(RingElement):
                                   (zeta ** (k + v * l + 1) +
                                    (-1) ** (k + v * l) *
                                    zeta ** (-(k + v * l + 1))) *
-                                  DD[(k, l)] for l in range(0, k + 1)]))
+                                  DD[(k, l)] for l in range(k + 1)]))
                 chunk = (abs(a) ** (-1 / v) / (2 * pi * v) *
                          sum([alpha[d - 1] ** (-(k + 1) / v) *
                               L[k] * asy_var ** (-(k + 1) / v)
@@ -2012,7 +1979,7 @@ class FractionWithFactoredDenominator(RingElement):
             for k in range(N):
                 L.append(sum([DD[(0, k, l)] / ((-1) ** k * 2 ** (l + k) *
                                                factorial(l) * factorial(l + k))
-                              for l in range(0, 2 * k + 1)]))
+                              for l in range(2 * k + 1)]))
             chunk = sum([(2 * pi) ** ((1 - d) / Integer(2)) *
                          a.determinant() ** (-ZZ.one() / Integer(2)) *
                          alpha[d - 1] ** ((ZZ.one() - d) / Integer(2) - k) *
@@ -2052,29 +2019,26 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``p`` -- a dictionary with keys that can be coerced to equal
+        - ``p`` -- dictionary with keys that can be coerced to equal
           ``self.denominator_ring.gens()``
-        - ``alpha`` -- a tuple of length ``d = self.dimension()`` of
-          positive integers or, if `p` is a smooth point,
-          possibly of symbolic variables
-        - ``N`` -- a positive integer
-        - ``asy_var`` -- (optional; default: ``None``) a symbolic variable;
-          the variable of the asymptotic expansion,
-          if none is given, ``var('r')`` will be assigned
-        - ``coordinate`` -- (optional; default: ``None``) an integer in
-          `\{0, \ldots, d-1\}` indicating a convenient coordinate to base
-          the asymptotic calculations on; if ``None`` is assigned, then
-          choose ``coordinate=d-1``
-        - ``numerical`` -- (optional; default: 0) a natural number;
-          if numerical is greater than 0, then return a numerical approximation
-          of the Maclaurin ray coefficients of ``self`` with ``numerical``
-          digits of precision; otherwise return exact values
-        - ``verbose`` -- (default: ``False``) print the current state of
+        - ``alpha`` -- tuple of length ``d = self.dimension()`` of positive
+          integers or, if `p` is a smooth point, possibly of symbolic variables
+        - ``N`` -- positive integer
+        - ``asy_var`` -- (default: ``None``) a symbolic variable; the variable
+          of the asymptotic expansion, if none is given, ``var('r')`` will be
+          assigned
+        - ``coordinate`` -- (default: ``None``) an integer in
+          `\{0, \ldots, d-1\}` indicating a convenient coordinate to base the
+          asymptotic calculations on; if ``None`` is assigned, then choose
+          ``coordinate=d-1``
+        - ``numerical`` -- (default: 0) a natural number; if numerical is
+          greater than 0, then return a numerical approximation of the
+          Maclaurin ray coefficients of ``self`` with ``numerical`` digits of
+          precision. Otherwise return exact values.
+        - ``verbose`` -- boolean (default: ``False``); print the current state of
           the algorithm
 
-        OUTPUT:
-
-        The asymptotic expansion.
+        OUTPUT: the asymptotic expansion
 
         EXAMPLES::
 
@@ -2158,7 +2122,7 @@ class FractionWithFactoredDenominator(RingElement):
         # Coerce everything into the Symbolic Ring.
         X = [SR(x) for x in R.gens()]
         G = SR(self.numerator())
-        H = [SR(h) for (h, e) in self.denominator_factored()]
+        H = [SR(h) for h, _ in self.denominator_factored()]
         Hprod = prod(H)
         n = len(H)
         P = {SR(x): p[x] for x in R.gens()}
@@ -2186,7 +2150,7 @@ class FractionWithFactoredDenominator(RingElement):
         # If P is a tuple of rationals, then compute with it directly.
         # Otherwise, compute symbolically and plug in P at the end.
         if vector(P.values()) not in QQ ** d:
-            sP = [var('p' + str(j)) for j in range(d)]
+            sP = [SR.var('p' + str(j)) for j in range(d)]
             P = {X[j]: sP[j] for j in range(d)}
             p = {sP[j]: p[X[j]] for j in range(d)}
 
@@ -2198,11 +2162,11 @@ class FractionWithFactoredDenominator(RingElement):
         L = [str(elt) for elt in X]
         while t in L:
             t = t + 't'
-        T = [var(t + str(i)) for i in range(d - 1)]
+        T = [SR.var(t + str(i)) for i in range(d - 1)]
         s = 's'
         while s in L:
             s = s + 't'
-        S = [var(s + str(i)) for i in range(n - 1)]
+        S = [SR.var(s + str(i)) for i in range(n - 1)]
         Sstar = {S[j]: Sstar[j] for j in range(n - 1)}
         thetastar = {t: ZZ.zero() for t in T}
         thetastar.update(Sstar)
@@ -2230,7 +2194,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         # Compute the derivatives of h up to order 2 * N and evaluate at P.
         hderivs1 = {}   # First derivatives of h.
-        for (i, j) in xmrange([d - 1, n], tuple):
+        for i, j in xmrange([d - 1, n], tuple):
             s = solve(diff(H[j].subs({X[d - 1]: ZZ.one() / h[j]}), X[i]),
                       diff(h[j], X[i]))[0].rhs().simplify()
             hderivs1.update({diff(h[j], X[i]): s})
@@ -2248,9 +2212,9 @@ class FractionWithFactoredDenominator(RingElement):
         if verbose:
             print("Computing derivatives of auxiliary functions...")
         m = min(n, N)
-        end = [X[d-1] for j in range(n)]
+        end = [X[d - 1] for j in range(n)]
         Hprodderivs = diff_all(Hprod, X, 2 * N - 2 + n, ending=end, sub_final=P)
-        atP.update({U.subs(P): diff(Hprod, X[d - 1], n).subs(P)/factorial(n)})
+        atP.update({U.subs(P): diff(Hprod, X[d - 1], n).subs(P) / factorial(n)})
         Uderivs = {}
         k = Hprod.polynomial(CC).degree() - n
         if k == 0:
@@ -2312,7 +2276,7 @@ class FractionWithFactoredDenominator(RingElement):
             print("Computing second-order differential operator actions...")
         DD = diff_op(AA, BB, AABB_derivs, T + S, a_inv, n, N)
         L = {}
-        for (j, k) in product(range(min(n, N)), range(max(0, N - 1 - n), N)):
+        for j, k in product(range(min(n, N)), range(max(0, N - 1 - n), N)):
             if j + k <= N - 1:
                 L[(j, k)] = sum([DD[(j, k, l)] / ((-1) ** k * 2 ** (k + l) *
                                                   factorial(l) *
@@ -2325,9 +2289,9 @@ class FractionWithFactoredDenominator(RingElement):
                            sum([L[(j, k)] * binomial(n - 1, j) *
                                 stirling_number1(n - j, n + k - q) *
                                 (-1) ** (q - j - k)
-                                for (j, k) in product(range(min(n - 1, q) + 1),
-                                                      range(max(0, q - n),
-                                                             q + 1))
+                                for j, k in product(range(min(n - 1, q) + 1),
+                                                    range(max(0, q - n),
+                                                          q + 1))
                                 if j + k <= q])
                            for q in range(N)])
         chunk = chunk.subs(P).simplify()
@@ -2354,9 +2318,9 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``p`` -- a dictionary with keys that can be coerced to equal
+        - ``p`` -- dictionary with keys that can be coerced to equal
           ``self.denominator_ring.gens()``
-        - ``alpha`` -- a list of rationals
+        - ``alpha`` -- list of rationals
 
         OUTPUT:
 
@@ -2410,7 +2374,7 @@ class FractionWithFactoredDenominator(RingElement):
         # solve_left() fails when working in SR :-(.
         # So use solve() instead.
         # Gamma.solve_left(vector(beta))
-        V = [var('sss' + str(i)) for i in range(n)]
+        V = [SR.var('sss' + str(i)) for i in range(n)]
         M = matrix(V) * Gamma
         eqns = [M[0][j] == beta[j] for j in range(d)]
         s = solve(eqns, V, solution_dict=True)[0]  # Assume a unique solution.
@@ -2419,16 +2383,14 @@ class FractionWithFactoredDenominator(RingElement):
     def grads(self, p):
         r"""
         Return a list of the gradients of the polynomials
-        ``[q for (q, e) in self.denominator_factored()]`` evaluated at ``p``.
+        ``[q for q, e in self.denominator_factored()]`` evaluated at ``p``.
 
         INPUT:
 
-        - ``p`` -- (optional; default: ``None``) a dictionary whose keys are
+        - ``p`` -- (default: ``None``) a dictionary whose keys are
           the generators of ``self.denominator_ring``
 
-        OUTPUT:
-
-        A list.
+        OUTPUT: list
 
         EXAMPLES::
 
@@ -2457,7 +2419,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         X = R.gens()
         d = self.dimension()
-        H = [h for (h, e) in self.denominator_factored()]
+        H = [h for h, _ in self.denominator_factored()]
         n = len(H)
         return [tuple([diff(H[i], X[j]).subs(p) for j in range(d)])
                 for i in range(n)]
@@ -2465,7 +2427,7 @@ class FractionWithFactoredDenominator(RingElement):
     def log_grads(self, p):
         r"""
         Return a list of the logarithmic gradients of the polynomials
-        ``[q for (q, e) in self.denominator_factored()]`` evaluated at ``p``.
+        ``[q for q, e in self.denominator_factored()]`` evaluated at ``p``.
 
         The logarithmic gradient of a function `f` at point `p` is the
         vector `(x_1 \partial_1 f(x), \ldots, x_d \partial_d f(x) )`
@@ -2473,12 +2435,10 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``p`` -- (optional; default: ``None``) a dictionary whose keys
+        - ``p`` -- (default: ``None``) a dictionary whose keys
           are the generators of ``self.denominator_ring``
 
-        OUTPUT:
-
-        A list.
+        OUTPUT: list
 
         EXAMPLES::
 
@@ -2507,7 +2467,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         X = R.gens()
         d = self.dimension()
-        H = [h for (h, e) in self.denominator_factored()]
+        H = [h for h, _ in self.denominator_factored()]
         n = len(H)
         return [tuple([(X[j] * diff(H[i], X[j])).subs(p) for j in range(d)])
                 for i in range(n)]
@@ -2518,13 +2478,11 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``p`` -- a dictionary with keys that can be coerced to equal
+        - ``p`` -- dictionary with keys that can be coerced to equal
           ``self.denominator_ring.gens()`` and values in a field
-        - ``coordinate`` -- (optional; default: ``None``) a natural number
+        - ``coordinate`` -- (default: ``None``) a natural number
 
-        OUTPUT:
-
-        A list of vectors.
+        OUTPUT: list of vectors
 
         This list of vectors generate the critical cone of ``p`` and
         the cone itself, which is ``None`` if the values of ``p`` don't lie in
@@ -2575,7 +2533,7 @@ class FractionWithFactoredDenominator(RingElement):
 
     def is_convenient_multiple_point(self, p):
         r"""
-        Tests if ``p`` is a convenient multiple point of ``self``.
+        Test if ``p`` is a convenient multiple point of ``self``.
 
         In case ``p`` is a convenient multiple point, ``verdict = True`` and
         ``comment`` is a string stating which variables it's convenient to use.
@@ -2586,7 +2544,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``p`` -- a dictionary with keys that can be coerced to equal
+        - ``p`` -- dictionary with keys that can be coerced to equal
           ``self.denominator_ring.gens()``
 
         OUTPUT:
@@ -2617,7 +2575,7 @@ class FractionWithFactoredDenominator(RingElement):
         # Coerce keys of p into R.
         p = coerce_point(R, p)
 
-        H = [h for (h, e) in self.denominator_factored()]
+        H = [h for h, _ in self.denominator_factored()]
         n = len(H)
         d = self.dimension()
 
@@ -2646,10 +2604,8 @@ class FractionWithFactoredDenominator(RingElement):
 
         # Test 4: Is p convenient?
         M = matrix(self.log_grads(p))
-        convenient_coordinates = []
-        for j in range(d):
-            if 0 not in M.columns()[j]:
-                convenient_coordinates.append(j)
+        cols = M.columns()
+        convenient_coordinates = [j for j, c in enumerate(cols) if 0 not in c]
         if not convenient_coordinates:
             return (False, 'multiple point but not convenient')
 
@@ -2670,9 +2626,7 @@ class FractionWithFactoredDenominator(RingElement):
         then the output is the ideal of the singular locus (which
         is a variety) of the variety of `H`.
 
-        OUTPUT:
-
-        An ideal.
+        OUTPUT: an ideal
 
         EXAMPLES::
 
@@ -2689,7 +2643,7 @@ class FractionWithFactoredDenominator(RingElement):
         """
         R = self.denominator_ring
 
-        Hred = prod([h for (h, e) in self.denominator_factored()])
+        Hred = prod([h for h, _ in self.denominator_factored()])
         J = R.ideal([Hred] + Hred.gradient())
         return R.ideal(J.groebner_basis())
 
@@ -2707,12 +2661,10 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``alpha`` -- a tuple of positive integers and/or symbolic entries
+        - ``alpha`` -- tuple of positive integers and/or symbolic entries
           of length ``self.denominator_ring.ngens()``
 
-        OUTPUT:
-
-        An ideal.
+        OUTPUT: an ideal
 
         EXAMPLES::
 
@@ -2740,15 +2692,13 @@ class FractionWithFactoredDenominator(RingElement):
         from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 
         R = self.denominator_ring
-        Hred = prod([h for (h, e) in self.denominator_factored()])
+        Hred = prod([h for h, _ in self.denominator_factored()])
         K = R.base_ring()
         d = self.dimension()
 
         # Expand K by the variables of alpha if there are any.
-        indets = []
-        for a in alpha:
-            if a not in K and a in SR:
-                indets.append(a)
+        indets = [a for a in alpha if a not in K and a in SR]
+
         indets = sorted(set(indets), key=str)   # Delete duplicates in indets.
         if indets:
             L = PolynomialRing(K, indets).fraction_field()
@@ -2774,11 +2724,11 @@ class FractionWithFactoredDenominator(RingElement):
 
         INPUT:
 
-        - ``multi_indices`` -- a list of tuples of positive integers, where
+        - ``multi_indices`` -- list of tuples of positive integers, where
           each tuple has length ``self.dimension()``
-        - ``numerical`` -- (optional; default: 0) a natural number; if
-          positive, return numerical approximations of coefficients with
-          ``numerical`` digits of accuracy
+        - ``numerical`` -- (default: 0) a natural number; if positive, return
+          numerical approximations of coefficients with ``numerical`` digits of
+          accuracy
 
         OUTPUT:
 
@@ -2844,9 +2794,7 @@ class FractionWithFactoredDenominator(RingElement):
             return coeffs
 
         # Create biggest multi-index needed.
-        alpha = []
-        for i in range(d):
-            alpha.append(max(nu[i] for nu in multi_indices))
+        alpha = [max(nu[i] for nu in multi_indices) for i in range(d)]
 
         # Compute Maclaurin expansion of self up to index alpha.
         # Use iterated univariate expansions.
@@ -2879,14 +2827,12 @@ class FractionWithFactoredDenominator(RingElement):
 
         - ``approx`` -- an individual or list of symbolic expressions in
           one variable
-        - ``alpha`` - a list of positive integers of length
+        - ``alpha`` -- list of positive integers of length
           ``self.denominator_ring.ngens()``
-        - ``interval`` -- a list of positive integers
-        - ``exp_scale`` -- (optional; default: 1) a number
+        - ``interval`` -- list of positive integers
+        - ``exp_scale`` -- (default: 1) a number
 
-        OUTPUT:
-
-        A list of tuples with properties described below.
+        OUTPUT: list of tuples with properties described below
 
         This outputs a list whose entries are a tuple
         ``(r*alpha, a_r, b_r, err_r)`` for ``r`` in ``interval``.
@@ -2936,7 +2882,7 @@ class FractionWithFactoredDenominator(RingElement):
         alpha = vector(alpha)
         multi_indices = [r * alpha for r in interval]
         mac = self.maclaurin_coefficients(multi_indices, numerical=digits)
-        #mac = self.old_maclaurin_coefficients(alpha, max(interval))
+        # mac = self.old_maclaurin_coefficients(alpha, max(interval))
         mac_approx = {}
         stats = []
         for r in interval:
@@ -2947,7 +2893,7 @@ class FractionWithFactoredDenominator(RingElement):
                                 for f in approx]
             stats_row = [beta, mac[beta], mac_approx[beta]]
             if mac[beta] == 0:
-                stats_row.extend([None for a in mac_approx[beta]])
+                stats_row.extend(None for _ in mac_approx[beta])
             else:
                 stats_row.append([(mac[beta] - a) / mac[beta]
                                   for a in mac_approx[beta]])
@@ -2956,7 +2902,7 @@ class FractionWithFactoredDenominator(RingElement):
 
     def _add_(left, right):
         r"""
-        Returns the sum of ``left`` with ``right``.
+        Return the sum of ``left`` with ``right``.
 
         INPUT:
 
@@ -2964,9 +2910,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         - ``right`` -- the right summand
 
-        OUTPUT:
-
-        The sum as a new element.
+        OUTPUT: the sum as a new element
 
         EXAMPLES::
 
@@ -2983,7 +2927,7 @@ class FractionWithFactoredDenominator(RingElement):
 
     def _mul_(left, right):
         r"""
-        Returns the product of ``left`` with ``right``.
+        Return the product of ``left`` with ``right``.
 
         INPUT:
 
@@ -2991,9 +2935,7 @@ class FractionWithFactoredDenominator(RingElement):
 
         - ``right`` -- the right factor
 
-        OUTPUT:
-
-        The product as a new element.
+        OUTPUT: the product as a new element
 
         EXAMPLES::
 
@@ -3010,7 +2952,7 @@ class FractionWithFactoredDenominator(RingElement):
         return left.parent()(numer, df)
 
 
-class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
+class FractionWithFactoredDenominatorRing(UniqueRepresentation, Parent):
     r"""
     This is the ring of fractions with factored denominator.
 
@@ -3053,7 +2995,8 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
             sage: from sage.rings.asymptotic.asymptotics_multivariate_generating_functions import FractionWithFactoredDenominatorRing
             sage: R.<x,y> = PolynomialRing(QQ)
             sage: FFPD1 = FractionWithFactoredDenominatorRing(R)
-            sage: FFPD2 = FractionWithFactoredDenominatorRing(R, R, Rings())
+            sage: cat = Rings().Commutative()
+            sage: FFPD2 = FractionWithFactoredDenominatorRing(R, R, cat)
             sage: FFPD1 is FFPD2
             True
         """
@@ -3063,7 +3006,7 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
             raise ValueError('numerator ring {} has no coercion map from the '
                              'denominator ring {}'.format(
                                  numerator_ring, denominator_ring))
-        category = Rings().or_subcategory(category)
+        category = Rings().Commutative().or_subcategory(category)
         return super().__classcall__(cls, denominator_ring,
                                      numerator_ring, category)
 
@@ -3081,15 +3024,13 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
         """
         self._numerator_ring = numerator_ring
         self._denominator_ring = denominator_ring
-        Ring.__init__(self, denominator_ring, category=category)
+        Parent.__init__(self, denominator_ring, category=category)
 
-    def _repr_(self):
+    def _repr_(self) -> str:
         r"""
-        Returns a representation.
+        Return a representation.
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         TESTS::
 
@@ -3104,11 +3045,9 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
 
     def base_ring(self):
         r"""
-        Returns the base ring.
+        Return the base ring.
 
-        OUTPUT:
-
-        A ring.
+        OUTPUT: a ring
 
         EXAMPLES::
 
@@ -3126,7 +3065,7 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
 
     def _element_constructor_(self, *args, **kwargs):
         r"""
-        Returns an element of this ring.
+        Return an element of this ring.
 
         See :class:`FractionWithFactoredDenominator` for details.
 
@@ -3224,9 +3163,9 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
             p = numerator
             q = R(denominator)
 
-            from sage.rings.polynomial.polynomial_ring import is_PolynomialRing
-            from sage.rings.polynomial.multi_polynomial_ring_base import is_MPolynomialRing
-            if is_PolynomialRing(R) or is_MPolynomialRing(R):
+            from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
+            from sage.rings.polynomial.multi_polynomial_ring_base import MPolynomialRing_base
+            if isinstance(R, (PolynomialRing_generic, MPolynomialRing_base)):
                 if not R(q).is_unit():
                     # Factor denominator
                     try:
@@ -3249,15 +3188,13 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
 
     def _coerce_map_from_(self, P):
         r"""
-        Checks if there is a coercion from the given parent.
+        Check if there is a coercion from the given parent.
 
         INPUT:
 
         - ``P`` -- a parent
 
-        OUTPUT:
-
-        ``True`` if there is a coercion, otherwise ``False`` or ``None``.
+        OUTPUT: ``True`` if there is a coercion, otherwise ``False`` or ``None``
 
         TESTS::
 
@@ -3291,25 +3228,20 @@ class FractionWithFactoredDenominatorRing(UniqueRepresentation, Ring):
             if self.base().has_coerce_map_from(P.base()):
                 return True
 
-        from sage.rings.fraction_field import is_FractionField
-        if is_FractionField(P):
+        from sage.rings.fraction_field import FractionField_generic
+        if isinstance(P, FractionField_generic):
             B = P.base()
-            from sage.rings.polynomial.polynomial_ring import is_PolynomialRing
-            from sage.rings.polynomial.multi_polynomial_ring_base import is_MPolynomialRing
-            if is_PolynomialRing(B) or is_MPolynomialRing(B):
-                if self.base().has_coerce_map_from(B):
-                    return True
+            from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
+            from sage.rings.polynomial.multi_polynomial_ring_base import MPolynomialRing_base
+            if isinstance(B, (PolynomialRing_generic, MPolynomialRing_base)) and self.base().has_coerce_map_from(B):
+                return True
 
         if self.base().has_coerce_map_from(P):
             return True
 
     def _an_element_(self):
         r"""
-        Returns an element.
-
-        OUTPUT:
-
-        An element.
+        Return an element.
 
         TESTS::
 
@@ -3337,13 +3269,11 @@ class FractionWithFactoredDenominatorSum(list):
     - Daniel Krenn (2014-12-01)
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r"""
         Return a string representation of ``self``.
 
-        OUTPUT:
-
-        A string.
+        OUTPUT: string
 
         EXAMPLES::
 
@@ -3357,13 +3287,11 @@ class FractionWithFactoredDenominatorSum(list):
         """
         return ' + '.join(repr(r) for r in self)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         r"""
         Return ``True`` if ``self`` is equal to ``other``.
 
-        OUTPUT:
-
-        A boolean.
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -3383,13 +3311,11 @@ class FractionWithFactoredDenominatorSum(list):
         return (sorted(self, key=methodcaller('_total_order_key_')) ==
                 sorted(other, key=methodcaller('_total_order_key_')))
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         r"""
         Return ``True`` if ``self`` is not equal to ``other``.
 
-        OUTPUT:
-
-        A boolean.
+        OUTPUT: boolean
 
         EXAMPLES::
 
@@ -3412,9 +3338,7 @@ class FractionWithFactoredDenominatorSum(list):
         r"""
         Return the polynomial ring of the denominators of ``self``.
 
-        OUTPUT:
-
-        A ring or ``None`` if the list is empty.
+        OUTPUT: a ring or ``None`` if the list is empty
 
         EXAMPLES::
 
@@ -3439,9 +3363,7 @@ class FractionWithFactoredDenominatorSum(list):
         Rewrite ``self`` as a sum of a (possibly zero) polynomial
         followed by reduced rational expressions.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         Only useful for multivariate decompositions.
 
@@ -3496,9 +3418,7 @@ class FractionWithFactoredDenominatorSum(list):
         Combine terms in ``self`` with the same denominator.
         Only useful for multivariate decompositions.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominatorSum`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominatorSum`
 
         EXAMPLES::
 
@@ -3551,9 +3471,7 @@ class FractionWithFactoredDenominatorSum(list):
         r"""
         Return the sum of the elements in ``self``.
 
-        OUTPUT:
-
-        An instance of :class:`FractionWithFactoredDenominator`.
+        OUTPUT: an instance of :class:`FractionWithFactoredDenominator`
 
         EXAMPLES::
 
@@ -3580,7 +3498,7 @@ class FractionWithFactoredDenominatorSum(list):
 
         # Compute the sum's numerator and denominator.
         R = self.denominator_ring
-        summy = sum((f.quotient() for f in self))
+        summy = sum(f.quotient() for f in self)
         numer = summy.numerator()
         denom = R(summy.denominator())
 
@@ -3594,7 +3512,7 @@ class FractionWithFactoredDenominatorSum(list):
 
         factors = []
         for f in self:
-            factors.extend([q for (q, e) in f.denominator_factored()])
+            factors.extend(q for q, _ in f.denominator_factored())
 
         # Eliminate repeats from factors and sort.
         factors = sorted(set(factors))
@@ -3614,7 +3532,7 @@ class FractionWithFactoredDenominatorSum(list):
 
 
 #####################################################################
-## Helper functions
+#  Helper functions
 
 
 def diff_prod(f_derivs, u, g, X, interval, end, uderivs, atc):
@@ -3624,21 +3542,21 @@ def diff_prod(f_derivs, u, g, X, interval, end, uderivs, atc):
 
     INPUT:
 
-    - ``f_derivs`` -- a dictionary whose keys are all tuples of the form
+    - ``f_derivs`` -- dictionary whose keys are all tuples of the form
       ``s + end``, where ``s`` is a sequence of variables from ``X`` whose
       length lies in ``interval``, and whose values are the derivatives
       of a function `f` evaluated at `c`
     - ``u`` -- a callable symbolic function
     - ``g`` -- an expression or callable symbolic function
-    - ``X`` -- a list of symbolic variables
-    - ``interval`` -- a list of positive integers
+    - ``X`` -- list of symbolic variables
+    - ``interval`` -- list of positive integers
       Call the first and last values `n` and `nn`, respectively
     - ``end`` -- a possibly empty list of repetitions of the
       variable ``z``, where ``z`` is the last element of ``X``
-    - ``uderivs`` -- a dictionary whose keys are the symbolic
+    - ``uderivs`` -- dictionary whose keys are the symbolic
       derivatives of order 0 to order `n-1` of ``u`` evaluated at `c`
       and whose values are the corresponding derivatives evaluated at `c`
-    - ``atc`` -- a dictionary whose keys are the keys of `c` and all
+    - ``atc`` -- dictionary whose keys are the keys of `c` and all
       the symbolic derivatives of order 0 to order `nn` of ``g``
       evaluated `c` and whose values are the corresponding
       derivatives evaluated at `c`
@@ -3701,53 +3619,6 @@ def diff_prod(f_derivs, u, g, X, interval, end, uderivs, atc):
     return uderivs
 
 
-def permutation_sign(s, u):
-    r"""
-    This function returns the sign of the permutation on
-    ``1, ..., len(u)`` that is induced by the sublist ``s`` of ``u``.
-
-    .. NOTE::
-
-        This function was intended for internal use and is deprecated now
-        (:trac:`29465`).
-
-    INPUT:
-
-    - ``s`` -- a sublist of ``u``
-    - ``u`` -- a list
-
-    OUTPUT:
-
-    The sign of the permutation obtained by taking indices
-    within ``u`` of the list ``s + sc``, where ``sc`` is ``u``
-    with the elements of ``s`` removed.
-
-    EXAMPLES::
-
-        sage: from sage.rings.asymptotic.asymptotics_multivariate_generating_functions import permutation_sign
-        sage: u = ['a', 'b', 'c', 'd', 'e']
-        sage: s = ['b', 'd']
-        sage: permutation_sign(s, u)
-        doctest:...: DeprecationWarning: the function permutation_sign is deprecated
-        See https://github.com/sagemath/sage/issues/29465 for details.
-        -1
-        sage: s = ['d', 'b']
-        sage: permutation_sign(s, u)
-        1
-    """
-    from sage.misc.superseded import deprecation
-    deprecation(29465, 'the function permutation_sign is deprecated')
-    from sage.combinat.permutation import Permutation
-
-    # Convert lists to lists of numbers in {1,..., len(u)}
-    A = [i + 1 for i in range(len(u))]
-    B = [u.index(x) + 1 for x in s]
-
-    C = sorted(set(A).difference(set(B)))
-    P = Permutation(B + C)
-    return P.signature()
-
-
 def subs_all(f, sub, simplify=False):
     r"""
     Return the items of `f` substituted by the dictionaries
@@ -3758,7 +3629,7 @@ def subs_all(f, sub, simplify=False):
     - ``f`` -- an individual or list of symbolic expressions
       or dictionaries
     - ``sub`` -- an individual or list of dictionaries
-    - ``simplify`` -- (default: ``False``) boolean; set to ``True`` to
+    - ``simplify`` -- boolean (default: ``False``); set to ``True`` to
       simplify the result
 
     OUTPUT:
@@ -3829,7 +3700,7 @@ def subs_all(f, sub, simplify=False):
 
 
 def diff_all(f, V, n, ending=[], sub=None, sub_final=None,
-              zero_order=0, rekey=None):
+             zero_order=0, rekey=None):
     r"""
     Return a dictionary of representative mixed partial
     derivatives of `f` from order 1 up to order `n` with respect to the
@@ -3841,17 +3712,15 @@ def diff_all(f, V, n, ending=[], sub=None, sub_final=None,
     INPUT:
 
     - ``f`` -- an individual or list of `\mathcal{C}^{n+1}` functions
-    - ``V`` -- a list of variables occurring in `f`
+    - ``V`` -- list of variables occurring in `f`
     - ``n`` -- a natural number
-    - ``ending`` -- a list of variables in `V`
+    - ``ending`` -- list of variables in `V`
     - ``sub`` -- an individual or list of dictionaries
     - ``sub_final`` -- an individual or list of dictionaries
     - ``rekey`` -- a callable symbolic function in `V` or list thereof
     - ``zero_order`` -- a natural number
 
-    OUTPUT:
-
-    The dictionary ``{s_1:deriv_1, ..., sr:deriv_r}``.
+    OUTPUT: the dictionary ``{s_1:deriv_1, ..., sr:deriv_r}``
 
     Here ``s_1, ..., s_r`` is a listing of
     all nondecreasing sequences of length 1 up to length `n` over the
@@ -3989,8 +3858,8 @@ def diff_op(A, B, AB_derivs, V, M, r, N):
 
     - ``A`` -- a single or length ``r`` list of symbolic functions in the
       variables ``V``
-    - ``B`` -- a symbolic function in the variables ``V``.
-    - ``AB_derivs`` -- a dictionary whose keys are the (symbolic)
+    - ``B`` -- a symbolic function in the variables ``V``
+    - ``AB_derivs`` -- dictionary whose keys are the (symbolic)
       derivatives of ``A[0], ..., A[r-1]`` up to order ``2 * N-2`` and
       the (symbolic) derivatives of ``B`` up to order ``2 * N``;
       the values of the dictionary are complex numbers that are
@@ -3998,11 +3867,9 @@ def diff_op(A, B, AB_derivs, V, M, r, N):
     - ``V`` -- the variables of the ``A[j]`` and ``B``
     - ``M`` -- a symmetric `l \times l` matrix, where `l` is the
       length of ``V``
-    - ``r, N`` -- natural numbers
+    - ``r``, ``N`` -- natural numbers
 
-    OUTPUT:
-
-    A dictionary.
+    OUTPUT: a dictionary
 
     The output is
     a dictionary whose keys are natural number tuples of the form
@@ -4026,7 +3893,7 @@ def diff_op(A, B, AB_derivs, V, M, r, N):
         sage: B = function('B')(*tuple(T))
         sage: AB_derivs = {}
         sage: M = matrix([[1, 2],[2, 1]])
-        sage: DD = diff_op(A, B, AB_derivs, T, M, 1, 2)  # long time (see :trac:`35207`)
+        sage: DD = diff_op(A, B, AB_derivs, T, M, 1, 2)  # long time (see :issue:`35207`)
         sage: sorted(DD)                                 # long time
         [(0, 0, 0), (0, 1, 0), (0, 1, 1), (0, 1, 2)]
         sage: DD[(0, 1, 2)].number_of_operands()         # long time
@@ -4066,7 +3933,7 @@ def diff_op(A, B, AB_derivs, V, M, r, N):
                     idx = (j, k, l) + diff_seq(V, t)
                     if product_derivs[idx] != ZZ.zero():
                         MM = ZZ.one()
-                        for (a, b) in t:
+                        for a, b in t:
                             MM *= M[a][b]
                             if a != b:
                                 MM *= Integer(2)
@@ -4083,8 +3950,8 @@ def diff_seq(V, s):
 
     INPUT:
 
-    - ``V`` -- a list
-    - ``s`` -- a list of tuples of natural numbers in the interval
+    - ``V`` -- list
+    - ``s`` -- list of tuples of natural numbers in the interval
       ``range(len(V))``
 
     OUTPUT:
@@ -4115,7 +3982,7 @@ def diff_op_simple(A, B, AB_derivs, x, v, a, N):
     various natural numbers `e, k, l` that depend on `v` and `N`.
 
     Here `DD` is a specific linear differential operator that depends
-    on `a` and `v` , `A` and `B` are symbolic functions, and `AB_derivs`
+    on `a` and `v` , `A` and `B` are symbolic functions, and ``AB_derivs``
     contains all the derivatives of `A` and `B` evaluated at `p` that are
     necessary for the computation.
 
@@ -4126,8 +3993,8 @@ def diff_op_simple(A, B, AB_derivs, x, v, a, N):
 
     INPUT:
 
-    - ``A, B`` -- Symbolic functions in the variable ``x``
-    - ``AB_derivs`` - a dictionary whose keys are the (symbolic)
+    - ``A``, ``B`` -- symbolic functions in the variable ``x``
+    - ``AB_derivs`` -- dictionary whose keys are the (symbolic)
       derivatives of ``A`` up to order ``2 * N`` if ``v`` is even or
       ``N`` if ``v`` is odd and the (symbolic) derivatives of ``B``
       up to order ``2 * N + v`` if ``v`` is even or ``N + v``
@@ -4135,11 +4002,9 @@ def diff_op_simple(A, B, AB_derivs, x, v, a, N):
       that are the keys evaluated at a common point `p`
     - ``x`` -- a symbolic variable
     - ``a`` -- a complex number
-    - ``v, N`` -- natural numbers
+    - ``v``, ``N`` -- natural numbers
 
-    OUTPUT:
-
-    A dictionary.
+    OUTPUT: a dictionary
 
     The output is
     a dictionary whose keys are natural number pairs of the form `(k, l)`,
@@ -4190,7 +4055,7 @@ def direction(v, coordinate=None):
     INPUT:
 
     - ``v`` -- a vector
-    - ``coordinate`` -- (optional; default: ``None``) an index for ``v``
+    - ``coordinate`` -- (default: ``None``) an index for ``v``
 
     EXAMPLES::
 

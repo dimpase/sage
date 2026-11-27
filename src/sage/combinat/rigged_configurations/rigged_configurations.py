@@ -1,10 +1,10 @@
 # sage.doctest: needs sage.combinat sage.modules
 r"""
-Rigged Configurations
+Rigged configurations
 
 AUTHORS:
 
-- Travis Scrimshaw (2010-09-26): Initial version
+- Travis Scrimshaw (2010-09-26): initial version
 """
 
 # ****************************************************************************
@@ -30,7 +30,7 @@ from sage.structure.global_options import GlobalOptions
 from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.combinat.misc import IterableFunctionCall
-import sage.combinat.tableau as tableau
+from sage.combinat import tableau
 from sage.rings.rational_field import QQ
 from sage.categories.loop_crystals import KirillovReshetikhinCrystals
 from sage.combinat.root_system.cartan_type import CartanType
@@ -123,7 +123,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
     :class:`~sage.combinat.rigged_configurations.tensor_product_kr_tableaux.TensorProductOfKirillovReshetikhinTableaux`
     of non-exceptional affine types where the list `B` corresponds to the
     tensor factors `B^{r,s}`. The bijection has been proven in types `A_n^{(1)}`
-    and `D_n^{(1)}` and when the only non-zero entries of `L_i^{(a)}` are either
+    and `D_n^{(1)}` and when the only nonzero entries of `L_i^{(a)}` are either
     only `L_1^{(a)}` or only `L_i^{(1)}` (corresponding to single columns or
     rows respectively) [RigConBijection]_, [BijectionLRT]_, [BijectionDn]_.
 
@@ -146,37 +146,22 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
 
     - ``cartan_type`` -- a Cartan type
 
-    - ``B`` -- a list of positive integer tuples `(r,s)` corresponding to the
+    - ``B`` -- list of positive integer tuples `(r,s)` corresponding to the
       tensor factors in the bijection with tensor product of
       Kirillov-Reshetikhin tableaux or equivalently the sequence of width `s`
       and height `r` rectangles
 
     REFERENCES:
 
-    .. [HKOTT2002] \G. Hatayama, A. Kuniba, M. Okado, T. Takagi, Z. Tsuboi.
-       Paths, Crystals and Fermionic Formulae.
-       Prog. Math. Phys. **23** (2002) Pages 205-272.
+    - [HKOTT2002]_
 
-    .. [CrysStructSchilling06] Anne Schilling.
-       Crystal structure on rigged configurations.
-       International Mathematics Research Notices.
-       Volume 2006. (2006) Article ID 97376. Pages 1-27.
+    - [CrysStructSchilling06]_
 
-    .. [RigConBijection] Masato Okado, Anne Schilling, Mark Shimozono.
-       A crystal to rigged configuration bijection for non-exceptional affine
-       algebras.
-       Algebraic Combinatorics and Quantum Groups.
-       Edited by N. Jing. World Scientific. (2003) Pages 85-124.
+    - [RigConBijection]_
 
-    .. [BijectionDn] Anne Schilling.
-       A bijection between type `D_n^{(1)}` crystals and rigged configurations.
-       J. Algebra. **285** (2005) 292-334
+    - [BijectionDn]_
 
-    .. [BijectionLRT] Anatol N. Kirillov, Anne Schilling, Mark Shimozono.
-       A bijection between Littlewood-Richardson tableaux and rigged
-       configurations.
-       Selecta Mathematica (N.S.). **8** (2002) Pages 67-135.
-       (:mathscinet:`MR1890195`).
+    - [BijectionLRT]_
 
     EXAMPLES::
 
@@ -391,7 +376,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
     # add options to class
     class options(GlobalOptions):
         r"""
-        Sets and displays the options for rigged configurations.
+        Set and display the options for rigged configurations.
         If no parameters are set, then the function returns a copy of
         the options dictionary.
 
@@ -414,7 +399,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
             <BLANKLINE>
             -1[ ]-1
             <BLANKLINE>
-            sage: RiggedConfigurations.options(display="horizontal", convention="french")
+            sage: RiggedConfigurations.options(display='horizontal', convention='french')
             sage: elt
             -1[ ]-1         1[ ][ ][ ]1   -1[ ]-1
             -3[ ][ ][ ]-3
@@ -437,7 +422,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
         """
         NAME = 'RiggedConfigurations'
         module = 'sage.combinat.rigged_configurations.rigged_configurations'
-        display = dict(default="vertical",
+        display = dict(default='vertical',
                      description='Specifies how rigged configurations should be printed',
                      values=dict(vertical='displayed vertically',
                                  horizontal='displayed horizontally'),
@@ -531,7 +516,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
 
         TESTS:
 
-        We check that this works with relabelled Cartan types (:trac:`16876`)::
+        We check that this works with relabelled Cartan types (:issue:`16876`)::
 
             sage: ct = CartanType(['A',3,1]).relabel(lambda x: x+2)
             sage: RC = RiggedConfigurations(ct, [[4,1],[5,1]])
@@ -597,9 +582,9 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
 
             C = itertools.product(*L)
             for curBlocks in C:
-                module_gens.append( self.element_class(self, KT_constructor=[shapes[:],
-                                         self._blocks_to_values(curBlocks[:]),
-                                         vac_nums[:]]) )
+                module_gens.append(self.element_class(self, KT_constructor=[shapes[:],
+                                        self._blocks_to_values(curBlocks[:]),
+                                        vac_nums[:]]))
 
         return tuple(module_gens)
 
@@ -612,7 +597,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
 
         INPUT:
 
-        - ``container`` -- a list of widths of the rows of the container
+        - ``container`` -- list of widths of the rows of the container
 
         TESTS::
 
@@ -731,7 +716,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
 
         TESTS:
 
-        Check that :trac:`17054` is fixed::
+        Check that :issue:`17054` is fixed::
 
             sage: B = crystals.infinity.RiggedConfigurations(['A',2])
             sage: RC = RiggedConfigurations(['A',2,1], [[1,1]]*4 + [[2,1]]*4)
@@ -879,7 +864,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
         where we sum over all (classically highest weight) rigged
         configurations of weight `\lambda` where `cc` is the
         :meth:`cocharge statistic
-        <sage.combinat.rigged_configurations.rigged_configuration_element.RiggedConfigurationElement.cc>`.
+        <sage.combinat.rigged_configurations.rigged_configuration_element.KRRCSimplyLacedElement.cc>`.
         This is known to reduce to
 
         .. MATH::
@@ -897,7 +882,7 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
 
         This is conjecturally equal to the
         :meth:`one dimensional configuration sum
-        <sage.combinat.crystals.tensor_product.CrystalOfWords.one_dimensional_configuration_sum>`
+        <sage.categories.loop_crystals.KirillovReshetikhinCrystals.TensorProducts.ParentMethods.one_dimensional_configuration_sum>`
         of the corresponding tensor product of Kirillov-Reshetikhin crystals, see [HKOTT2002]_.
         This has been proven in general for type `A_n^{(1)}` [BijectionLRT]_,
         single factors `B^{r,s}` in type `D_n^{(1)}` [OSS2011]_ with the result
@@ -915,14 +900,9 @@ class RiggedConfigurations(UniqueRepresentation, Parent):
 
         REFERENCES:
 
-        .. [OSS2003] Masato Okado, Anne Schilling, and Mark Shimozono.
-           Virtual crystals and fermionic formulas of type `D_{n+1}^{(2)}`,
-           `A_{2n}^{(2)}`, and `C_n^{(1)}`. Representation Theory. **7** (2003)
-           :arxiv:`math.QA/0105017`.
+        - [OSS2003]_
 
-        .. [Sakamoto13] Reiho Sakamoto.
-           Rigged configurations and Kashiwara operators.
-           (2013) :arxiv:`1302.4562v1`.
+        - [Sakamoto13]_
 
         EXAMPLES::
 
@@ -1111,7 +1091,7 @@ class RCNonSimplyLaced(RiggedConfigurations):
             sage: TestSuite(RC).run() # long time
             sage: RC = RiggedConfigurations(['A',5,2], [[2,1]])
             sage: TestSuite(RC).run() # long time
-         """
+        """
         self._folded_ct = cartan_type.as_folding()
         RiggedConfigurations.__init__(self, cartan_type, dims)
 
@@ -1271,8 +1251,8 @@ class RCNonSimplyLaced(RiggedConfigurations):
 
             C = itertools.product(*L)
             for cur_blocks in C:
-                module_gens.append( self.element_class(self, KT_constructor=[shapes[:],
-                                         self._blocks_to_values(cur_blocks[:]), vac_nums[:]]) )
+                module_gens.append(self.element_class(self, KT_constructor=[shapes[:],
+                                         self._blocks_to_values(cur_blocks[:]), vac_nums[:]]))
 
         return tuple(module_gens)
 
@@ -1549,7 +1529,7 @@ class RCTypeA2Even(RCNonSimplyLaced):
         for a,rp in enumerate(rc):
             g = gamma[a+1]
             for i in sigma[a+1]:
-                partitions[i-1] = RiggedPartition([row_len for row_len in rp._list],
+                partitions[i-1] = RiggedPartition(list(rp._list),
                                                   [rig_val*g for rig_val in rp.rigging],
                                                   [vac_num*g for vac_num in rp.vacancy_numbers])
         return self.virtual.element_class(self.virtual, partitions, use_vacancy_numbers=True)
@@ -1585,7 +1565,7 @@ class RCTypeA2Even(RCNonSimplyLaced):
         for a in range(n):
             rp = vrc[sigma[a+1][0] - 1]
             g = gamma[a+1]
-            partitions[a] = RiggedPartition([row_len for row_len in rp._list],
+            partitions[a] = RiggedPartition(list(rp._list),
                                             [rig_val//g for rig_val in rp.rigging],
                                             [vac_val//g for vac_val in rp.vacancy_numbers])
         return self.element_class(self, partitions, use_vacancy_numbers=True)
@@ -1791,8 +1771,8 @@ class RCTypeA2Dual(RCTypeA2Even):
 
             C = itertools.product(*L)
             for curBlocks in C:
-                module_gens.append( self.element_class(self, KT_constructor=[shapes[:],
-                                         self._blocks_to_values(curBlocks[:]), vac_nums[:]]) )
+                module_gens.append(self.element_class(self, KT_constructor=[shapes[:],
+                                        self._blocks_to_values(curBlocks[:]), vac_nums[:]]))
 
         return tuple(module_gens)
 
@@ -1806,7 +1786,7 @@ class RCTypeA2Dual(RCTypeA2Even):
 
         INPUT:
 
-        - ``container`` -- a list the widths of the rows of the container
+        - ``container`` -- list the widths of the rows of the container
 
         TESTS::
 
@@ -1874,7 +1854,7 @@ class RCTypeA2Dual(RCTypeA2Even):
         for a,rp in enumerate(rc):
             g = gammatilde[a+1]
             for i in sigma[a+1]:
-                partitions[i-1] = RiggedPartition([row_len for row_len in rp._list],
+                partitions[i-1] = RiggedPartition(list(rp._list),
                                                   [rig_val*g for rig_val in rp.rigging])
         return self.virtual.element_class(self.virtual, partitions)
 
@@ -1910,7 +1890,7 @@ class RCTypeA2Dual(RCTypeA2Even):
         for a in range(n):
             rp = vrc[sigma[a+1][0] - 1]
             g = gammatilde[a+1]
-            partitions[a] = RiggedPartition([row_len for row_len in rp._list],
+            partitions[a] = RiggedPartition(list(rp._list),
                                             [rig_val/g for rig_val in rp.rigging])
         return self.element_class(self, partitions)
 

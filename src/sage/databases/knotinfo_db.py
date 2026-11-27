@@ -1,15 +1,27 @@
-# -*- coding: utf-8 -*-
 r"""
-KnotInfo Database
+KnotInfo database
 
-This module contains the class :class:`KnotInfoDataBase`  and auxiliary classes
-for it which serves as an interface to the lists of named knots and links provided
-at the web-pages `KnotInfo <https://knotinfo.math.indiana.edu/>`__ and
-`LinkInfo <https://linkinfo.sitehost.iu.edu>`__.
+This module contains the class :class:`KnotInfoDataBase` and auxiliary classes
+for it, which serves as an interface to the lists of named knots and links provided
+at the web-pages `KnotInfo <https://knotinfo.org/>`__ and
+`LinkInfo <https://link-info-repo.onrender.com/>`__.
+
+To use the database, you need to install the optional :ref:`database_knotinfo
+<spkg_database_knotinfo>` package by the Sage command ::
+
+    sage -i database_knotinfo
+
+EXAMPLES::
+
+    sage: # optional - database_knotinfo
+    sage: from sage.databases.knotinfo_db import KnotInfoDataBase
+    sage: ki_db = KnotInfoDataBase()
+    sage: ki_db
+    <sage.databases.knotinfo_db.KnotInfoDataBase object at ...>
 
 AUTHORS:
 
-- Sebastian Oehms August 2020: initial version
+- Sebastian Oehms (2020-08): initial version
 """
 ##############################################################################
 #       Copyright (C) 2020 Sebastian Oehms <seb.oehms@gmail.com>
@@ -29,12 +41,15 @@ from sage.misc.persist import save, load
 from sage.misc.verbose import verbose
 from sage.misc.cachefunc import cached_method
 
+columns_white_list = ['knot_atlas_anon', 'knotilus_page_anon']
+columns_black_list = ['homfly_polynomial_old']
+
 
 class KnotInfoColumnTypes(Enum):
     r"""
     Enum class to specify if a column from the table of knots and links provided
-    at the web-pages `KnotInfo <https://knotinfo.math.indiana.edu/>`__ and
-    `LinkInfo <https://linkinfo.sitehost.iu.edu>`__.  is used for knots only,
+    at the web-pages `KnotInfo <https://knotinfo.org/>`__ and
+    `LinkInfo <https://link-info-repo.onrender.com/>`__.  is used for knots only,
     links only or both.
 
     EXAMPLES::
@@ -53,8 +68,8 @@ class KnotInfoColumnTypes(Enum):
 class KnotInfoColumns(Enum):
     r"""
     Enum class to select a column from the table of knots and links provided
-    at the web-pages `KnotInfo <https://knotinfo.math.indiana.edu/>`__ and
-    `LinkInfo <https://linkinfo.sitehost.iu.edu>`__.
+    at the web-pages `KnotInfo <https://knotinfo.org/>`__ and
+    `LinkInfo <https://link-info-repo.onrender.com/>`__.
 
     EXAMPLES::
 
@@ -68,26 +83,30 @@ class KnotInfoColumns(Enum):
 
         sage: def only_links(c):
         ....:     return c.column_type() == c.types.OnlyLinks
-        sage: [c.column_name() for c in cols if only_links(c)]  # optional - database_knotinfo
-        ['Name - Unoriented',
-         'Orientation',
-         'Unoriented Rank',
-         'PD Notation (vector)',
-         'PD Notation (KnotTheory)',
-         'Braid Notation',
-         'Quasipositive Braid',
-         'Multivariable Alexander Polynomial',
-         'HOMFLYPT Polynomial',
-         'Unoriented',
-         'Arc Notation',
-         'Linking Matrix',
-         'Rolfsen Name',
-         'Components',
-         'DT code',
-         'Splitting Number',
-         'Nullity',
-         'Unlinking Number',
-         'Weak Splitting Number']
+        sage: {c.name: c.column_name() for c in cols if only_links(c)}  # optional - database_knotinfo
+        {'arc_notation': 'Arc Notation',
+         'braid_notation_old': 'Braid Notation',
+         'components': 'Components',
+         'diagram': 'Diagram',
+         'dt_code': 'DT code',
+         'homflypt_polynomial': 'HOMFLYPT Polynomial',
+         'khovanov_polynomial': 'Khovanov Polynomial',
+         'knot_atlas': 'Knot Atlas',
+         'knot_atlas_anon': '',
+         'linking_matrix': 'Linking Matrix',
+         'multivariable_alexander': 'Multivariable Alexander Polynomial',
+         'name_unoriented': 'Name - Unoriented',
+         'nullity': 'Nullity',
+         'orientation': 'Orientation',
+         'pd_notation_math': 'PD Notation (KnotTheory)',
+         'pd_notation_vector': 'PD Notation (vector)',
+         'quasi_positive_braid': 'Quasipositive Braid',
+         'rolfsen_name': 'Rolfsen Name',
+         'splitting_number': 'Splitting Number',
+         'unlinking_number': 'Unlinking Number',
+         'unoriented': 'Unoriented',
+         'unoriented_name_rank': 'Unoriented Rank',
+         'weak_splitting_number': 'Weak Splitting Number'}
     """
     @property
     def types(self):
@@ -183,12 +202,11 @@ class KnotInfoFilename(Enum):
             sage: from sage.databases.knotinfo_db import KnotInfoDataBase
             sage: ki_db = KnotInfoDataBase()
             sage: ki_db.filename.knots.url()
-            'https://knotinfo.math.indiana.edu/'
+            'https://knotinfo.org/'
         """
         if self == KnotInfoFilename.knots:
             return self.value[0]
-        else:
-            return self.value[0]
+        return self.value[0]
 
     def excel(self):
         r"""
@@ -203,8 +221,7 @@ class KnotInfoFilename(Enum):
         """
         if self == KnotInfoFilename.knots:
             return '%s.xls' % (self.value[1])
-        else:
-            return '%s.xlsx' % (self.value[1])
+        return '%s.xlsx' % (self.value[1])
 
     def csv(self):
         r"""
@@ -276,8 +293,7 @@ class KnotInfoFilename(Enum):
         """
         if column.column_type() == column.types.OnlyLinks:
             return 'linkinfo_%s' % (column.name)
-        else:
-            return 'knotinfo_%s' % (column.name)
+        return 'knotinfo_%s' % (column.name)
 
     def description_url(self, column):
         r"""
@@ -288,7 +304,7 @@ class KnotInfoFilename(Enum):
             sage: from sage.databases.knotinfo_db import KnotInfoDataBase
             sage: ki_db = KnotInfoDataBase()
             sage: ki_db.filename.knots.description_url(ki_db.columns().braid_notation)
-            'https://knotinfo.math.indiana.edu/descriptions/braid_notation.html'
+            'https://knotinfo.org/descriptions/braid_notation.html'
         """
         return '%sdescriptions/%s.html' % (self.url(), column.name)
 
@@ -301,17 +317,16 @@ class KnotInfoFilename(Enum):
             sage: from sage.databases.knotinfo_db import KnotInfoDataBase
             sage: ki_db = KnotInfoDataBase()
             sage: ki_db.filename.knots.diagram_url('3_1-50.png')
-            'https://knotinfo.math.indiana.edu/diagram_display.php?3_1-50.png'
+            'https://knotinfo.org/diagram_display.php?3_1-50.png'
             sage: ki_db.filename.knots.diagram_url('3_1', single=True)
-            'https://knotinfo.math.indiana.edu/diagrams/3_1'
+            'https://knotinfo.org/diagrams/3_1'
         """
         if single:
             return '%sdiagrams/%s' % (self.url(), fname)
-        else:
-            return '%sdiagram_display.php?%s' % (self.url(), fname)
+        return '%sdiagram_display.php?%s' % (self.url(), fname)
 
-    knots = ['https://knotinfo.math.indiana.edu/', 'knotinfo_data_complete']
-    links = ['https://linkinfo.sitehost.iu.edu/',  'linkinfo_data_complete']
+    knots = ['https://knotinfo.org/', 'knotinfo_data_complete']
+    links = ['https://link-info-repo.onrender.com/', 'linkinfo_data_complete']
 
 
 #----------------------------------------------------------------------------------------------------------------------------
@@ -319,19 +334,19 @@ class KnotInfoFilename(Enum):
 #----------------------------------------------------------------------------------------------------------------------------
 class KnotInfoDataBase(SageObject, UniqueRepresentation):
     r"""
-    Database interface to KnotInfo
+    Database interface to KnotInfo.
 
     The original data are obtained from KnotInfo web-page (URL see the example
     below). In order to have these data installed during the build process as
     a sage-package they are converted as csv files into a tarball. This tarball
-    has been created using the method :meth:`create_spkg_tarball`.
+    has been created using the method ``create_spkg_tarball``.
 
     EXAMPLES::
 
         sage: from sage.databases.knotinfo_db import KnotInfoDataBase
         sage: ki_db = KnotInfoDataBase()
         sage: ki_db.filename.knots
-        <KnotInfoFilename.knots: ['https://knotinfo.math.indiana.edu/',
+        <KnotInfoFilename.knots: ['https://knotinfo.org/',
                                   'knotinfo_data_complete']>
     """
 
@@ -346,7 +361,7 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
             sage: from sage.databases.knotinfo_db import KnotInfoDataBase
             sage: ki_db = KnotInfoDataBase()
             sage: ki_db.filename.links
-            <KnotInfoFilename.links: ['https://linkinfo.sitehost.iu.edu/',
+            <KnotInfoFilename.links: ['https://link-info-repo.onrender.com/',
                                       'linkinfo_data_complete']>
         """
         # some constants
@@ -370,8 +385,8 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
 
         INPUT:
 
-        - ``force`` -- optional boolean. If set to ``True`` the existing
-          file-cache is overwritten
+        - ``force`` -- boolean (default: ``False``); if set to ``True`` the
+          existing file-cache is overwritten
 
         EXAMPLES::
 
@@ -522,7 +537,11 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
         for col in knot_column_names:
 
             name = knot_column_names[col]
-            if not name and col not in ['knot_atlas_anon', 'knotilus_page_anon']:
+            if not name and col not in columns_white_list:
+                # not of interest
+                continue
+
+            if col in columns_black_list:
                 # not of interest
                 continue
 
@@ -537,7 +556,11 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
         for col in link_column_names:
 
             name = link_column_names[col]
-            if not name and col not in ['knot_atlas_anon', 'knotilus_page_anon']:
+            if not name and col not in columns_white_list:
+                # not of interest
+                continue
+
+            if col in columns_black_list:
                 # not of interest
                 continue
 
@@ -553,13 +576,14 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
     def _create_data_sobj(self, sobj_path=None):
         r"""
         Create ``sobj`` files containing the contents of the whole table.
+
         To each column there is created one file containing a list of
         strings giving the entries of the database table.
 
         The length of these lists depends on the type of the corresponding
         column. If a column is used in both tables
         (``KnotInfoColumnTypes.KnotsAndLinks``) the list of proper links
-        is appended to the list of knots.  In both other cases the lenght
+        is appended to the list of knots.  In both other cases the length
         of the list corresponds to the number of listed knots and proper
         links respectively.
 
@@ -615,7 +639,7 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
     @cached_method
     def columns(self):
         r"""
-        Return the columns ot the databese table as instances of enum class
+        Return the columns ot the database table as instances of enum class
         :class:`KnotInfoColumns`.
 
         EXAMPLES::
@@ -635,11 +659,9 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
     @cached_method
     def read_column_dict(self):
         r"""
-        Read the dictionary for the column names from the according sobj-file
+        Read the dictionary for the column names from the according sobj-file.
 
-        OUTPUT:
-
-        A python dictionary containing the column names and types
+        OUTPUT: a Python dictionary containing the column names and types
 
         EXAMPLES::
 
@@ -688,12 +710,10 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
     @cached_method
     def row_names(self):
         r"""
-        Return a dictionary to obtain the original name to a row_dict key
+        Return a dictionary to obtain the original name to a row_dict key.
 
-        OUTPUT:
-
-        A python dictionary containing the names of the knots and links
-        together with their original names from the database,
+        OUTPUT: a Python dictionary containing the names of the knots and links
+        together with their original names from the database
 
         EXAMPLES::
 
@@ -714,16 +734,14 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
         Read the number of knots contained in the database (without
         proper links) from the according sobj-file.
 
-        OUTPUT:
-
-        Integer
+        OUTPUT: integer
 
         EXAMPLES::
 
             sage: from sage.databases.knotinfo_db import KnotInfoDataBase
             sage: ki_db = KnotInfoDataBase()
             sage: ki_db.read_num_knots()              # optional - database_knotinfo
-            2978
+            12966
         """
         if not self._num_knots:
             self.demo_version()
@@ -735,16 +753,14 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
     @cached_method
     def read(self, column):
         r"""
-        Access a column of KnotInfo / LinkInfo
+        Access a column of KnotInfo / LinkInfo.
 
         INPUT:
 
-        ``column`` -- instance of enum :class:`KnotInfoColumns`
+        - ``column`` -- instance of enum :class:`KnotInfoColumns`
           to select the data to be read in
 
-        OUTPUT:
-
-        A python list containing the data corresponding to the column.
+        OUTPUT: a Python list containing the data corresponding to the column
 
         EXAMPLES::
 
@@ -777,7 +793,7 @@ class KnotInfoDataBase(SageObject, UniqueRepresentation):
 
             sage: from sage.databases.knotinfo_db import KnotInfoDataBase
             sage: ki_db = KnotInfoDataBase()
-            sage: TestSuite(ki_db).run()    # long time indirect doctest
+            sage: TestSuite(ki_db).run()    # optional - database_knotinfo, long time, indirect doctest
         """
         from sage.knots.knotinfo import KnotInfo
         from sage.misc.misc import some_tuples
@@ -809,8 +825,7 @@ column_demo_sample = {
     'homfly_polynomial':    ['HOMFLY',               KnotInfoColumnTypes.OnlyKnots],
     'homflypt_polynomial':  ['HOMFLYPT Polynomial',  KnotInfoColumnTypes.OnlyLinks],
     'kauffman_polynomial':  ['Kauffman',             KnotInfoColumnTypes.KnotsAndLinks],
-    'khovanov_polynomial':  ['Khovanov',             KnotInfoColumnTypes.KnotsAndLinks],
-    'khovanov_torsion_polynomial': ['Khovanov Torsion', KnotInfoColumnTypes.OnlyKnots],
+    'khovanov_polynomial':  ['Khovanov',             KnotInfoColumnTypes.OnlyLinks],
     'khovanov_unreduced_integral_polynomial': ['KH Unred Z Poly', KnotInfoColumnTypes.OnlyKnots],
     'khovanov_reduced_integral_polynomial': ['KH Red Z Poly', KnotInfoColumnTypes.OnlyKnots],
     'khovanov_reduced_rational_polynomial': ['KH Red Q Poly', KnotInfoColumnTypes.OnlyKnots],
@@ -823,6 +838,8 @@ column_demo_sample = {
     'fibered':              ['Fibered',              KnotInfoColumnTypes.OnlyKnots],
     'unoriented':           ['Unoriented',           KnotInfoColumnTypes.OnlyLinks],
     'symmetry_type':        ['Symmetry Type',        KnotInfoColumnTypes.OnlyKnots],
+    'geometric_type':       ['Geometric Type',       KnotInfoColumnTypes.OnlyKnots],
+    'cosmetic_crossing':    ['Cosmetic Crossing',    KnotInfoColumnTypes.OnlyKnots],
     'width':                ['Width',                KnotInfoColumnTypes.OnlyKnots],
     'arc_notation':         ['Arc Notation',         KnotInfoColumnTypes.OnlyLinks],
     'dt_code':              ['DT code',              KnotInfoColumnTypes.OnlyLinks]
@@ -865,15 +882,15 @@ data_demo_sample = {
     dc.crossing_number: ['0', '3', '4', '5', '5', '6', '6', '6', '7', '7', '2', '2', '4', '4', '5', '5', '6', '6', '6', '6', '6'],
     dc.braid_notation: [
         '',
-        '{1,1,1}',
-        '{1,-2,1,-2}',
-        '{1,1,1,1,1}',
-        '{1,1,1,2,-1,2}',
-        '{1,1,2,-1,-3,2,-3}',
-        '{1,1,1,-2,1,-2}',
-        '{1,1,-2,1,-2,-2}',
-        '{1,1,1,1,1,1,1}',
-        '{1,1,1,2,-1,2,3,-2,3}',
+        '[1,1,1]',
+        '[1,-2,1,-2]',
+        '[1,1,1,1,1]',
+        '[1,1,1,2,-1,2]',
+        '[1,1,2,-1,-3,2,-3]',
+        '[1,1,1,-2,1,-2]',
+        '[1,1,-2,1,-2,-2]',
+        '[1,1,1,1,1,1,1]',
+        '[1,1,1,2,-1,2,3,-2,3]',
         '{2, {-1, -1}}',
         '{2, {1, 1}}',
         '{3, {-2, -2, -1, 2, -1}}',
@@ -1004,16 +1021,28 @@ data_demo_sample = {
         'reversible',
         'reversible'
         ],
+    dc.geometric_type: [
+        '',
+        'torus knot T(2,3)',
+        'hyperbolic',
+        'torus knot T(2,5)',
+        'hyperbolic',
+        'hyperbolic',
+        'hyperbolic',
+        'hyperbolic',
+        'torus knot T(2,7)',
+        'hyperbolic'],
+    dc.cosmetic_crossing: ['', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N'],
     dc.homfly_polynomial: [
         '',
-        '(2*v^2-v^4)+(v^2)*z^2',
-        '(v^(-2)-1+ v^2)+ (-1)*z^2',
-        '(3*v^4-2*v^6)+ (4*v^4-v^6)*z^2+ (v^4)*z^4',
+        '(2*v^2-v^4)+ v^2*z^2',
+        '(v^(-2)-1+ v^2)-z^2',
+        '(3*v^4-2*v^6)+ (4*v^4-v^6)*z^2+ v^4*z^4',
         '(v^2+ v^4-v^6)+ (v^2+ v^4)*z^2',
         '(v^(-2)-v^2+ v^4)+ (-1-v^2)*z^2',
-        '(2-2*v^2+ v^4)+ (1-3*v^2+ v^4)*z^2+ (-v^2)*z^4',
-        '(-v^(-2)+ 3-v^2)+ (-v^(-2)+ 3-v^2)*z^2+ (1)*z^4',
-        '(4*v^6-3*v^8)+ (10*v^6-4*v^8)*z^2+ (6*v^6-v^8)*z^4+ (v^6)*z^6',
+        '(2-2*v^2+ v^4)+ (1-3*v^2+ v^4)*z^2-v^2*z^4',
+        '(-v^(-2)+ 3-v^2)+ (-v^(-2)+ 3-v^2)*z^2+ z^4',
+        '(4*v^6-3*v^8)+ (10*v^6-4*v^8)*z^2+ (6*v^6-v^8)*z^4+ v^6*z^6',
         '(v^2+ v^6-v^8)+ (v^2+ v^4+ v^6)*z^2'
         ],
     dc.homflypt_polynomial: [
@@ -1109,16 +1138,6 @@ data_demo_sample = {
         '3*z + 2*z^3',
         '-3*z-4*z^3-z^5'],
     dc.khovanov_polynomial: [
-        '',
-        'q^(-9)t^(-3)+q^(-5)t^(-2)+q^(-3)+q^(-1)',
-        'q^(-5)t^(-2)+q^(-1)t^(-1)+q+q^(-1)+qt+q^5t^2',
-        'q^(-15)t^(-5)+q^(-11)t^(-4)+q^(-11)t^(-3)+q^(-7)t^(-2)+q^(-5)+q^(-3)',
-        'q^(-13)t^(-5)+q^(-9)t^(-4)+q^(-9)t^(-3)+(q^(-7)+q^(-5))t^(-2)+q^(-3)t^(-1)+q^(-3)+q^(-1)',
-        'q^(-9)t^(-4)+q^(-5)t^(-3)+q^(-5)t^(-2)+(q^(-3)+q^(-1))t^(-1)+2q+q^(-1)+qt+q^5t^2',
-        'q^(-11)t^(-4)+(q^(-9)+q^(-7))t^(-3)+(q^(-7)+q^(-5))t^(-2)+(q^(-5)+q^(-3))t^(-1)+q^(-3)+2q^(-1)+tq^(-1)+q^3t^2',
-        'q^(-7)t^(-3)+(q^(-5)+q^(-3))t^(-2)+(q^(-3)+q^(-1))t^(-1)+2q+2q^(-1)+t(q+q^3)+(q^3+q^5)t^2+q^7t^3',
-        'q^(-21)t^(-7)+q^(-17)t^(-6)+q^(-17)t^(-5)+q^(-13)t^(-4)+q^(-13)t^(-3)+q^(-9)t^(-2)+q^(-7)+q^(-5)',
-        'q^(-17)t^(-7)+q^(-13)t^(-6)+q^(-13)t^(-5)+(q^(-11)+q^(-9))t^(-4)+(q^(-9)+q^(-7))t^(-3)+(q^(-7)+q^(-5))t^(-2)+q^(-3)t^(-1)+q^(-3)+q^(-1)',
         '1 + q^(-2) + 1/(q^6*t^2) + 1/(q^4*t^2)',
         '1 + q^2 + q^4*t^2 + q^6*t^2',
         '1 + q^(-2) + 1/(q^10*t^4) + 1/(q^8*t^4) + 1/(q^6*t^2) + 1/(q^2*t)',
@@ -1130,17 +1149,6 @@ data_demo_sample = {
         'q^(-4) + q^(-2) + 1/(q^16*t^6) + 1/(q^14*t^6) + 1/(q^14*t^5) + 1/(q^12*t^4) + 1/(q^10*t^4) + 1/(q^10*t^3) + 1/(q^8*t^3) + 1/(q^8*t^2) + 1/(q^6*t^2) + 1/(q^4*t)',
         'q^2 + q^4 + q^4*t + q^6*t^2 + q^8*t^2 + q^8*t^3 + q^10*t^3 + q^10*t^4 + q^12*t^4 + q^14*t^5 + q^14*t^6 + q^16*t^6',
         'q^(-6) + q^(-4) + 1/(q^18*t^6) + 1/(q^16*t^6) + 1/(q^16*t^5) + 1/(q^12*t^4) + 1/(q^12*t^3) + 1/(q^8*t^2)'],
-    dc.khovanov_torsion_polynomial: [
-        '',
-        'Q^(-7)t^(-2)',
-        'Q^(-3)t^(-1)+Q^3t^2',
-        'Q^(-13)t^(-4)+Q^(-9)t^(-2)',
-        'Q^(-11)t^(-4)+Q^(-7)t^(-2)+Q^(-5)t^(-1)',
-        'Q^(-7)t^(-3)+Q^(-3)t^(-1)+Q^(-1)+Q^3t^2',
-        'Q^(-9)t^(-3)+Q^(-7)t^(-2)+Q^(-5)t^(-1)+Q^(-3)+Qt^2',
-        'Q^(-5)t^(-2)+Q^(-3)t^(-1)+Q^(-1)+Qt+Q^3t^2+Q^5t^3',
-        'Q^(-19)t^(-6)+Q^(-15)t^(-4)+Q^(-11)t^(-2)',
-        'Q^(-15)t^(-6)+Q^(-11)t^(-4)+Q^(-9)t^(-3)+Q^(-7)t^(-2)+Q^(-5)t^(-1)'],
     dc.khovanov_unreduced_integral_polynomial: [
         '',
         'q + q^(3) + t^(2) q^(5) + t^(3) q^(9) + t^(3) q^(7) T^(2)',

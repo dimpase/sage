@@ -1,9 +1,18 @@
+.. sage-doctest: needs sage.plot sage.symbolic
+
 .. _section-plot:
 
 Plotting
 ========
 
 Sage can produce two-dimensional and three-dimensional plots.
+
+.. note::
+
+   Figures appear inline if you are using the Jupyter notebook (started
+   with ``sage -n jupyter``) or the Sage Cell Server. At the plain ``sage``
+   terminal prompt, a plot command prints ``Graphics object ...`` instead,
+   and ``show()`` opens the figure with an external viewer.
 
 Two-dimensional Plots
 ---------------------

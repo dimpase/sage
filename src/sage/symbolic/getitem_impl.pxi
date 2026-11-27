@@ -1,14 +1,14 @@
 "Operands"
 
-#*****************************************************************************
+# ****************************************************************************
 #       Copyright (C) 2011 Burcin Erocal <burcin@erocal.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+#                  https://www.gnu.org/licenses/
+# ****************************************************************************
 
 from sage.structure.sage_object cimport SageObject
 
@@ -46,8 +46,9 @@ cdef inline int normalize_index(object arg, int nops, object err_msg) except -1:
     if i < 0:
         i = nops + i
     if i >= nops or i < 0:
-        raise IndexError("operand index out of range, got %s, expect between %s and %s"%(arg,-nops,nops-1))
+        raise IndexError("operand index out of range, got %s, expect between %s and %s" % (arg, -nops, nops-1))
     return i
+
 
 def normalize_index_for_doctests(arg, nops):
     """
@@ -60,6 +61,7 @@ def normalize_index_for_doctests(arg, nops):
         3
     """
     return normalize_index(arg, nops, "some error message")
+
 
 cdef class OperandsWrapper(SageObject):
     """
@@ -137,13 +139,14 @@ cdef class OperandsWrapper(SageObject):
                     raise ValueError("step value must be an integer")
             else:
                 step = 1
-            return [new_Expression_from_GEx(self._expr._parent,
+            return [new_Expression_from_GEx(
+                self._expr._parent,
                 self._expr._gobj.op(ind)) for ind in range(bind, eind, step)]
 
         ind_err_msg = "index should either be a slice object, an integer or a list of integers"
         if isinstance(arg, (list, tuple)):
             # handle nested index
-            if len(arg) == 0: # or not all(lambda x: x in ZZ for t in args):
+            if not arg:  # or not all(lambda x: x in ZZ for t in args):
                 raise TypeError(ind_err_msg)
             cur_ex = GEx(self._expr._gobj)
             for x in arg:
@@ -156,7 +159,7 @@ cdef class OperandsWrapper(SageObject):
 
         ind = normalize_index(arg, self._expr._gobj.nops(), ind_err_msg)
         return new_Expression_from_GEx(self._expr._parent,
-                self._expr._gobj.op(ind))
+                                       self._expr._gobj.op(ind))
 
     def _repr_(self):
         """
@@ -165,7 +168,7 @@ cdef class OperandsWrapper(SageObject):
             sage: (x^2).op
             Operands of x^2
         """
-        return "Operands of %s"%(self._expr)
+        return "Operands of %s" % (self._expr)
 
     def _latex_(self):
         r"""
@@ -174,18 +177,19 @@ cdef class OperandsWrapper(SageObject):
             sage: latex((x^2).op)
             \text{Operands wrapper for expression }x^{2}
         """
-        return r"\text{Operands wrapper for expression }%s"%(self._expr._latex_())
+        return r"\text{Operands wrapper for expression }%s" % (self._expr._latex_())
 
     def __reduce__(self):
         """
         TESTS::
 
             sage: (x^2).op.__reduce__()
-            (<built-in function restore_op_wrapper>, (x^2,))
+            (<cyfunction restore_op_wrapper at ...>, (x^2,))
             sage: loads(dumps((x^2).op))
             Operands of x^2
         """
         return restore_op_wrapper, (self._expr,)
+
 
 def restore_op_wrapper(expr):
     """

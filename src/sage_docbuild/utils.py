@@ -107,14 +107,11 @@ def build_many(target, args, processes=None):
     also require significant cleanup.
 
     It also avoids starting new processes from a pthread, which results in at
-    least two known issues:
-
-    * On versions of Cygwin prior to 3.0.0 there were bugs in mmap handling
-      on threads (see :trac:`27214#comment:25`).
+    least one known issue:
 
     * When PARI is built with multi-threading support, forking a Sage
       process from a thread leaves the main Pari interface instance broken
-      (see :trac:`26608#comment:38`).
+      (see :issue:`26608#comment:38`).
 
     In the future this may be replaced by a generalized version of the more
     robust parallel processing implementation from ``sage.doctest.forker``.
@@ -136,8 +133,7 @@ def build_many(target, args, processes=None):
         Processed task ...
         Processed task ...
 
-    Unlike the first version of ``build_many`` which was only intended to get
-    around the Cygwin bug, this version can also return a result, and thus can
+    This version can also return a result, and thus can
     be used as a replacement for ``multiprocessing.Pool.map`` (i.e. it still
     blocks until the result is ready)::
 
@@ -192,13 +188,24 @@ def build_many(target, args, processes=None):
         ...
         WorkerDiedException: worker for 4 died with non-zero exit code -9
     """
-    from multiprocessing import Process, Queue, cpu_count, set_start_method
+    import multiprocessing
+    from multiprocessing import cpu_count
 
-    # With OS X, Python 3.8 defaults to use 'spawn' instead of 'fork'
-    # in multiprocessing, and Sage docbuilding doesn't work with
-    # 'spawn'. See trac #27754.
-    if os.uname().sysname == "Darwin":
-        set_start_method("fork", force=True)
+    # The docbuild needs the workers to inherit the state of this process, and
+    # ``run_worker`` below is a local function that only 'fork' can hand to a
+    # worker at all: neither 'spawn' nor 'forkserver' can pickle it.  macOS has
+    # defaulted to 'spawn' since Python 3.8 (trac #27754) and Linux to
+    # 'forkserver' since Python 3.14, so ask for a fork context by name rather
+    # than relying on the default.  Note that a context leaves the start method
+    # of the process as it is, unlike set_start_method(force=True).
+    try:
+        context = multiprocessing.get_context('fork')
+    except ValueError:
+        # No fork on this platform; carry on with the default and let the
+        # failure, if any, name the start method that could not cope.
+        context = multiprocessing.get_context()
+    Process = context.Process
+    Queue = context.Queue
     from queue import Empty
 
     if processes is None:

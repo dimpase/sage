@@ -26,39 +26,39 @@ from .base_number_field import Polyhedron_base_number_field
 
 class Polyhedron_number_field(Polyhedron_field, Polyhedron_base_number_field):
     r"""
-    Polyhedra whose data can be converted to number field elements
+    Polyhedra whose data can be converted to number field elements.
 
     All computations are done internally using a fixed real embedded number field,
     which is determined automatically.
 
     INPUT:
 
-    - ``Vrep`` -- a list ``[vertices, rays, lines]`` or ``None``.
+    - ``Vrep`` -- list ``[vertices, rays, lines]`` or ``None``
 
-    - ``Hrep`` -- a list ``[ieqs, eqns]`` or ``None``.
+    - ``Hrep`` -- list ``[ieqs, eqns]`` or ``None``
 
     EXAMPLES::
 
-        sage: P = Polyhedron(vertices=[[1], [sqrt(2)]], backend='number_field'); P      # needs sage.rings.number_field sage.symbolic
+        sage: P = Polyhedron(vertices=[[1], [sqrt(2)]], backend='number_field'); P
         A 1-dimensional polyhedron
          in (Symbolic Ring)^1 defined as the convex hull of 2 vertices
-        sage: P.vertices()                                                              # needs sage.rings.number_field sage.symbolic
+        sage: P.vertices()
         (A vertex at (1), A vertex at (sqrt(2)))
 
-        sage: P = polytopes.icosahedron(exact=True, backend='number_field')             # needs sage.rings.number_field
-        sage: P                                                                         # needs sage.rings.number_field
+        sage: P = polytopes.icosahedron(exact=True, backend='number_field')
+        sage: P
         A 3-dimensional polyhedron
          in (Number Field in sqrt5 with defining polynomial x^2 - 5
              with sqrt5 = 2.236067977499790?)^3
          defined as the convex hull of 12 vertices
 
-        sage: x = polygen(ZZ); P = Polyhedron(                                          # needs sage.rings.number_field sage.symbolic
+        sage: x = polygen(ZZ); P = Polyhedron(
         ....:     vertices=[[sqrt(2)], [AA.polynomial_root(x^3-2, RIF(0,3))]],
         ....:     backend='number_field')
-        sage: P                                                                         # needs sage.rings.number_field sage.symbolic
+        sage: P
         A 1-dimensional polyhedron
          in (Symbolic Ring)^1 defined as the convex hull of 2 vertices
-        sage: P.vertices()                                                              # needs sage.rings.number_field sage.symbolic
+        sage: P.vertices()
         (A vertex at (sqrt(2)), A vertex at (2^(1/3)))
 
     TESTS:
@@ -66,16 +66,15 @@ class Polyhedron_number_field(Polyhedron_field, Polyhedron_base_number_field):
     Tests from :class:`~sage.geometry.polyhedron.backend_field.Polyhedron_field` --
     here the data are already either in a number field or in ``AA``::
 
-        sage: p = Polyhedron(vertices=[(0,0),(AA(2).sqrt(),0),(0,AA(3).sqrt())],        # needs sage.rings.number_field
+        sage: p = Polyhedron(vertices=[(0,0),(AA(2).sqrt(),0),(0,AA(3).sqrt())],
         ....:                rays=[(1,1)], lines=[], backend='number_field',
         ....:                base_ring=AA)
-        sage: TestSuite(p).run()                                                        # needs sage.rings.number_field
+        sage: TestSuite(p).run()
 
-        sage: K.<sqrt3> = QuadraticField(3)                                             # needs sage.rings.number_field
-        sage: p = Polyhedron([(0,0), (1,0), (1/2, sqrt3/2)], backend='number_field')    # needs sage.rings.number_field
-        sage: TestSuite(p).run()                                                        # needs sage.rings.number_field
+        sage: K.<sqrt3> = QuadraticField(3)
+        sage: p = Polyhedron([(0,0), (1,0), (1/2, sqrt3/2)], backend='number_field')
+        sage: TestSuite(p).run()
 
-        sage: # needs sage.rings.number_field
         sage: x = polygen(ZZ, 'x')
         sage: K.<phi> = NumberField(x^2 - x - 1, embedding=1.618)
         sage: P1 = Polyhedron([[0,1], [1,1], [1,-phi+1]], backend='number_field')
@@ -97,8 +96,8 @@ class Polyhedron_number_field(Polyhedron_field, Polyhedron_base_number_field):
         INPUT:
 
         - ``vertices`` -- list of points. Each point can be specified
-           as any iterable container of
-           :meth:`~sage.geometry.polyhedron.base.base_ring` elements.
+          as any iterable container of
+          :meth:`~sage.geometry.polyhedron.base.base_ring` elements.
 
         - ``rays`` -- list of rays. Each ray can be specified as any
           iterable container of
@@ -108,8 +107,8 @@ class Polyhedron_number_field(Polyhedron_field, Polyhedron_base_number_field):
           any iterable container of
           :meth:`~sage.geometry.polyhedron.base.base_ring` elements.
 
-        - ``verbose`` -- boolean (default: ``False``). Whether to print
-          verbose output for debugging purposes.
+        - ``verbose`` -- boolean (default: ``False``); whether to print
+          verbose output for debugging purposes
 
         EXAMPLES::
 
@@ -121,9 +120,9 @@ class Polyhedron_number_field(Polyhedron_field, Polyhedron_base_number_field):
 
         Check that the coordinates of a vertex get simplified in the Symbolic Ring::
 
-            sage: p = Polyhedron(ambient_dim=2, base_ring=SR, backend='number_field')   # needs sage.symbolic
+            sage: p = Polyhedron(ambient_dim=2, base_ring=SR, backend='number_field')
             sage: from sage.geometry.polyhedron.backend_number_field import Polyhedron_number_field
-            sage: Polyhedron_number_field._init_from_Vrepresentation(p, [(0,1/2),(sqrt(2),0),(4,5/6)], [], []); p       # needs sage.symbolic
+            sage: Polyhedron_number_field._init_from_Vrepresentation(p, [(0,1/2),(sqrt(2),0),(4,5/6)], [], []); p
             A 2-dimensional polyhedron in (Symbolic Ring)^2 defined as the convex hull of 3 vertices
             sage: p.vertices()[0][0]
             0
@@ -150,8 +149,8 @@ class Polyhedron_number_field(Polyhedron_field, Polyhedron_base_number_field):
           as any iterable container of
           :meth:`~sage.geometry.polyhedron.base.base_ring` elements.
 
-        - ``verbose`` -- boolean (default: ``False``). Whether to print
-          verbose output for debugging purposes.
+        - ``verbose`` -- boolean (default: ``False``); whether to print
+          verbose output for debugging purposes
 
         TESTS::
 

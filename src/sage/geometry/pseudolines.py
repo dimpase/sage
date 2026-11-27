@@ -49,13 +49,13 @@ ones.
     sage: p = PseudolineArrangement(permutations)
     sage: p
     Arrangement of pseudolines of size 4
-    sage: p.show()                                                                      # needs sage.plot
+    sage: p.show()
 
 **Sequence of transpositions**
 
 An arrangement of pseudolines can also be described as a sequence of `\binom n
 2` transpositions (permutations of two elements). In this sequence, the
-transposition `(2,3)` appears before `(8, 2)` iif `l_2` crosses `l_3` before it
+transposition `(2,3)` appears before `(8, 2)` if `l_2` crosses `l_3` before it
 crosses `l_8`. This encoding is easy to obtain by reading the wiring diagram
 from left to right (see the :meth:`show
 <sage.geometry.pseudolines.PseudolineArrangement.show>` method).
@@ -67,7 +67,7 @@ from left to right (see the :meth:`show
     sage: p = PseudolineArrangement(transpositions)
     sage: p
     Arrangement of pseudolines of size 4
-    sage: p.show()                                                                      # needs sage.plot
+    sage: p.show()
 
 
 Note that this ordering is not necessarily unique.
@@ -131,7 +131,7 @@ avoid a common crossing of three lines by adding a random noise to `b`::
     sage: n = 20
     sage: l = sorted(zip(Subsets(20*n, n).random_element(),
     ....:                [randint(0, 20*n) + random() for i in range(n)]))
-    sage: print(l[:5])                          # not tested                            # needs sage.combinat
+    sage: print(l[:5])                          # not tested
     [(96, 278.0130613051349), (74, 332.92512282478714), (13, 155.65820951249867),
      (209, 34.753946221755307), (147, 193.51376457741441)]
 
@@ -149,7 +149,7 @@ And finally build the line arrangement::
     sage: p = PseudolineArrangement(permutations)
     sage: print(p)
     Arrangement of pseudolines of size 20
-    sage: p.show(figsize=[20,8])                                                        # needs sage.combinat sage.plot
+    sage: p.show(figsize=[20,8])
 
 Author
 ^^^^^^
@@ -170,20 +170,20 @@ from copy import deepcopy
 
 class PseudolineArrangement:
 
-    def __init__(self, seq, encoding="auto"):
+    def __init__(self, seq, encoding='auto'):
         r"""
-        Creates an arrangement of pseudolines.
+        Create an arrangement of pseudolines.
 
         INPUT:
 
-        - ``seq`` (a sequence describing the line arrangement). It can be:
+        - ``seq`` -- a sequence describing the line arrangement. It can be:
 
           - A list of `n` permutations of size `n-1`.
           - A list of `\binom n 2` transpositions
           - A Felsner matrix, given as a sequence of `n` binary vectors of
             length `n-1`.
 
-        - ``encoding`` (information on how the data should be interpreted), and
+        - ``encoding`` -- information on how the data should be interpreted, and
           can assume any value among 'transpositions', 'permutations', 'Felsner'
           or 'auto'. In the latter case, the type will be guessed (default
           behaviour).
@@ -275,7 +275,7 @@ class PseudolineArrangement:
 
             i = 0
             while crossings > 0:
-                if (seq[i] != [] and
+                if (seq[i] and
                     (seq[i][0] == 0 and
                      seq[i+1][0] == 1)):
 
@@ -290,7 +290,7 @@ class PseudolineArrangement:
                     seq[i].pop(0)
                     seq[i+1].pop(0)
 
-                    if i > 0 and seq[i-1] is not []:
+                    if i > 0 and seq[i - 1]:
                         i -= 1
                     else:
                         i += 1
@@ -419,14 +419,14 @@ class PseudolineArrangement:
             sage: from sage.geometry.pseudolines import PseudolineArrangement
             sage: permutations = [[3, 2, 1], [3, 2, 0], [3, 1, 0], [2, 1, 0]]
             sage: p = PseudolineArrangement(permutations)
-            sage: p.show(figsize=[7,5])                                                 # needs sage.plot
+            sage: p.show(figsize=[7,5])
 
         TESTS::
 
             sage: from sage.geometry.pseudolines import PseudolineArrangement
             sage: permutations = [[3, 2, 1], [3, 2, 0], [3, 0, 1], [2, 0, 1]]
             sage: p = PseudolineArrangement(permutations)
-            sage: p.show()                                                              # needs sage.plot
+            sage: p.show()
             Traceback (most recent call last):
             ...
             ValueError: There has been a problem while plotting the figure...
@@ -462,8 +462,8 @@ class PseudolineArrangement:
             l.append((x+2, l[-1][1]))
             L += line(l)
 
-            L += text(str(i), (0, l[0][1]+.3), horizontal_alignment="right")
-            L += text(str(i), (x+2, l[-1][1]+.3), horizontal_alignment="left")
+            L += text(str(i), (0, l[0][1]+.3), horizontal_alignment='right')
+            L += text(str(i), (x+2, l[-1][1]+.3), horizontal_alignment='left')
 
         return L.show(axes=False, **args)
 

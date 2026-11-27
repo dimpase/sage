@@ -16,7 +16,7 @@ as abstract Abelian group elements or as particular numbers in the
 number field. The :func:`AbelianGroupWithValues` keeps track of these
 associated values.
 
-.. warning::
+.. WARNING::
 
     Really, this requires a group homomorphism from the abstract
     Abelian group to the set of values. This is only checked if you
@@ -45,7 +45,8 @@ Here is `\ZZ_6` with value `-1` assigned to the generator::
     (6, 1, 1)
 
 The elements come with a coercion embedding into the
-:meth:`~AbelianGroupWithValues_class.values_group`, so you can use the
+:meth:`~sage.groups.abelian_gps.values.AbelianGroupWithValues_class.values_group`,
+so you can use the
 group elements instead of the values::
 
     sage: # needs sage.rings.number_field
@@ -84,19 +85,19 @@ def AbelianGroupWithValues(values, n, gens_orders=None, names='f', check=False, 
 
     INPUT:
 
-    - ``values`` -- a list/tuple/iterable of values that you want to
-      associate to the generators.
+    - ``values`` -- list/tuple/iterable of values that you want to
+      associate to the generators
 
-    - ``n`` -- integer (optional). If not specified, will be derived
-       from ``gens_orders``.
+    - ``n`` -- integer (optional); if not specified, will be derived
+      from ``gens_orders``
 
-    - ``gens_orders`` -- a list of non-negative integers in the form
+    - ``gens_orders`` -- list of nonnegative integers in the form
        `[a_0, a_1, \dots, a_{n-1}]`, typically written in increasing
        order. This list is padded with zeros if it has length less
        than n. The orders of the commuting generators, with `0`
        denoting an infinite cyclic factor.
 
-    -  ``names`` -- (optional) names of generators
+    - ``names`` -- (optional) names of generators
 
     - ``values_group`` -- a parent or ``None`` (default). The common
       parent of the values. This might be a group, but can also just
@@ -121,8 +122,9 @@ def AbelianGroupWithValues(values, n, gens_orders=None, names='f', check=False, 
         Integer Ring
 
     The group elements come with a coercion embedding into the
-    :meth:`values_group`, so you can use them like their
-    :meth:`~sage.groups.abelian_gps.value.AbelianGroupWithValuesElement.value`
+    :meth:`~sage.groups.abelian_gps.values.AbelianGroupWithValues_class.values_group`,
+    so you can use them like their
+    :meth:`~sage.groups.abelian_gps.values.AbelianGroupWithValuesElement.value`
     ::
 
         sage: G.values_embedding()
@@ -142,9 +144,9 @@ def AbelianGroupWithValues(values, n, gens_orders=None, names='f', check=False, 
     if values_group is None:
         from sage.structure.sequence import Sequence
         values_group = Sequence(values).universe()
-    values = tuple( values_group(val) for val in values )
-    M = AbelianGroupWithValues_class(gens_orders, names, values, values_group)
-    return M
+    values = tuple(values_group(val) for val in values)
+    return AbelianGroupWithValues_class(gens_orders, names,
+                                        values, values_group)
 
 
 class AbelianGroupWithValuesEmbedding(Morphism):
@@ -156,7 +158,7 @@ class AbelianGroupWithValuesEmbedding(Morphism):
     - ``domain`` -- a :class:`AbelianGroupWithValues_class`
 
     - ``codomain`` -- the values group (need not be in the category of
-      groups, e.g. symbolic ring).
+      groups, e.g. symbolic ring)
 
     EXAMPLES::
 
@@ -176,7 +178,7 @@ class AbelianGroupWithValuesEmbedding(Morphism):
 
     def __init__(self, domain, codomain):
         """
-        Construct the morphism
+        Construct the morphism.
 
         TESTS::
 
@@ -193,15 +195,11 @@ class AbelianGroupWithValuesEmbedding(Morphism):
 
     def _call_(self, x):
         """
-        Return the value associated to ``x``
+        Return the value associated to ``x``.
 
         INPUT:
 
         - ``x`` -- a group element
-
-        OUTPUT:
-
-        Its value.
 
         EXAMPLES::
 
@@ -222,13 +220,13 @@ class AbelianGroupWithValuesElement(AbelianGroupElement):
 
     INPUT:
 
-    - ``exponents`` -- tuple of integers. The exponent vector defining
-      the group element.
+    - ``exponents`` -- tuple of integers; the exponent vector defining
+      the group element
 
-    - ``parent`` -- the parent.
+    - ``parent`` -- the parent
 
     - ``value`` -- the value assigned to the group element or ``None``
-      (default). In the latter case, the value is computed as needed.
+      (default); in the latter case, the value is computed as needed
 
     EXAMPLES::
 
@@ -239,7 +237,7 @@ class AbelianGroupWithValuesElement(AbelianGroupElement):
 
     def __init__(self, parent, exponents, value=None):
         """
-        Create an element
+        Create an element.
 
         EXAMPLES::
 
@@ -257,10 +255,8 @@ class AbelianGroupWithValuesElement(AbelianGroupElement):
         """
         Return the value of the group element.
 
-        OUTPUT:
-
-        The value according to the values for generators, see
-        :meth:`~AbelianGroupWithValues.gens_values`.
+        OUTPUT: the value according to the values for generators; see
+        :meth:`~sage.groups.abelian_gps.values.AbelianGroupWithValues_class.gens_values`
 
         EXAMPLES::
 
@@ -270,12 +266,12 @@ class AbelianGroupWithValuesElement(AbelianGroupElement):
         """
         if self._value is None:
             values = self.parent().gens_values()
-            self._value = prod( v**e for v,e in zip(values, self.exponents()) )
+            self._value = prod(v**e for v, e in zip(values, self.exponents()))
         return self._value
 
     def _div_(left, right):
         """
-        Divide ``left`` by ``right``
+        Divide ``left`` by ``right``.
 
         TESTS::
 
@@ -293,7 +289,7 @@ class AbelianGroupWithValuesElement(AbelianGroupElement):
 
     def _mul_(left, right):
         """
-        Multiply ``left`` and ``right``
+        Multiply ``left`` and ``right``.
 
         TESTS::
 
@@ -311,11 +307,11 @@ class AbelianGroupWithValuesElement(AbelianGroupElement):
 
     def __pow__(self, n):
         """
-        Exponentiate ``self``
+        Exponentiate ``self``.
 
         INPUT:
 
-        - ``n`` -- integer. The exponent.
+        - ``n`` -- integer; the exponent
 
         TESTS::
 
@@ -363,15 +359,15 @@ class AbelianGroupWithValues_class(AbelianGroup_class):
 
     INPUT:
 
-    - ``generator_orders`` -- tuple of integers. The orders of the
-      generators.
+    - ``generator_orders`` -- tuple of integers; the orders of the
+      generators
 
-    - ``names`` -- string or list of strings. The names for the generators.
+    - ``names`` -- string or list of strings; the names for the generators
 
-    - ``values`` -- Tuple the same length as the number of
-      generators. The values assigned to the generators.
+    - ``values`` -- tuple the same length as the number of
+      generators; the values assigned to the generators
 
-    - ``values_group`` -- the common parent of the values.
+    - ``values_group`` -- the common parent of the values
 
     EXAMPLES::
 
@@ -382,7 +378,7 @@ class AbelianGroupWithValues_class(AbelianGroup_class):
 
     def __init__(self, generator_orders, names, values, values_group):
         """
-        The Python constructor
+        The Python constructor.
 
         TESTS::
 
@@ -412,11 +408,9 @@ class AbelianGroupWithValues_class(AbelianGroup_class):
 
         INPUT:
 
-        - ``i`` -- integer (default: 0). The index of the generator.
+        - ``i`` -- integer (default: 0); the index of the generator
 
-        OUTPUT:
-
-        A group element.
+        OUTPUT: a group element
 
         EXAMPLES::
 
@@ -442,9 +436,7 @@ class AbelianGroupWithValues_class(AbelianGroup_class):
         """
         Return the values associated to the generators.
 
-        OUTPUT:
-
-        A tuple.
+        OUTPUT: tuple
 
         EXAMPLES::
 
@@ -462,13 +454,13 @@ class AbelianGroupWithValues_class(AbelianGroup_class):
 
         The values need to form a multiplicative group, but can be
         embedded in a larger structure. For example, if the values are
-        units in a ring then the :meth:`values_group` would be the
+        units in a ring then the
+        :meth:`~sage.groups.abelian_gps.values.AbelianGroupWithValues_class.values_group`
+        would be the
         whole ring.
 
-        OUTPUT:
-
-        The common parent of the values, containing the group
-        generated by all values.
+        OUTPUT: the common parent of the values, containing the group
+        generated by all values
 
         EXAMPLES::
 
@@ -484,11 +476,10 @@ class AbelianGroupWithValues_class(AbelianGroup_class):
 
     def values_embedding(self):
         """
-        Return the embedding of ``self`` in :meth:`values_group`.
+        Return the embedding of ``self`` in
+        :meth:`~sage.groups.abelian_gps.values.AbelianGroupWithValues_class.values_group`.
 
-        OUTPUT:
-
-        A morphism.
+        OUTPUT: a morphism
 
         EXAMPLES::
 

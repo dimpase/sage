@@ -9,7 +9,7 @@ A group action `G \times S \rightarrow S` is a functor from `G` to Sets.
 .. WARNING::
 
     An :class:`Action` object only keeps a weak reference to the underlying set
-    which is acted upon. This decision was made in :trac:`715` in order to
+    which is acted upon. This decision was made in :issue:`715` in order to
     allow garbage collection within the coercion framework (this is where
     actions are mainly used) and avoid memory leaks.
 
@@ -56,17 +56,17 @@ AUTHOR:
 
 from cpython.tuple cimport PyTuple_GET_ITEM
 
-from .functor cimport Functor
-from .morphism cimport Morphism
-from .map cimport Map
+from sage.categories.functor cimport Functor
+from sage.categories.morphism cimport Morphism
+from sage.categories.map cimport Map
 from sage.structure.element cimport parent
 from sage.structure.parent cimport Parent
 
-from . import homset
+from sage.categories import homset
 from weakref import ref
 
 
-cdef inline category(x) noexcept:
+cdef inline category(x):
     try:
         return x.category()
     except AttributeError:
@@ -84,14 +84,14 @@ cdef class Action(Functor):
 
     - ``S`` -- a parent or Python type
 
-    - ``is_left`` -- (boolean, default: ``True``) whether elements of
+    - ``is_left`` -- boolean (default: ``True``); whether elements of
       ``G`` are on the left
 
     - ``op`` -- (default: ``None``) operation. This is not used by
       :class:`Action` itself, but other classes may use it
     """
     def __init__(self, G, S, is_left=True, op=None):
-        from .groupoid import Groupoid
+        from sage.categories.groupoid import Groupoid
         Functor.__init__(self, Groupoid(G), category(S))
         self.G = G
         self.US = ref(S)
@@ -112,7 +112,7 @@ cdef class Action(Functor):
 
         TESTS:
 
-        Check that this action can be pickled (:trac:`29031`)::
+        Check that this action can be pickled (:issue:`29031`)::
 
             sage: P = QQ['x']
             sage: R = (ZZ['x'])['y']
@@ -148,7 +148,7 @@ cdef class Action(Functor):
             sage: A(x, 5)
             Traceback (most recent call last):
             ...
-            TypeError: not a constant polynomial
+            TypeError: x is not a constant polynomial
             sage: A = IntegerMulAction(ZZ, R, False)  # Right action
             sage: A(x, 5)
             5*x
@@ -157,7 +157,7 @@ cdef class Action(Functor):
             sage: A(5, x)
             Traceback (most recent call last):
             ...
-            TypeError: not a constant polynomial
+            TypeError: x is not a constant polynomial
         """
         if len(args) == 2:
             # Normal case, called with (g, x) or (x, g) as arguments
@@ -178,7 +178,7 @@ cdef class Action(Functor):
         else:
             raise TypeError("actions should be called with 1 or 2 arguments")
 
-    cdef _act_convert(self, g, x) noexcept:
+    cdef _act_convert(self, g, x):
         """
         Let ``g`` act on ``x`` under this action, converting ``g``
         and ``x`` to the correct parents first.
@@ -190,7 +190,7 @@ cdef class Action(Functor):
             x = U(x)
         return self._act_(g, x)
 
-    cpdef _act_(self, g, x) noexcept:
+    cpdef _act_(self, g, x):
         """
         Let ``g`` act on ``x`` under this action.
 
@@ -199,9 +199,9 @@ cdef class Action(Functor):
 
         INPUT:
 
-        - ``g`` -- an object with parent ``self.G``.
+        - ``g`` -- an object with parent ``self.G``
 
-        - ``x`` -- an object with parent ``self.US()``.
+        - ``x`` -- an object with parent ``self.US()``
 
         .. WARNING::
 
@@ -251,7 +251,7 @@ cdef class Action(Functor):
     def actor(self):
         return self.G
 
-    cdef underlying_set(self) noexcept:
+    cdef underlying_set(self):
         """
         The set on which the actor acts (it is not necessarily the codomain of
         the action).
@@ -282,7 +282,7 @@ cdef class Action(Functor):
             sage: A.left_domain() is R
             True
 
-        By :trac:`715`, there is only a weak reference to the underlying set.
+        By :issue:`715`, there is only a weak reference to the underlying set.
         Hence, the underlying set may be garbage collected, even when the
         action is still alive. This may result in a runtime error, as follows::
 
@@ -314,14 +314,12 @@ cdef class Action(Functor):
     def left_domain(self):
         if self._is_left:
             return self.G
-        else:
-            return self.domain()
+        return self.domain()
 
     def right_domain(self):
         if self._is_left:
             return self.domain()
-        else:
-            return self.G
+        return self.G
 
     def operation(self):
         return self.op
@@ -381,10 +379,10 @@ cdef class InverseAction(Action):
     def __init__(self, Action action):
         G = action.G
         try:
-            from sage.groups.group import is_Group
+            from sage.groups.group import Group
             # We must be in the case that parent(~a) == parent(a)
             # so we can invert in _call_ code below.
-            if (is_Group(G) and G.is_multiplicative()) or G.is_field():
+            if (isinstance(G, Group) and G.is_multiplicative()) or G.is_field():
                 Action.__init__(self, G, action.underlying_set(), action._is_left)
                 self._action = action
                 return
@@ -398,7 +396,7 @@ cdef class InverseAction(Action):
 
         TESTS:
 
-        Check that this action can be pickled (:trac:`29031`)::
+        Check that this action can be pickled (:issue:`29031`)::
 
             sage: # needs sage.modules
             sage: V = QQ^3
@@ -410,7 +408,7 @@ cdef class InverseAction(Action):
         """
         return (type(self), (self._action,))
 
-    cpdef _act_(self, g, x) noexcept:
+    cpdef _act_(self, g, x):
         if self.S_precomposition is not None:
             x = self.S_precomposition(x)
         return self._action._act_(~g, x)
@@ -432,10 +430,10 @@ cdef class PrecomposedAction(Action):
 
     EXAMPLES:
 
-    We demonstrate that an example discussed on :trac:`14711` did not become a
+    We demonstrate that an example discussed on :issue:`14711` did not become a
     problem::
 
-        sage: # needs sage.modular
+        sage: # needs sage.libs.flint sage.modular
         sage: E = ModularSymbols(11).2
         sage: s = E.modular_symbol_rep()
         sage: del E,s
@@ -485,9 +483,9 @@ cdef class PrecomposedAction(Action):
 
         TESTS:
 
-        Check that this action can be pickled (:trac:`29031`)::
+        Check that this action can be pickled (:issue:`29031`)::
 
-            sage: # needs sage.modular
+            sage: # needs sage.libs.flint sage.modular
             sage: E = ModularSymbols(11).2
             sage: v = E.manin_symbol_rep()
             sage: c,x = v[0]
@@ -498,7 +496,7 @@ cdef class PrecomposedAction(Action):
         """
         return (type(self), (self._action, self.G_precomposition, self.S_precomposition))
 
-    cpdef _act_(self, g, x) noexcept:
+    cpdef _act_(self, g, x):
         if self.G_precomposition is not None:
             g = self.G_precomposition._call_(g)
         if self.S_precomposition is not None:
@@ -508,8 +506,7 @@ cdef class PrecomposedAction(Action):
     def domain(self):
         if self.S_precomposition is not None:
             return self.S_precomposition.domain()
-        else:
-            return self._action.domain()
+        return self._action.domain()
 
     def codomain(self):
         return self._action.codomain()
@@ -522,8 +519,7 @@ cdef class PrecomposedAction(Action):
         """
         if self._is_left:
             return self.G_precomposition
-        else:
-            return self.S_precomposition
+        return self.S_precomposition
 
     @property
     def right_precomposition(self):
@@ -533,8 +529,7 @@ cdef class PrecomposedAction(Action):
         """
         if self._is_left:
             return self.S_precomposition
-        else:
-            return self.G_precomposition
+        return self.G_precomposition
 
     def __invert__(self):
         return PrecomposedAction(~self._action, self.left_precomposition, self.right_precomposition)
@@ -569,7 +564,7 @@ cdef class ActionEndomorphism(Morphism):
         self._action = action
         self._g = g
 
-    cdef dict _extra_slots(self) noexcept:
+    cdef dict _extra_slots(self):
         """
         Helper for pickling and copying.
 
@@ -591,7 +586,7 @@ cdef class ActionEndomorphism(Morphism):
         slots['_g'] = self._g
         return slots
 
-    cdef _update_slots(self, dict _slots) noexcept:
+    cdef _update_slots(self, dict _slots):
         """
         Helper for pickling and copying.
 
@@ -612,7 +607,7 @@ cdef class ActionEndomorphism(Morphism):
         self._g = _slots['_g']
         Morphism._update_slots(self, _slots)
 
-    cpdef Element _call_(self, x) noexcept:
+    cpdef Element _call_(self, x):
         return self._action._act_(self._g, x)
 
     def _repr_(self):
@@ -628,13 +623,11 @@ cdef class ActionEndomorphism(Morphism):
             if left_c._action is right_c._action:
                 if left_c._action._is_left:
                     return ActionEndomorphism(left_c._action, left_c._g * right_c._g)
-                else:
-                    return ActionEndomorphism(left_c._action, right_c._g * left_c._g)
+                return ActionEndomorphism(left_c._action, right_c._g * left_c._g)
         return Morphism.__mul__(left, right)
 
     def __invert__(self):
         inv_g = ~self._g
         if parent(inv_g) is parent(self._g):
             return ActionEndomorphism(self._action, inv_g)
-        else:
-            return (~self._action)(self._g)
+        return (~self._action)(self._g)

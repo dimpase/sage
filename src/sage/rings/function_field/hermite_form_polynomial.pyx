@@ -40,7 +40,6 @@ Let us check it::
 AUTHORS:
 
 - Kwankyu Lee (2021-05-21): initial version
-
 """
 
 # ****************************************************************************
@@ -49,12 +48,13 @@ AUTHORS:
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
 #  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 # ****************************************************************************
 
 from sage.matrix.matrix cimport Matrix
 from sage.rings.polynomial.polynomial_element cimport Polynomial
 from sage.matrix.constructor import identity_matrix
+
 
 def reversed_hermite_form(Matrix mat, bint transformation=False):
     """
@@ -115,7 +115,7 @@ def reversed_hermite_form(Matrix mat, bint transformation=False):
                 if transformation:
                     U.swap_rows_c(i, k)
             k -= 1
-            # put the row with the smalllest degree to the ith row
+            # put the row with the smallest degree to the ith row
             di = A.get_unsafe(i, j).degree()
             while k >= 0 and A.get_unsafe(k, j):
                 dk = A.get_unsafe(k, j).degree()
@@ -135,7 +135,7 @@ def reversed_hermite_form(Matrix mat, bint transformation=False):
 
                 a = <Polynomial> A.get_unsafe(i, j)
                 b = <Polynomial> A.get_unsafe(l, j)
-                d, p, q = a.xgcd(b) # p * a + q * b = d = gcd(a,b)
+                d, p, q = a.xgcd(b)  # p * a + q * b = d = gcd(a,b)
                 e = a // d
                 f = -(b // d)
 
@@ -171,7 +171,7 @@ def reversed_hermite_form(Matrix mat, bint transformation=False):
             for c in range(m):
                 U.set_unsafe(ip, c, <Polynomial> U.get_unsafe(ip, c) * coeff)
 
-        pivot = <Polynomial> A.get_unsafe(ip,j)
+        pivot = <Polynomial> A.get_unsafe(ip, j)
         for k in range(ip + 1, m):
             q = -(<Polynomial> A.get_unsafe(k, j) // pivot)
             if q:

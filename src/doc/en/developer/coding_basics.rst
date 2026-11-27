@@ -6,11 +6,10 @@
 General Conventions
 ===================
 
-
-There are many ways to contribute to Sage including sharing scripts
-and Sage worksheets that implement new functionality using Sage,
+There are many ways to contribute to Sage, including sharing scripts
+and Jupyter notebooks that implement new functionality using Sage,
 improving to the Sage library, or to working on the many underlying
-libraries distributed with Sage [1]_.
+libraries distributed with Sage, see :ref:`spkg`.
 This guide focuses on editing the Sage library itself.
 
 Sage is not just about gathering together functionality. It is about
@@ -19,10 +18,6 @@ number of algorithms, in a coherent framework that makes sense
 mathematically. In the design of Sage, the semantics of objects, the
 definitions, etc., are informed by how the corresponding objects are
 used in everyday mathematics.
-
-.. [1]
-   See https://www.sagemath.org/links-components.html for a full list
-   of packages shipped with every copy of Sage
 
 To meet the goal of making Sage easy to read, maintain, and improve,
 all Python/Cython code that is included with Sage should adhere to the
@@ -87,15 +82,28 @@ In particular,
        def SomeIdentityValue(x):
            return SomeValue(1)
 
+.. _section-python-version:
+
+Python Version
+=================
+
+In order to reduce the technical debt of maintaining the project, Sage follows
+the time window-based support policy
+`SPEC 0 — Minimum Supported Dependencies <https://scientific-python.org/specs/spec-0000/>`_
+for Python versions. Accordingly, support for Python versions will be dropped 
+3 years after their initial release.
+For the drop schedule of Python versions, see the 
+`SPEC 0 <https://scientific-python.org/specs/spec-0000/#drop-schedule>`_
+document.
 
 .. _chapter-directory-structure:
 
 Files and directory structure
 =============================
 
-Roughly, the Sage directory tree is layout like this. Note that we use
-``SAGE_ROOT`` in the following as a shortcut for the (arbitrary) name
-of the directory containing the Sage sources:
+Roughly, the Sage directory tree is laid out like this. Note that we
+use ``SAGE_ROOT`` in the following as a shortcut for the name of the
+directory containing the Sage sources:
 
 .. CODE-BLOCK:: text
 
@@ -108,7 +116,7 @@ of the directory containing the Sage sources:
             setup.py
             ...
             sage/            # Sage library
-                ext_data/    # extra Sage resources (formerly src/ext)
+                ext_data/    # extra Sage resources (legacy)
             bin/             # the scripts in local/bin that are tracked
         upstream/            # tarballs of upstream sources
         local/               # installed binaries
@@ -127,10 +135,9 @@ of several different types of polynomial rings.
 
 If you want to create a new directory (`package
 <https://docs.python.org/3/tutorial/modules.html#packages>`_) in the
-Sage library ``SAGE_ROOT/src/sage`` (say, ``measure_theory``), that
+Sage library :sage_root:`src/sage` (say, ``measure_theory``), that
 directory will usually contain an empty file ``__init__.py``, which
-marks the directory as an ordinary package (see
-:ref:`section_namespace_packages`), and also a file ``all.py``,
+marks the directory as an ordinary package, and also a file ``all.py``,
 listing imports from this package that are user-facing and important
 enough to be in the global namespace of Sage at startup.  The file
 ``all.py`` might look like this::
@@ -145,38 +152,73 @@ framework::
     lazy_import('sage.measure_theory.borel_measure', 'BorelMeasure')
     lazy_import('sage.measure_theory.banach_tarski', 'BanachTarskiParadox')
 
-Then in the file ``SAGE_ROOT/src/sage/all.py``, add a line ::
+Then in the file :sage_root:`src/sage/all.py`, add a line ::
 
     from sage.measure_theory.all import *
 
-Adding new top-level packages below :mod:`sage` should be done
+Adding new top-level packages below ``sage`` should be done
 sparingly.  It is often better to create subpackages of existing
 packages.
 
-Non-Python Sage source code and supporting files can be included in one
-of the following places:
+Non-Python Sage source code and small supporting files can be
+included in one of the following places:
 
 - In the directory of the Python code that uses that file.  When the
   Sage library is installed, the file will be installed in the same
-  location as the Python code. For example,
-  ``SAGE_ROOT/src/sage/interfaces/maxima.py`` needs to use the file
-  ``SAGE_ROOT/src/sage/interfaces/maxima.lisp`` at runtime, so it refers
-  to it as ::
+  location as the Python code. This is referred to as "package data".
 
-    os.path.join(os.path.dirname(__file__), 'sage-maxima.lisp')
+  The preferred way to access the data from Python is using the
+  `importlib.resources API
+  <https://importlib-resources.readthedocs.io/en/latest/using.html>`_,
+  in particular the function :func:`importlib.resources.files`.
+  Using it, you can:
 
-- In an appropriate subdirectory of ``SAGE_ROOT/src/sage/ext_data/``.
+  - open a resource for text reading: ``fd = files(package).joinpath(resource).open('rt')``
+  - open a resource for binary reading: ``fd = files(package).joinpath(resource).open('rb')``
+  - read a resource as text: ``text = files(package).joinpath(resource).read_text()``
+  - read a resource as bytes: ``bytes = files(package).joinpath(resource).read_bytes()``
+  - open an xz-compressed resource for text reading: ``fd = lzma.open(files(package).joinpath(resource).open('rb'), 'rt')``
+  - open an xz-compressed resource for binary reading: ``fd = lzma.open(files(package).joinpath(resource).open('rb'), 'rb')``
+
+  If the file needs to be used outside of Python, then the
+  preferred way is using the context manager
+  :func:`importlib.resources.as_file`.
+
+- In an appropriate subdirectory of :sage_root:`src/sage/ext_data/`.
   (At runtime, it is then available in the directory indicated by
   ``SAGE_EXTCODE``).  For example, if ``file`` is placed in
-  ``SAGE_ROOT/src/sage/ext_data/directory/`` it can be accessed with ::
+  :sage_root:`src/sage/ext_data/directory/` it can be accessed with ::
 
     from sage.env import SAGE_EXTCODE
     file = os.path.join(SAGE_EXTCODE, 'directory', 'file')
 
-In both cases, the files must be listed (explicitly or via wildcards) in
-the section ``options.package_data`` of the file
-``SAGE_ROOT/pkgs/sagemath-standard/setup.cfg.m4`` (or the corresponding
-file of another distribution).
+  This practice is deprecated, see :issue:`33037`.
+
+Large data files should not be added to the Sage source tree. Instead, it
+is proposed to do the following:
+
+- create a separate git repository and upload them there [2]_,
+
+- add metadata to the repository that make it a pip-installable
+  package (distribution package), as explained for example in the
+  `Python Packaging User Guide
+  <https://packaging.python.org/en/latest/tutorials/packaging-projects/>`_,
+
+- `upload it to PyPI
+  <https://packaging.python.org/en/latest/tutorials/packaging-projects/#uploading-the-distribution-archives>`_,
+
+- create metadata in ``SAGE_ROOT/build/pkgs`` that make your new
+  pip-installable package known to Sage; see :ref:`chapter-packaging`.
+
+For guiding examples of external repositories that host large data
+files, see https://github.com/sagemath/conway-polynomials, and
+https://github.com/gmou3/matroid-database.
+
+.. [2]
+
+  It is also suggested that the files are compressed, e.g., through
+  the command ``xz -e``. They can then be read via a command such as
+  ``lzma.open(file, 'rt')``.
 
 
 Learn by copy/paste
@@ -209,14 +251,14 @@ The top of each Sage code file should follow this format::
 
     AUTHORS:
 
-    - YOUR NAME (2005-01-03): initial version
-
-    - person (date in ISO year-month-day format): short desc
+    - Your Name (2024-01-13): initial version
+    - Alice Liddell (2024-05-31): added a method; cleaned docstrings
+    - Full name (YYYY-MM-DD): short description
 
     """
 
     # ****************************************************************************
-    #       Copyright (C) 2013 YOUR NAME <your email>
+    #       Copyright (C) 2024 Your Name <your email>
     #
     # This program is free software: you can redistribute it and/or modify
     # it under the terms of the GNU General Public License as published by
@@ -225,7 +267,7 @@ The top of each Sage code file should follow this format::
     #                  https://www.gnu.org/licenses/
     # ****************************************************************************
 
-As an example, see ``SAGE_ROOT/src/sage/rings/integer.pyx``, which contains the
+As an example, see :sage_root:`src/sage/rings/integer.pyx`, which contains the
 implementation for `\ZZ`. The names of the people who made major contributions
 to the file appear in the ``AUTHORS`` section. You can add your name to the
 list if you belong to the people, but refrain from being verbose in the
@@ -296,9 +338,9 @@ information. You can use the existing functions of Sage as templates.
 
    The INPUT block describes all arguments that the function accepts.
 
-   1. The type names should be descriptive, but do not have to represent
-      the exact Sage/Python types. For example, use "integer" for
-      anything that behaves like an integer, rather than ``int``.
+   1. The type names should be descriptive, but do not have to represent the
+      exact Sage/Python types. For example, use "integer" for anything that
+      behaves like an integer, rather than "int" or "Integer".
 
    2. Mention the default values of the input arguments when applicable.
 
@@ -308,7 +350,13 @@ information. You can use the existing functions of Sage as templates.
 
        - ``n`` -- integer
 
-       - ``p`` -- prime integer (default: `2`); coprime with ``n``
+       - ``p`` -- prime integer (default: `2`); coprime with `n`
+
+       - ``var`` -- string (default: ``'lambda'``)
+
+       - ``check`` -- boolean (default: ``True``); specifies whether to check for primality
+
+       - ``algorithm`` -- (default: ``None``) the name of the algorithm to use
 
    The OUTPUT block describes the expected output. This is required if the
    one-sentence description of the function needs more explanation.
@@ -385,14 +433,18 @@ information. You can use the existing functions of Sage as templates.
        `p`. For any odd integer `k` between 1 and `p - 1`, inclusive,
        `g^k` is a generator modulo `p` if and only if `\gcd(k, p-1) = 1`.
 
-   The bibliographical reference should go in Sage's master
-   bibliography file,
-   :file:`SAGE_ROOT/src/doc/en/reference/references/index.rst`:
+   The bibliographical reference should go in one of Sage's shared
+   bibliography files, for example
+   :sage_root:`src/doc/references/reference-database.bib`:
 
-   .. CODE-BLOCK:: rest
+   .. CODE-BLOCK:: bibtex
 
-       .. [Nat2000] \M. B. Nathanson. Elementary Methods in Number Theory.
-          Springer, 2000.
+       @book{Nat2000,
+         author = {Nathanson, Melvyn B.},
+         title = {{Elementary Methods in Number Theory}},
+         publisher = {Springer},
+         year = {2000}
+       }
 
 -  A **NOTE** block for tips/tricks (optional).
 
@@ -448,8 +500,8 @@ information. You can use the existing functions of Sage as templates.
 
 - A **REFERENCES** block to list related books or papers (optional).
 
-  Almost all bibliographic information should be put in the master bibliography
-  file, see below. Citations will then link to the master bibliography where
+  Almost all bibliographic information should be put in the shared bibliography
+  files, see below. Citations will then link to the bibliography where
   the reader can find the bibliographic details (see below for citation
   syntax).  REFERENCE blocks in individual docstrings are therefore usually not
   necessary.
@@ -457,7 +509,7 @@ information. You can use the existing functions of Sage as templates.
   Nevertheless, a REFERENCE block can be useful if there are relevant sources
   which are not explicitly mentioned in the docstring or if the docstring is
   particularly long. In that case, add the bibliographic information to the
-  master bibliography file, if not already present, and add a reference block
+  shared bibliography files, if not already present, and add a reference block
   to your docstring as follows:
 
   .. CODE-BLOCK:: rest
@@ -471,7 +523,7 @@ information. You can use the existing functions of Sage as templates.
       - [Voe2003]_
 
   Note the trailing underscores which makes the citations into hyperlinks. See
-  below for more about the master bibliography file. For more about citations,
+  below for more about the shared bibliography files. For more about citations,
   see the `Sphinx/reST markup for citations
   <https://www.sphinx-doc.org/rest.html#citations>`_. For links to GitHub issues and PRs
   or wikipedia, see :ref:`chapter-sage_manuals_links`.
@@ -555,25 +607,35 @@ introduction. Sage imposes these styles:
 
       If ``check`` is ``True``, then ...
 
-Sage's master **BIBLIOGRAPHY** file
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sage's shared **BIBLIOGRAPHY** files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All bibliographical references should be stored in the master
-bibliography file,
-:file:`SAGE_ROOT/src/doc/en/reference/references/index.rst`, in the
-format
+All bibliographical references should be stored in BibTeX files in
+:sage_root:`src/doc/references/`, for example
+:sage_root:`src/doc/references/reference-database.bib`:
 
-.. CODE-BLOCK:: rest
+.. CODE-BLOCK:: bibtex
 
-  .. [Gau1801] \C. F. Gauss, *Disquisitiones Arithmeticae*, 1801.
+  @book{Gau1801,
+    author = {Gauss, Carl Friedrich},
+    title = {{Disquisitiones Arithmeticae}},
+    publisher = {Gerhard Fleischer},
+    year = {1801}
+  }
 
-  .. [RSA1978] \R. Rivest, A. Shamir, L. Adleman,
-               "A Method for Obtaining Digital Signatures and
-               Public-Key Cryptosystems".
-               Communications of the ACM **21** (February 1978),
-               120–126. :doi:`10.1145/359340.359342`.
+  @article{RSA1978,
+    author = {Rivest, Ronald L. and Shamir, Adi and Adleman, Leonard},
+    title = {{A Method for Obtaining Digital Signatures and
+              Public-Key Cryptosystems}},
+    journal = {Communications of the ACM},
+    volume = {21},
+    number = {2},
+    pages = {120--126},
+    year = {1978},
+    doi = {10.1145/359340.359342}
+  }
 
-The part in brackets is the citation key: given these examples, you
+The identifier after the entry type is the citation key: given these examples, you
 could then use ``[Gau1801]_`` in a docstring to provide a link to the
 first reference. Note the trailing underscore which makes the citation a
 hyperlink.
@@ -584,10 +646,32 @@ authors, use the first letter of each of the family names followed by the
 year. Note that the year should be four digits, not just the last two -- Sage
 already has references from both 1910 and 2010, for example.
 
-When abbreviating the first name of an author in a bibliography
-listing, be sure to put a backslash in front of it. This ensures
-that the letter (``C.`` in the example above) will not be
-interpreted as a list enumerator.
+All ``.bib`` files in this directory form one shared citation database.
+Citation keys must be unique across all files. To add another bibliography
+file, list it in :sage_root:`src/doc/references/meson.build` so Meson copies it
+into the documentation build directory. The ``sage-docbuild`` wheel includes
+all these ``.bib`` files automatically.
+
+Entries may appear in any order in each BibTeX file; the rendered bibliography
+is sorted independently, case-insensitively by citation key. Keep existing
+keys unchanged. Use ``and`` between authors. Protect capitalization in
+titles with braces, and preserve DOI identifiers in the ``doi`` field.
+DOI content negotiation can provide a BibTeX entry, but check it against the
+source and retain additional notes and links. Documentation builds use the
+checked-in databases and do not fetch metadata.
+
+Entries migrated from the former reST database have an ``annotation`` field
+containing their complete original description in TeX, including mathematical
+expressions and hyperlinks. Sage displays this description to preserve all
+the existing information. Keep the ordinary ``author``, ``editor``, ``title``,
+and publication fields accurate too: rendering an ``annotation`` does not
+validate them. Check that retrieved DOI metadata identifies the cited work
+and edition, rather than a book review or a different version of a paper.
+For new entries, use ordinary BibTeX fields; ``annotation`` is optional.
+
+Both ``[Gau1801]_`` and ``:cite:p:`Gau1801``` work. Each separately built
+manual includes its cited references, so citations also resolve in standalone
+PDFs. The reference catalogue lists every entry.
 
 For more about citations, see the `Sphinx/reST markup for citations
 <https://www.sphinx-doc.org/rest.html#citations>`_.
@@ -604,7 +688,7 @@ indentation:
 
     def point(self, x=1, y=2):
         r"""
-        Return the point `(x^5,y)`.
+        Return the point `(x^5, y)`.
 
         INPUT:
 
@@ -616,32 +700,32 @@ indentation:
         - ``y`` -- integer (default: `2`); the description of the
           argument ``y``
 
-        OUTPUT: the point as a tuple
+        OUTPUT: tuple; further description of the output
 
         EXAMPLES:
 
         This example illustrates ... ::
 
-            sage: A = ModuliSpace()
-            sage: A.point(2,3)
-            xxx
+            sage: A = EuclideanSpace(2)
+            sage: A.point(2, 3)
+            (2, 3)
 
         We now ... ::
 
-            sage: B = A.point(5,6)
-            sage: xxx
+            sage: B = A.point(5, 6)
+            sage: ...
 
         It is an error to ... ::
 
-            sage: C = A.point('x',7)
+            sage: C = A.point('x', 7)
             Traceback (most recent call last):
             ...
-            TypeError: unable to convert 'r' to an integer
+            TypeError: unable to convert 'x' to an integer
 
         .. NOTE::
 
-            This function uses the algorithm of [BCDT2001]_ to determine
-            whether an elliptic curve `E` over `Q` is modular.
+            This function uses :func:`pow` to determine the fifth
+            power of `x`.
 
         ...
 
@@ -651,21 +735,34 @@ indentation:
 
         TESTS::
 
-            sage: A.point(42, 0)  # Check for corner case y=0
-            xxx
+            sage: A.point(42, 0)  # check for corner case y = 0
+            ...
         """
         <body of the function>
 
-The master bibliography file would contain
+One of the shared bibliography files would contain
 
-.. CODE-BLOCK:: rest
+.. CODE-BLOCK:: bibtex
 
-        .. [BCDT2001] Breuil, Conrad, Diamond, Taylor,
-                      "Modularity ...."
+        @article{BCDT2001,
+          author = {Breuil, Christophe and Conrad, Brian and
+                    Diamond, Fred and Taylor, Richard},
+          title = {{On the modularity of elliptic curves over Q:
+                    wild 3-adic exercises}},
+          journal = {Journal of the American Mathematical Society},
+          volume = {14},
+          number = {4},
+          pages = {843--939},
+          year = {2001},
+          doi = {10.1090/S0894-0347-01-00370-8}
+        }
 
 You are strongly encouraged to:
 
 - Use LaTeX typesetting (see :ref:`section-latex-typeset`).
+
+- Use raw strings (``r"""..."""``), regardless of whether the docstring
+  currently contains any backslashes or not.
 
 - Liberally describe what the examples do.
 
@@ -779,8 +876,7 @@ In Sage's documentation LaTeX code is allowed and is marked with **backticks**:
     ```x^2 + y^2 = 1``` yields `x^2 + y^2 = 1`.
 
 **Backslashes:** For LaTeX commands containing backslashes, either use double
-backslashes or begin the docstring with a ``r"""`` instead of ``"""``. Both of
-the following are valid::
+backslashes or begin the docstring with a ``r"""`` instead of ``"""``::
 
     def cos(x):
         """
@@ -791,6 +887,8 @@ the following are valid::
         r"""
         Return `\sin(x)`.
         """
+
+We strongly suggest to use the latter.
 
 **MATH block:** This is similar to the LaTeX syntax ``\[<math expression>\]``
 (or ``$$<math expression>$$``). For instance:
@@ -834,7 +932,7 @@ in particular, it is turned into ``\begin{gather} block
 ``align``) which in ordinary LaTeX would not be wrapped like this, you
 must add a **:nowrap:** flag to the MATH mode. See also `Sphinx's
 documentation for math blocks
-<http://sphinx-doc.org/latest/ext/math.html?highlight=nowrap#directive-math>`_. :
+<https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-math>`_. :
 
 .. CODE-BLOCK:: rest
 
@@ -870,7 +968,7 @@ LaTeX-formatted ``\\Bold{Z}`` in the html manual, and as ``Z`` in the
 interactive help. Other examples: ``\\GF{q}`` (`\GF{q}`) and ``\\Zmod{p}``
 (`\Zmod{p}`).
 
-See the file ``SAGE_ROOT/src/sage/misc/latex_macros.py`` for a full list and
+See the file :sage_root:`src/sage/misc/latex_macros.py` for a full list and
 for details about how to add more macros.
 
 .. _section-doctest-writing:
@@ -912,6 +1010,14 @@ written.
   checked, as they are the most likely to be broken, now or in the future. This
   probably belongs to the TESTS block (see :ref:`section-docstring-function`).
 
+- **Interruption:** if the function might take a very long time, use
+  :func:`~sage.doctest.util.ensure_interruptible_after` to check that the user
+  can interrupt it. For example, the following tests ``sleep(3)`` can be
+  interrupted after 1 second::
+
+    sage: from sage.doctest.util import ensure_interruptible_after
+    sage: with ensure_interruptible_after(1) as data: sleep(3)
+
 - **Systematic tests** of all small-sized inputs, or tests of **random**
   instances if possible.
 
@@ -919,13 +1025,13 @@ written.
 
      Note that **TestSuites** are an automatic way to generate some of these
      tests in specific situations. See
-     ``SAGE_ROOT/src/sage/misc/sage_unittest.py``.
+     :sage_root:`src/sage/misc/sage_unittest.py`.
 
 **The syntax:**
 
 - **Environment:** doctests should work if you copy/paste them in Sage's
   interactive console. For example, the function ``AA()`` in the file
-  ``SAGE_ROOT/src/sage/algebras/steenrod/steenrod_algebra.py`` includes an
+  :sage_root:`src/sage/algebras/steenrod/steenrod_algebra.py` includes an
   EXAMPLES block containing the following::
 
     sage: from sage.algebras.steenrod.steenrod_algebra import AA as A
@@ -952,7 +1058,7 @@ written.
 - **Writing files:** If a test outputs to a file, the file should be a
   temporary file.  Use :func:`tmp_filename` to get a temporary filename, or
   :func:`tmp_dir` to get a temporary directory. An example from
-  ``SAGE_ROOT/src/sage/plot/graphics.py``)::
+  :sage_root:`src/sage/plot/graphics.py`)::
 
       sage: plot(x^2 - 5, (x, 0, 5), ymin=0).save(tmp_filename(ext='.png'))
 
@@ -1039,23 +1145,10 @@ written.
     The :ref:`doctest fixer <section-fixdoctests-optional-needs>` uses
     tab stops at columns 48, 56, 64, ... for these tags.
 
-- **Python3 print:** Python3 syntax for print must be used in Sage
-  code and doctests. If you use an old-style print in doctests, it
-  will raise a SyntaxError::
+- **Split long lines:** Standard Python rules apply. For example::
 
-      sage: print "not like that"
-      Traceback (most recent call last):
-      ...
-      SyntaxError: ...
-      sage: print("but like this")
-      but like this
-
-- **Split long lines:** You may want to split long lines of code with a
-  backslash. Note: this syntax is non-standard and may be removed in the
-  future::
-
-      sage: n = 123456789123456789123456789\
-      ....:     123456789123456789123456789
+      sage: n = (123456789123456789123456789 +
+      ....:      123456789123456789123456789)
       sage: n.is_prime()
       False
 
@@ -1104,7 +1197,10 @@ framework. Here is a comprehensive list:
       This doctest passes too, as the output is not checked
 
   Doctests are expected to pass with any state of the pseudorandom number
-  generators (PRNGs).
+  generators (PRNGs): the doctest framework starts each run from a randomly
+  chosen seed, which is echoed in the ``sage -t`` output as
+  ``--random-seed=SEED`` and can be passed back to ``sage -t`` to reproduce
+  a failure (see :ref:`chapter-doctesting`).
   When possible, avoid the problem, e.g.: rather than checking the value of the
   hash in a doctest, one could illustrate successfully using it as a key in a
   dict.
@@ -1129,7 +1225,15 @@ framework. Here is a comprehensive list:
 
   This is mathematically correct, as it is
   guaranteed to terminate. However, there is a
-  nonzero probability of a timout.
+  nonzero probability of a timeout.
+
+  As a last resort, an example that needs reproducible pseudorandom values
+  can fix the seed explicitly with
+  :func:`~sage.misc.randstate.set_random_seed`::
+
+      sage: set_random_seed(0)
+      sage: ZZ.random_element(100)
+      75
 
 - **long time:** The line is only tested if the ``--long`` option is given, e.g.
   ``sage -t --long f.py``.
@@ -1138,7 +1242,7 @@ framework. Here is a comprehensive list:
   take more than about 30 seconds::
 
       sage: E = EllipticCurve([0, 0, 1, -1, 0])
-      sage: E.regulator()        # long time (1 second)
+      sage: E.regulator()        # long time (1 second) # abs tol 1e-15
       0.0511114082399688
 
 - **tol** or **tolerance:** The numerical values returned by the line are only
@@ -1192,7 +1296,7 @@ framework. Here is a comprehensive list:
   Use it for very long doctests that are only meant as documentation. It can
   also be used for todo notes of what will eventually be implemented::
 
-      sage: factor(x*y - x*z)    # todo: not implemented
+      sage: factor(x*y - x*z)    # not implemented
 
   It is also immediately clear to the user that the indicated example
   does not currently work.
@@ -1212,22 +1316,41 @@ framework. Here is a comprehensive list:
      Neither of this applies to files or directories which are explicitly given
      as command line arguments: those are always tested.
 
-- **optional/needs:** A line tagged with ``optional - FEATURE``
-  or ``needs FEATURE`` is not tested unless the ``--optional=KEYWORD`` flag
-  is passed to ``sage -t`` (see
-  :ref:`section-optional-doctest-flag`). The main applications are:
+- **optional** or **needs:** A line tagged with ``optional - FEATURE`` or
+  ``needs FEATURE`` is tested if the feature is available in Sage. If
+  ``FEATURE`` starts with an exclamation point ``!``, then the condition is
+  negated, that is, the doctest runs only if the feature is not available.
+
+  If the feature is included in the ``--optional=KEYWORD`` flag passed to
+  ``sage -t`` (see :ref:`section-optional-doctest-flag`), then the line is
+  tested regardless of the feature availability.
+
+  The main applications are:
 
   - **optional packages:** When a line requires an optional package to be
-    installed (e.g. the ``sloane_database`` package)::
+    installed (e.g. the ``rubiks`` package)::
+
+      sage: C = RubiksCube("R*L")
+      sage: C.solve()                    # optional - rubiks (a hybrid algorithm is used)
+      'L R'
+      sage: C.solve()                    # optional - !rubiks (GAP is used)
+      'L*R'
+
+  - **features:** When a line requires a feature to be present::
 
       sage: SloaneEncyclopedia[60843]    # optional - sloane_database
+      [1, 6, 21, 107, 47176870]
 
-  - **internet:** For lines that require an internet connection::
+      sage: SloaneEncyclopedia[60843]    # optional - !sloane_database
+      Traceback (most recent call last):
+      ...
+      OSError: The Sloane Encyclopedia database must be installed. Use e.g.
+      'SloaneEncyclopedia.install()' to download and install it.
+
+    For lines that require an internet connection::
 
        sage: oeis(60843)                 # optional - internet
-       A060843: Busy Beaver problem: a(n) = maximal number of steps that an
-       n-state Turing machine can make on an initially blank tape before
-       eventually halting.
+       A060843: ...
 
   - **known bugs:** For lines that describe known bugs, you can use ``# optional - bug``,
     although ``# known bug`` is preferred.
@@ -1265,11 +1388,11 @@ framework. Here is a comprehensive list:
         that is, commas, hyphens, semicolons, ..., after the
         first word ends the list of packages.  Hyphens or colons between the
         word ``optional`` and the first package name are allowed.  Therefore,
-        you should not write ``# optional - depends on package CHomP`` but simply
-        ``# optional - CHomP``.
+        you should not write ``# optional - depends on package bliss`` but simply
+        ``# optional - bliss``.
 
       - Optional tags are case-insensitive, so you could also write ``# optional -
-        chOMP``.
+        Bliss``.
 
   If ``# optional`` or ``# needs`` is placed right after the ``sage:`` prompt,
   it is a block-scoped tag, which applies to all doctest lines until
@@ -1290,6 +1413,15 @@ framework. Here is a comprehensive list:
        the doctests in this file will be skipped unless the
        appropriate conditions are met.
 
+  - **32-bit** or **64-bit:** for tests that behave differently on 32-bit or
+    64-bit machines, the ``32_bit`` feature can be used::
+
+        sage: h = hash(2^31 + 2^13)
+        sage: h  # needs 32_bit
+        8193
+        sage: h  # needs !32_bit
+        2147491840
+
 - **indirect doctest:** in the docstring of a function ``A(...)``, a line
   calling ``A`` and in which the name ``A`` does not appear should have this
   flag. This prevents ``sage --coverage <file>`` from reporting the docstring as
@@ -1304,16 +1436,8 @@ framework. Here is a comprehensive list:
       This is the docstring of an ``__add__`` method. The following
       example tests it, but ``__add__`` is not written anywhere::
 
-          sage: 1+1 # indirect doctest
+          sage: 1+1  # indirect doctest
           2
-
-- **32-bit** or **64-bit:** for tests that behave differently on 32-bit or
-  64-bit machines. Note that this particular flag is to be applied on the
-  **output** lines, not the input lines::
-
-      sage: hash(2^31 + 2^13)
-      8193                      # 32-bit
-      2147491840                # 64-bit
 
 Per coding style (:ref:`section-coding-python`), the magic comment
 should be separated by at least 2 spaces.
@@ -1360,7 +1484,7 @@ Run ``sage -t <filename.py>`` to test all code examples in
 ``filename.py``. Similar remarks apply to ``.sage`` and ``.pyx``
 files:
 
-.. CODE-BLOCK:: shell-session
+.. code-block:: console
 
       $ sage -t [--verbose] [--optional]  [files and directories ... ]
 
@@ -1407,14 +1531,14 @@ put ``.. linkall`` anywhere in the file, on a line by itself.  (For
 clarity, it might be best to put it near the top of the file.)  Then
 ``sage -t`` will act as if there were a ``.. link`` before each
 verbatim environment.  The file
-``SAGE_ROOT/src/doc/en/tutorial/interfaces.rst`` contains a
+:sage_root:`src/doc/en/tutorial/interfaces.rst` contains a
 ``.. linkall`` directive, for example.
 
 You can also put ``.. skip`` right before a verbatim environment to
 have that example skipped when testing the file.  This goes in the
 same place as the ``.. link`` in the previous example.
 
-See the files in ``SAGE_ROOT/src/doc/en/tutorial/`` for many
+See the files in :sage_root:`src/doc/en/tutorial/` for many
 examples of how to include automated testing in reST documentation for
 Sage.
 

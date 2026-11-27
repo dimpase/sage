@@ -26,7 +26,7 @@ from sage.rings.ring_extension_morphism cimport RingExtensionBackendReverseIsomo
 # For parents
 #############
 
-cpdef backend_parent(R) noexcept:
+cpdef backend_parent(R):
     r"""
     Return the backend parent of ``R``.
 
@@ -46,10 +46,9 @@ cpdef backend_parent(R) noexcept:
     """
     if isinstance(R, RingExtension_generic):
         return (<RingExtension_generic>R)._backend
-    else:
-        return R
+    return R
 
-cpdef from_backend_parent(R, RingExtension_generic E) noexcept:
+cpdef from_backend_parent(R, RingExtension_generic E):
     r"""
     Try to reconstruct a ring extension (somehow related to ``E``)
     whose backend is ``R``.
@@ -107,7 +106,7 @@ cpdef from_backend_parent(R, RingExtension_generic E) noexcept:
 # For elements
 ##############
 
-cpdef backend_element(x) noexcept:
+cpdef backend_element(x):
     r"""
     Return the backend element of ``x``.
 
@@ -127,10 +126,9 @@ cpdef backend_element(x) noexcept:
     """
     if isinstance(x, RingExtensionElement):
         return (<RingExtensionElement>x)._backend
-    else:
-        return x
+    return x
 
-cpdef from_backend_element(x, RingExtension_generic E) noexcept:
+cpdef from_backend_element(x, RingExtension_generic E):
     r"""
     Try to reconstruct an element in a ring extension (somehow
     related to ``E``) whose backend is ``x``.
@@ -174,14 +172,13 @@ cpdef from_backend_element(x, RingExtension_generic E) noexcept:
     parent = from_backend_parent(x.parent(),E)
     if parent is None:
         return x
-    else:
-        return parent(x)
+    return parent(x)
 
 
 # For morphisms
 ###############
 
-cdef _backend_morphism(f) noexcept:
+cdef _backend_morphism(f):
     r"""
     Return the backend morphism of ``f``.
 
@@ -243,7 +240,7 @@ cdef _backend_morphism(f) noexcept:
             return ring.coerce_map_from(domain)
     raise NotImplementedError
 
-cpdef backend_morphism(f, forget="all") noexcept:
+cpdef backend_morphism(f, forget='all'):
     r"""
     Return the backend morphism of ``f``.
 
@@ -251,8 +248,8 @@ cpdef backend_morphism(f, forget="all") noexcept:
 
     - ``f`` -- a map
 
-    - ``forget`` -- a string, either ``all`` or ``domain`` or ``codomain``
-      (default: ``all``); whether to switch to the backend for the domain,
+    - ``forget`` -- string; either ``'all'`` or ``'domain'`` or ``'codomain'``
+      (default: ``'all'``). Whether to switch to the backend for the domain,
       the codomain or both of them.
 
     EXAMPLES::
@@ -269,13 +266,13 @@ cpdef backend_morphism(f, forget="all") noexcept:
         Ring endomorphism of Finite Field in z3 of size 7^3
           Defn: z3 |--> 3*z3^2 + 5*z3
 
-        sage: backend_morphism(f, forget="domain")
+        sage: backend_morphism(f, forget='domain')
         Ring morphism:
           From: Finite Field in z3 of size 7^3
           To:   Field in a with defining polynomial x^3 + 6*x^2 + 4 over its base
           Defn: z3 |--> 5*a + 3*a^2
 
-        sage: backend_morphism(f, forget="codomain")
+        sage: backend_morphism(f, forget='codomain')
         Ring morphism:
           From: Field in a with defining polynomial x^3 + 6*x^2 + 4 over its base
           To:   Finite Field in z3 of size 7^3
@@ -299,7 +296,7 @@ cpdef backend_morphism(f, forget="all") noexcept:
             g = RingExtensionBackendReverseIsomorphism(f.codomain().Hom(ring)) * g
     return g
 
-cpdef from_backend_morphism(f, RingExtension_generic E) noexcept:
+cpdef from_backend_morphism(f, RingExtension_generic E):
     r"""
     Try to reconstruct a morphism between ring extensions
     (somehow related to ``E``) whose backend is ``f``.
@@ -336,7 +333,7 @@ cpdef from_backend_morphism(f, RingExtension_generic E) noexcept:
 # Generic
 #########
 
-cpdef to_backend(arg) noexcept:
+cpdef to_backend(arg):
     r"""
     Return the backend of ``arg``.
 
@@ -380,19 +377,19 @@ cpdef to_backend(arg) noexcept:
     """
     if isinstance(arg, list):
         return [ to_backend(x) for x in arg ]
-    elif isinstance(arg, tuple):
+    if isinstance(arg, tuple):
         return tuple([ to_backend(x) for x in arg ])
-    elif isinstance(arg, dict):
+    if isinstance(arg, dict):
         return { to_backend(key): to_backend(value) for (key, value) in arg.items() }
-    elif isinstance(arg, RingExtension_generic):
+    if isinstance(arg, RingExtension_generic):
         return (<RingExtension_generic>arg)._backend
-    elif isinstance(arg, Map):
+    if isinstance(arg, Map):
         return backend_morphism(arg)
-    elif isinstance(arg, RingExtensionElement):
+    if isinstance(arg, RingExtensionElement):
         return (<RingExtensionElement>arg)._backend
     return arg
 
-cpdef from_backend(arg, E) noexcept:
+cpdef from_backend(arg, E):
     r"""
     Try to reconstruct something (somehow related to ``E``)
     whose backend is ``arg``.
@@ -457,5 +454,4 @@ cpdef from_backend(arg, E) noexcept:
         ans = from_backend_element(arg,E)
     if ans is None:
         return arg
-    else:
-        return ans
+    return ans

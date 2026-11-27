@@ -1,3 +1,4 @@
+# sage.doctest: needs eclib
 "Cremona modular symbols"
 
 from cysignals.signals cimport sig_on, sig_off
@@ -29,10 +30,10 @@ cdef class ModularSymbols:
 
         INPUT:
 
-        - ``level`` (int) -- the level: an integer, at least 2.
-        - ``sign`` (int, default 0) -- the sign: 0, +1 or -1
-        - ``cuspidal`` (boolean, default False) -- True for cuspidal homology
-        - ``verbose`` (int, default 0) -- verbosity level
+        - ``level`` -- integer; the level: at least 2
+        - ``sign`` -- integer (default: 0); the sign: 0, +1 or -1
+        - ``cuspidal`` -- boolean (default: ``False``); ``True`` for cuspidal homology
+        - ``verbose`` -- integer (default: 0); verbosity level
 
         EXAMPLES::
 
@@ -71,11 +72,11 @@ cdef class ModularSymbols:
             sage: CremonaModularSymbols(37, cuspidal=True).__repr__()
             'Cremona Cuspidal Modular Symbols space of dimension 4 for Gamma_0(37) of weight 2 with sign 0'
         """
-        return "Cremona %sModular Symbols space of dimension %s for Gamma_0(%s) of weight 2 with sign %s"%(
+        return "Cremona %sModular Symbols space of dimension %s for Gamma_0(%s) of weight 2 with sign %s" % (
             'Cuspidal ' if self.is_cuspidal() else '',
             self.dimension(), self.level(), self.sign())
 
-    #cpdef long level(self):
+    # cpdef long level(self):
     def level(self):
         """
         Return the level of this modular symbols space.
@@ -88,7 +89,7 @@ cdef class ModularSymbols:
         """
         return self.H.modulus
 
-    #cpdef int dimension(self):
+    # cpdef int dimension(self):
     def dimension(self):
         """
         Return the dimension of this modular symbols space.
@@ -101,8 +102,7 @@ cdef class ModularSymbols:
         """
         if self.is_cuspidal():
             return self.H.h1cuspdim()
-        else:
-            return self.H.h1dim()
+        return self.H.h1dim()
 
     def number_of_cusps(self):
         r"""
@@ -117,7 +117,7 @@ cdef class ModularSymbols:
         """
         return self.H.h1ncusps()
 
-    #cpdef int sign(self):
+    # cpdef int sign(self):
     def sign(self):
         """
         Return the sign of this Cremona modular symbols space.  The sign is either 0, +1 or -1.
@@ -139,7 +139,7 @@ cdef class ModularSymbols:
         """
         return self.H.plusflag
 
-    #cpdef bint is_cuspidal(self):
+    # cpdef bint is_cuspidal(self):
     def is_cuspidal(self):
         """
         Return whether or not this space is cuspidal.
@@ -164,11 +164,11 @@ cdef class ModularSymbols:
 
         - ``p`` -- a prime number
 
-        - ``dual`` -- (default: False) whether to compute the Hecke
-                    operator acting on the dual space, i.e., the
-                    transpose of the Hecke operator
+        - ``dual`` -- boolean (default: ``False``); whether to compute the
+          Hecke operator acting on the dual space, i.e., the transpose of the
+          Hecke operator
 
-        - ``verbose`` -- (default: False) print verbose output
+        - ``verbose`` -- boolean (default: ``False``); print verbose output
 
         OUTPUT:
 
@@ -224,11 +224,11 @@ cdef class ModularSymbols:
 
         - ``p`` -- a prime number
 
-        - ``dual`` -- (default: False) whether to compute the Hecke
-                    operator acting on the dual space, i.e., the
-                    transpose of the Hecke operator
+        - ``dual`` -- boolean (default: ``False``); whether to compute the
+          Hecke operator acting on the dual space, i.e., the transpose of the Hecke
+          operator
 
-        - ``verbose`` -- (default: False) print verbose output
+        - ``verbose`` -- boolean (default: ``False``); print verbose output
 
         OUTPUT:
 
@@ -259,7 +259,7 @@ cdef class ModularSymbols:
             sage: print(T == U.change_ring(GF(7)))
             True
 
-        This concerns an issue reported on :trac:`21303`::
+        This concerns an issue reported on :issue:`21303`::
 
             sage: C = CremonaModularSymbols(45, cuspidal=True,sign=-1)
             sage: T2a = C.hecke_matrix(2).sage_matrix_over_ZZ()
@@ -275,10 +275,10 @@ cdef class ModularSymbols:
         sig_off()
         for i in range(n):
             sv = M.row(i+1)
-            iter = sv.begin()
-            while iter != sv.end():
-                d[(i,deref(iter).first-1)] = deref(iter).second
-                inc(iter)
+            it = sv.begin()
+            while it != sv.end():
+                d[(i, deref(it).first-1)] = deref(it).second
+                inc(it)
         MS = MatrixSpace(base_ring, n, sparse=True)
         # The next step is the bottleneck.
         return MS(d)

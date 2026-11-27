@@ -1,7 +1,7 @@
 // Algorithms for indefinite and definite summation
 //
 // (c) 2016  Ralf Stephan <ralf@ark.in-berlin.de>
-// Distributed under GPL2, see http://www.gnu.org
+// Distributed under GPL2, see https://www.gnu.org
 //
 // Ref.:       1. W. Koepf, Algorithms for m-fold Hypergeometric Summation,
 //                  Journal of Symbolic Computation (1995) 20, 399-417
@@ -190,7 +190,9 @@ ex to_gamma(const ex& the_ex)
                         vec.push_back(to_gamma(m.op(i)));
                 return add(vec);
         }
-        throw std::runtime_error("can't happen in to_gamma");
+
+        // anything else, in particular constants such as pi, is kept
+        return the_ex;
 }
 
 static ex combine_powers(const ex& the_ex)
@@ -562,7 +564,7 @@ ex gosper_sum_definite(ex f, ex s, ex a, ex b, int* success)
                         return res;
                 return t;
         }
-        catch (gosper_domain_error) {
+        catch (const gosper_domain_error&) {
                 *success = 0;
                 return _ex0;
         }
@@ -579,7 +581,7 @@ ex gosper_sum_indefinite(ex f, ex s, int* success)
                         return res;
                 return t;
         }
-        catch (gosper_domain_error) {
+        catch (const gosper_domain_error&) {
                 *success = 0;
                 return _ex0;
         }

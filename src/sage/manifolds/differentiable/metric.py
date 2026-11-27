@@ -27,7 +27,6 @@ REFERENCES:
 - [ONe1983]_
 - [DB1996]_
 - [DS2010]_
-
 """
 # *****************************************************************************
 #  Copyright (C) 2015 Eric Gourgoulhon <eric.gourgoulhon@obspm.fr>
@@ -97,6 +96,8 @@ class PseudoRiemannianMetric(TensorField):
       set to the dimension of manifold `M` (Riemannian signature)
     - ``latex_name`` -- (default: ``None``) LaTeX symbol to denote the metric;
       if ``None``, it is formed from ``name``
+
+    .. automethod:: _del_derived
 
     EXAMPLES:
 
@@ -334,10 +335,10 @@ class PseudoRiemannianMetric(TensorField):
         sage: delta = M.tangent_identity_field()
         sage: riem == - r*(g*delta).antisymmetrize(2,3)
         True
-
     """
     _derived_objects = ('_connection', '_ricci_scalar', '_weyl',
-                       '_schouten', '_cotton', '_cotton_york')
+                       '_schouten', '_cotton', '_cotton_york',
+                       '_kretschmann_scalar')
 
     def __init__(self, vector_field_module, name, signature=None,
                  latex_name=None):
@@ -371,7 +372,6 @@ class PseudoRiemannianMetric(TensorField):
             - fix _test_pickling (in the superclass TensorField)
             - add a specific parent to the metrics, to fit with the category
               framework
-
         """
         TensorField.__init__(self, vector_field_module, (0,2),
                              name=name, latex_name=latex_name, sym=(0,1))
@@ -412,7 +412,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: g = M.metric('g', signature=1)
             sage: g._repr_()
             'Pseudo-Riemannian metric g on the 5-dimensional differentiable manifold M'
-
         """
         n = self._ambient_domain.dimension()
         s = self._signature
@@ -443,7 +442,6 @@ class PseudoRiemannianMetric(TensorField):
             True
             sage: g1.signature() == g.signature()
             True
-
         """
         return type(self)(self._vmodule, 'unnamed metric',
                           signature=self._signature,
@@ -458,7 +456,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: M = Manifold(5, 'M')
             sage: g = M.metric('g')
             sage: g._init_derived()
-
         """
         # Initialization of quantities pertaining to the mother class:
         TensorField._init_derived(self)
@@ -483,14 +480,13 @@ class PseudoRiemannianMetric(TensorField):
             sage: M = Manifold(5, 'M')
             sage: g = M.metric('g')
             sage: g._del_derived()
-
         """
         # First the derived quantities from the mother class are deleted:
         TensorField._del_derived(self)
         # The inverse metric is cleared:
         self._del_inverse()
-        # The connection, Ricci scalar and Weyl tensor are reset to None:
-        # The Schouten, Cotton and Cotton-York tensors are reset to None:
+        # The connection, Ricci and Kretschmann scalars, and Weyl,
+        # Schouten, Cotton, Cotton-York tensors are reset to None:
         for attr in self._derived_objects:
             self.__setattr__(attr, None)
         # The dictionary of determinants over the various frames is cleared:
@@ -508,7 +504,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: M = Manifold(5, 'M')
             sage: g = M.metric('g')
             sage: g._del_inverse()
-
         """
         self._inverse._restrictions.clear()
         self._inverse._del_derived()
@@ -535,7 +530,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: h = M.metric('h', signature=0)
             sage: h.signature()
             0
-
         """
         return self._signature
 
@@ -553,7 +547,7 @@ class PseudoRiemannianMetric(TensorField):
           `\Phi:\ U \rightarrow V`, where `V` is a subdomain of
           ``self._codomain``
           (type: :class:`~sage.manifolds.differentiable.diff_map.DiffMap`)
-          If None, the restriction of ``self._vmodule._dest_map`` to `U` is
+          If ``None``, the restriction of ``self._vmodule._dest_map`` to `U` is
           used.
 
         OUTPUT:
@@ -574,7 +568,6 @@ class PseudoRiemannianMetric(TensorField):
 
         See the top documentation of :class:`PseudoRiemannianMetric` for more
         examples.
-
         """
         if subdomain == self._domain:
             return self
@@ -604,7 +597,7 @@ class PseudoRiemannianMetric(TensorField):
 
     def set(self, symbiform):
         r"""
-        Defines the metric from a field of symmetric bilinear forms
+        Define the metric from a field of symmetric bilinear forms.
 
         INPUT:
 
@@ -641,7 +634,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: g.display(eV)
             g = (1/8*u^2 - 1/8*v^2 + 1/4*v + 1/2) du⊗du + 1/4*u du⊗dv
              + 1/4*u dv⊗du + (-1/8*u^2 + 1/8*v^2 + 1/4*v + 1/2) dv⊗dv
-
         """
         if not isinstance(symbiform, TensorField):
             raise TypeError("the argument must be a tensor field")
@@ -680,7 +672,8 @@ class PseudoRiemannianMetric(TensorField):
         If ``expansion_symbol`` is set, then the zeroth order metric must be
         invertible. Moreover, subsequent calls to this method will return
         a cached value, even when called with the default value (to enable
-        computation of derived quantities). To reset, use :meth:`_del_derived`.
+        computation of derived quantities). To reset, use
+        :meth:`_del_derived <sage.manifolds.differentiable.metric.PseudoRiemannianMetric._del_derived>`.
 
         OUTPUT:
 
@@ -720,7 +713,6 @@ class PseudoRiemannianMetric(TensorField):
             Tensor field of type (1,1) on the 2-dimensional differentiable manifold S^2
             sage: s == M.tangent_identity_field()
             True
-
         """
         # Is the inverse metric up to date?
         for dom, rst in self._restrictions.items():
@@ -745,7 +737,7 @@ class PseudoRiemannianMetric(TensorField):
           Levi-Civita connection; if ``None``, it is set to ``name``, or if the
           latter is None as well, it formed from the symbol `\nabla` and the
           metric symbol
-        - ``init_coef`` -- (default: ``True``) determines whether the
+        - ``init_coef`` -- boolean (default: ``True``); determines whether the
           connection coefficients are initialized, as Christoffel symbols
           in the top charts of the domain of ``self`` (i.e. disregarding
           the subcharts)
@@ -795,10 +787,10 @@ class PseudoRiemannianMetric(TensorField):
              the 3-dimensional differentiable manifold R^3
             sage: Dig == 0
             True
-
         """
-        from sage.manifolds.differentiable.levi_civita_connection import \
-                                                           LeviCivitaConnection
+        from sage.manifolds.differentiable.levi_civita_connection import (
+            LeviCivitaConnection,
+        )
         if self._connection is None:
             if latex_name is None:
                 if name is None:
@@ -869,8 +861,6 @@ class PseudoRiemannianMetric(TensorField):
             Gam^th_ph,ph = -cos(th)*sin(th)
             Gam^ph_r,ph = 1/r
             Gam^ph_th,ph = cos(th)/sin(th)
-
-
         """
         if chart is None:
             frame = self._domain._def_chart._frame
@@ -906,11 +896,11 @@ class PseudoRiemannianMetric(TensorField):
           representing the LaTeX labels of each index; if ``None``, coordinate
           LaTeX symbols are used, except if ``coordinate_symbols`` is set to
           ``False``, in which case integer labels are used
-        - ``coordinate_labels`` -- (default: ``True``) boolean; if ``True``,
+        - ``coordinate_labels`` -- boolean (default: ``True``); if ``True``,
           coordinate symbols are used by default (instead of integers)
-        - ``only_nonzero`` -- (default: ``True``) boolean; if ``True``, only
+        - ``only_nonzero`` -- boolean (default: ``True``); if ``True``, only
           nonzero connection coefficients are displayed
-        - ``only_nonredundant`` -- (default: ``True``) boolean; if ``True``,
+        - ``only_nonredundant`` -- boolean (default: ``True``); if ``True``,
           only nonredundant (w.r.t. the symmetry of the last two indices)
           connection coefficients are displayed
 
@@ -980,7 +970,6 @@ class PseudoRiemannianMetric(TensorField):
             Gam^2_33 = -cos(th)*sin(th)
             Gam^3_13 = 1/r
             Gam^3_23 = cos(th)/sin(th)
-
         """
         if chart is None:
             chart = self._domain.default_chart()
@@ -1063,7 +1052,6 @@ class PseudoRiemannianMetric(TensorField):
               [[0, sin(2*th)/(2*tan(th)) - cos(2*th)],
                [-sin(2*th)/(2*tan(th)) + cos(2*th), 0]]],
              [[[0, -1], [1, 0]], [[0, 0], [0, 0]]]]
-
         """
         return self.connection().riemann(name, latex_name)
 
@@ -1117,7 +1105,6 @@ class PseudoRiemannianMetric(TensorField):
             [        0 sin(th)^2]
             sage: g.ricci() == a^(-2) * g
             True
-
         """
         return self.connection().ricci(name, latex_name)
 
@@ -1176,6 +1163,77 @@ class PseudoRiemannianMetric(TensorField):
             resu._latex_name = latex_name
             self._ricci_scalar = resu
         return self._ricci_scalar
+
+    def kretschmann_scalar(self, name=None, latex_name=None):
+        r"""
+        Return the Kretschmann scalar associated with the metric.
+
+        The Kretschmann scalar is the scalar field `K` defined from the
+        Riemann curvature tensor `R` (see :meth:`riemann`) by
+
+        .. MATH::
+
+            K = R_{abcd} R^{abcd}
+
+        It is a curvature invariant frequently used in general relativity,
+        in particular for detecting curvature singularities of a spacetime
+        that are not merely artifacts of the coordinate system used (as
+        opposed to, e.g., the vanishing of some metric component in a
+        particular chart).
+
+        INPUT:
+
+        - ``name`` -- (default: ``None``) name given to the Kretschmann
+          scalar; if none, it is set to "K(g)", where "g" is the metric's
+          name
+        - ``latex_name`` -- (default: ``None``) LaTeX symbol to denote the
+          Kretschmann scalar; if none, it is set to "K(g)", where "g" is
+          the metric's name
+
+        OUTPUT:
+
+        - the Kretschmann scalar `K`, as an instance of
+          :class:`~sage.manifolds.differentiable.scalarfield.DiffScalarField`
+
+        EXAMPLES:
+
+        Kretschmann scalar of the standard metric on the 2-sphere::
+
+            sage: M = Manifold(2, 'S^2', start_index=1)
+            sage: U = M.open_subset('U') # the complement of a meridian (domain of spherical coordinates)
+            sage: c_spher.<th,ph> = U.chart(r'th:(0,pi):\theta ph:(0,2*pi):\phi')
+            sage: a = var('a') # the sphere radius
+            sage: g = U.metric('g')
+            sage: g[1,1], g[2,2] = a^2, a^2*sin(th)^2
+            sage: g.display() # standard metric on the 2-sphere of radius a:
+            g = a^2 dth⊗dth + a^2*sin(th)^2 dph⊗dph
+            sage: g.kretschmann_scalar()
+            Scalar field K(g) on the Open subset U of the 2-dimensional
+             differentiable manifold S^2
+            sage: g.kretschmann_scalar().display() # constant, as expected for a maximally symmetric space:
+            K(g): U → ℝ
+               (th, ph) ↦ 4/a^4
+
+        For a maximally symmetric 2-dimensional space, the Kretschmann
+        scalar equals the square of the Ricci scalar, since the Riemann
+        tensor is entirely determined by the Ricci scalar in dimension 2::
+
+            sage: g.kretschmann_scalar() == g.ricci_scalar()^2
+            True
+        """
+        if self._kretschmann_scalar is None:
+            riem = self.riemann()
+            riem_down = riem.down(self, 0)  # R_{abcd}, all indices down
+            riem_up = riem.up(self)  # R^{abcd}, all indices up
+            resu = riem_up.contract(0, 1, 2, 3, riem_down, 0, 1, 2, 3)
+            if name is None:
+                name = "K(" + self._name + ")"
+            if latex_name is None:
+                latex_name = "K(" + self._latex_name + ")"
+            resu._name = name
+            resu._latex_name = latex_name
+            self._kretschmann_scalar = resu
+        return self._kretschmann_scalar
 
     def weyl(self, name=None, latex_name=None):
         r"""
@@ -1284,7 +1342,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: g.schouten().display()
             Schouten(g) = -3/8 dx⊗dx + (5/8*x^2 - 3/8) dy⊗dy - 5/8*x dy⊗dz
              - 5/8*x dz⊗dy + 5/8 dz⊗dz
-
         """
         n = self._ambient_domain.dimension()
         if n < 3:
@@ -1342,7 +1399,6 @@ class PseudoRiemannianMetric(TensorField):
              3-dimensional differentiable manifold H^3
             sage: Cot == 0 # long time
             True
-
         """
         n = self._ambient_domain.dimension()
         if n < 3:
@@ -1402,7 +1458,6 @@ class PseudoRiemannianMetric(TensorField):
             CY(g) = 1/2 dx⊗dx + (-x^2 + 1/2) dy⊗dy + x dy⊗dz + x dz⊗dy - dz⊗dz
             sage: det(CY[:]) # long time
             -1/4
-
         """
         n = self._ambient_domain.dimension()
         if n != 3:
@@ -1494,7 +1549,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: s = g.determinant()  # determinant in M's default frame
             sage: s.expr()
             -x**2*y**2 + x - y*(x + 1) + 1
-
         """
         from sage.matrix.constructor import matrix
         dom = self._domain
@@ -1577,9 +1631,9 @@ class PseudoRiemannianMetric(TensorField):
             [ 1/8*u^2 - 1/8*v^2 + 1/4*v + 1/2                            1/4*u]
             [                           1/4*u -1/8*u^2 + 1/8*v^2 + 1/4*v + 1/2]
             sage: g.sqrt_abs_det(Y.frame()).expr()
-            1/2*sqrt(-x^2*y^2 - (x + 1)*y + x + 1)
+            1/2*sqrt(abs(x^2*y^2 + (x + 1)*y - x - 1))
             sage: g.sqrt_abs_det(Y.frame()).expr(Y)
-            1/8*sqrt(-u^4 - v^4 + 2*(u^2 + 2)*v^2 - 4*u^2 + 16*v + 16)
+            1/8*sqrt(abs(u^4 + v^4 - 2*(u^2 + 2)*v^2 + 4*u^2 - 16*v - 16))
 
         A chart can be passed instead of a frame::
 
@@ -1599,10 +1653,9 @@ class PseudoRiemannianMetric(TensorField):
             sage: g.sqrt_abs_det().expr()
             sqrt(-x**2*y**2 - x*y + x - y + 1)
             sage: g.sqrt_abs_det(Y.frame()).expr()
-            sqrt(-x**2*y**2 - x*y + x - y + 1)/2
+            sqrt(Abs(x**2*y**2 + x*y - x + y - 1))/2
             sage: g.sqrt_abs_det(Y.frame()).expr(Y)
-            sqrt(-u**4 + 2*u**2*v**2 - 4*u**2 - v**4 + 4*v**2 + 16*v + 16)/8
-
+            sqrt(Abs(-u**4 + 2*u**2*v**2 - 4*u**2 - v**4 + 4*v**2 + 16*v + 16))/8
         """
         dom = self._domain
         if frame is None:
@@ -1772,7 +1825,6 @@ class PseudoRiemannianMetric(TensorField):
 
         Note the minus sign in the above expression, reflecting the fact that
         ``eV`` is left-handed with respect to the chosen orientation.
-
         """
         dom = self._domain
         orient = dom.orientation()
@@ -1824,14 +1876,14 @@ class PseudoRiemannianMetric(TensorField):
         `n`-form associated with `g` (see :meth:`volume_form`) and the indices
         `k_1,\ldots, k_p` are raised with `g`.
 
-        Notice that the hodge star dual requires an orientable manifold
+        Notice that the Hodge star dual requires an orientable manifold
         with a preferred orientation, see
         :meth:`~sage.manifolds.differentiable.manifold.DifferentiableManifold.orientation`
         for details.
 
         INPUT:
 
-        - ``pform``: a `p`-form `A`; must be an instance of
+        - ``pform`` -- a `p`-form `A`; must be an instance of
           :class:`~sage.manifolds.differentiable.scalarfield.DiffScalarField`
           for `p=0` and of
           :class:`~sage.manifolds.differentiable.diff_form.DiffForm` or
@@ -1972,7 +2024,6 @@ class PseudoRiemannianMetric(TensorField):
             sage: epsilon = g.volume_form()
             sage: g.hodge_star(a.wedge(b)) == epsilon.contract(0,a.up(g)).contract(0,b.up(g))
             True
-
         """
         return pform.hodge_dual(self)
 
@@ -2021,6 +2072,8 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
       set to the dimension of manifold `M` (Riemannian signature)
     - ``latex_name`` -- (default: ``None``) LaTeX symbol to denote the metric;
       if ``None``, it is formed from ``name``
+
+    .. automethod:: _del_derived
 
     EXAMPLES:
 
@@ -2098,7 +2151,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
         inv_g = (x - 1)/(x^2*y^2 + x^2 - 1) ∂/∂x⊗∂/∂x
          + x*y/(x^2*y^2 + x^2 - 1) ∂/∂x⊗∂/∂y + x*y/(x^2*y^2 + x^2 - 1) ∂/∂y⊗∂/∂x
          - (x + 1)/(x^2*y^2 + x^2 - 1) ∂/∂y⊗∂/∂y
-
     """
     def __init__(self, vector_field_module, name, signature=None,
                  latex_name=None):
@@ -2121,7 +2173,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
 
             - add a specific parent to the metrics, to fit with the category
               framework
-
         """
         TensorFieldParal.__init__(self, vector_field_module, (0,2),
                                   name=name, latex_name=latex_name, sym=(0,1))
@@ -2156,7 +2207,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
             sage: X.<x,y,z> = M.chart()  # makes M parallelizable
             sage: g = M.metric('g')
             sage: g._init_derived()
-
         """
         # Initialization of quantities pertaining to the mother classes:
         TensorFieldParal._init_derived(self)
@@ -2168,8 +2218,8 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
 
         INPUT:
 
-        - ``del_restrictions`` -- (default: True) determines whether the
-          restrictions of ``self`` to subdomains are deleted.
+        - ``del_restrictions`` -- boolean (default: ``True``); determines whether the
+          restrictions of ``self`` to subdomains are deleted
 
         TESTS::
 
@@ -2178,7 +2228,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
             sage: g = M.metric('g')
             sage: g._del_derived(del_restrictions=False)
             sage: g._del_derived()
-
         """
         # The derived quantities from the mother classes are deleted:
         TensorFieldParal._del_derived(self, del_restrictions=del_restrictions)
@@ -2194,7 +2243,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
             sage: X.<x,y,z> = M.chart()  # makes M parallelizable
             sage: g = M.metric('g')
             sage: g._del_inverse()
-
         """
         self._inverse._components.clear()
         self._inverse._del_derived()
@@ -2214,7 +2262,7 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
           `\Phi:\ U \rightarrow V`, where `V` is a subdomain of
           ``self._codomain``
           (type: :class:`~sage.manifolds.differentiable.diff_map.DiffMap`)
-          If None, the restriction of ``self._vmodule._dest_map`` to `U` is
+          If ``None``, the restriction of ``self._vmodule._dest_map`` to `U` is
           used.
 
         OUTPUT:
@@ -2238,7 +2286,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
             0
             sage: gU.display()
             g = -dx⊗dx + dy⊗dy
-
         """
         if subdomain == self._domain:
             return self
@@ -2288,7 +2335,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
             sage: g.set(s)
             sage: g.display()
             g = (x^2 + 1) dx⊗dx + x*y dx⊗dy + x*y dy⊗dx + (y^2 + 1) dy⊗dy
-
         """
         if not isinstance(symbiform, TensorFieldParal):
             raise TypeError("the argument must be a tensor field with " +
@@ -2326,7 +2372,8 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
         If ``expansion_symbol`` is set, then the zeroth order metric must be
         invertible. Moreover, subsequent calls to this method will return
         a cached value, even when called with the default value (to enable
-        computation of derived quantities). To reset, use :meth:`_del_derived`.
+        computation of derived quantities). To reset, use
+        :meth:`_del_derived <sage.manifolds.differentiable.metric.PseudoRiemannianMetricParal._del_derived>`.
 
         OUTPUT:
 
@@ -2408,7 +2455,6 @@ class PseudoRiemannianMetricParal(PseudoRiemannianMetric, TensorFieldParal):
             [ e  1 -e  0]
             [ 0 -e  1 -e]
             [ 0  0 -e  1]
-
         """
         if expansion_symbol is not None:
             if (self._inverse is not None and bool(self._inverse._components)
@@ -2617,7 +2663,6 @@ class DegenerateMetric(TensorField):
         sage: g(v, v).disp()
         M → ℝ
         (x, y, z) ↦ 0
-
     """
 
     def __init__(self, vector_field_module, name, signature=None,
@@ -2632,7 +2677,7 @@ class DegenerateMetric(TensorField):
             m
             sage: Int = M.open_subset('Int')
             sage: X.<t,r,th,ph>=Int.chart(r"t r:(0,2*m) th:(0,pi):\theta ph:(0,2*pi):\phi")
-            sage: XM = M.vector_field_module(); e= X.frame()
+            sage: XM = M.vector_field_module(); e = X.frame()
             sage: from sage.manifolds.differentiable.metric import \
             ....:                                        DegenerateMetric
             sage: g = DegenerateMetric(XM, 'g', signature=(2,1,1)); g
@@ -2642,8 +2687,6 @@ class DegenerateMetric(TensorField):
             sage: g.disp(e)
             g = (2*m/r - 1) dt⊗dt + 2*m/r dt⊗dr + 2*m/r dr⊗dt + (2*m/r + 1) dr⊗dr
             + r^2 dth⊗dth + r^2*sin(th)^2 dph⊗dph
-
-
         """
         TensorField.__init__(self, vector_field_module, (0,2),
                              name=name, latex_name=latex_name, sym=(0,1))
@@ -2677,7 +2720,6 @@ class DegenerateMetric(TensorField):
             sage: g = M.metric('g', signature=(1,1,1))
             sage: g._repr_()
             'degenerate metric g on the 3-dimensional differentiable manifold M'
-
         """
         return self._final_repr("degenerate metric "+self._name + " ")
 
@@ -2698,7 +2740,6 @@ class DegenerateMetric(TensorField):
             True
             sage: g1.signature() == g.signature()
             True
-
         """
         return type(self)(self._vmodule, 'unnamed metric',
                           signature=self._signature,
@@ -2726,13 +2767,12 @@ class DegenerateMetric(TensorField):
             sage: g = M.metric()
             sage: g.signature()
             (0, 2, 1)
-
         """
         return self._signature
 
     def set(self, symbiform):
         r"""
-        Defines the metric from a field of symmetric bilinear forms
+        Define the metric from a field of symmetric bilinear forms.
 
         INPUT:
 
@@ -2769,7 +2809,6 @@ class DegenerateMetric(TensorField):
             sage: g.display(eV)
             g = (1/8*u^2 - 1/8*v^2 + 1/4*v + 1/2) du⊗du + 1/4*u du⊗dv
              + 1/4*u dv⊗du + (-1/8*u^2 + 1/8*v^2 + 1/4*v + 1/2) dv⊗dv
-
         """
         if not isinstance(symbiform, TensorField):
             raise TypeError("the argument must be a tensor field")
@@ -2803,7 +2842,7 @@ class DegenerateMetric(TensorField):
           `\Phi:\ U \rightarrow V`, where `V` is a subdomain of
           ``self._codomain``
           (type: :class:`~sage.manifolds.differentiable.diff_map.DiffMap`)
-          If None, the restriction of ``self._vmodule._dest_map`` to `U` is
+          If ``None``, the restriction of ``self._vmodule._dest_map`` to `U` is
           used.
 
         OUTPUT:
@@ -2824,7 +2863,6 @@ class DegenerateMetric(TensorField):
 
         See the top documentation of :class:`DegenerateMetric` for more
         examples.
-
         """
         if subdomain == self._domain:
             return self
@@ -2841,7 +2879,7 @@ class DegenerateMetric(TensorField):
 
     def determinant(self):
         r"""
-        Determinant of a degenerate metric is always '0'
+        Determinant of a degenerate metric is always '0'.
 
         EXAMPLES::
 
@@ -2849,7 +2887,6 @@ class DegenerateMetric(TensorField):
             sage: g = S.metric('g', signature=([0,1,1]))
             sage: g.determinant()
             Scalar field zero on the 2-dimensional differentiable manifold S
-
         """
         return self._domain.zero_scalar_field()
 
@@ -2933,7 +2970,6 @@ class DegenerateMetricParal(DegenerateMetric, TensorFieldParal):
         sage: g(v, v).disp()
         M → ℝ
         (x, y, z) ↦ 0
-
     """
 
     def __init__(self, vector_field_module, name, signature=None,
@@ -2959,8 +2995,6 @@ class DegenerateMetricParal(DegenerateMetric, TensorFieldParal):
             + (x^2 + z^2)/(x^2 + y^2 + z^2) dy⊗dy - y*z/(x^2 + y^2 + z^2) dy⊗dz
             - x*z/(x^2 + y^2 + z^2) dz⊗dx - y*z/(x^2 + y^2 + z^2) dz⊗dy
             + (x^2 + y^2)/(x^2 + y^2 + z^2) dz⊗dz
-
-
         """
         TensorFieldParal.__init__(self, vector_field_module, (0,2),
                              name=name, latex_name=latex_name, sym=(0,1))
@@ -2984,7 +3018,7 @@ class DegenerateMetricParal(DegenerateMetric, TensorFieldParal):
 
     def set(self, symbiform):
         r"""
-        Defines the metric from a field of symmetric bilinear forms
+        Define the metric from a field of symmetric bilinear forms.
 
         INPUT:
 
@@ -3006,7 +3040,6 @@ class DegenerateMetricParal(DegenerateMetric, TensorFieldParal):
             sage: g.set(b)
             sage: g.display()
             g = dx⊗dx + dy⊗dy
-
         """
         if not isinstance(symbiform, TensorFieldParal):
             raise TypeError("the argument must be a tensor field with " +
@@ -3039,7 +3072,7 @@ class DegenerateMetricParal(DegenerateMetric, TensorFieldParal):
           `\Phi:\ U \rightarrow V`, where `V` is a subdomain of
           ``self._codomain``
           (type: :class:`~sage.manifolds.differentiable.diff_map.DiffMap`)
-          If None, the restriction of ``self._vmodule._dest_map`` to `U` is
+          If ``None``, the restriction of ``self._vmodule._dest_map`` to `U` is
           used.
 
         OUTPUT:
@@ -3059,7 +3092,6 @@ class DegenerateMetricParal(DegenerateMetric, TensorFieldParal):
 
         See the top documentation of :class:`DegenerateMetric` for more
         examples.
-
         """
         if subdomain == self._domain:
             return self

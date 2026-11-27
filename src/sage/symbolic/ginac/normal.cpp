@@ -1056,8 +1056,8 @@ ex expairseq::to_polynomial(exmap & repl) const
 	ex oc = overall_coeff.to_polynomial(repl);
 	if (oc.info(info_flags::numeric))
 		return thisexpairseq(s, overall_coeff);
-	
-		s.emplace_back(oc, _ex1);
+
+	s.emplace_back(oc, _ex1);
 	return thisexpairseq(s, default_overall_coeff());
 }
 
@@ -1093,13 +1093,6 @@ static ex find_common_factor(const ex & e, ex & factor, exmap & repl)
 
 		if (gc.is_one())
 			return e;
-#ifdef PYNAC_HAVE_LIBGIAC
-                else {
-                        ex f = 1;
-                        gc = find_common_factor(gc, f, repl);
-                        gc *= f;
-                }
-#endif
 
 		// The GCD is the factor we pull out
 		factor *= gc;

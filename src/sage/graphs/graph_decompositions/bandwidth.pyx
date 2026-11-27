@@ -1,4 +1,3 @@
-# cython: binding=True
 r"""
 Bandwidth of undirected graphs
 
@@ -6,7 +5,7 @@ Definition
 ----------
 
 The bandwidth `bw(M)` of a matrix `M` is the smallest integer `k` such that all
-non-zero entries of `M` are at distance `k` from the diagonal. The bandwidth
+nonzero entries of `M` are at distance `k` from the diagonal. The bandwidth
 `bw(G)` of an undirected graph `G` is the minimum bandwidth of the adjacency
 matrix of `G`, over all possible relabellings of its vertices.
 
@@ -156,7 +155,7 @@ def bandwidth(G, k=None):
 
         sage: from sage.graphs.graph_decompositions.bandwidth import bandwidth
         sage: G = graphs.PetersenGraph()
-        sage: bandwidth(G,3)
+        sage: bandwidth(G, 3)
         False
         sage: bandwidth(G)
         (5, [0, 4, 5, 8, 1, 9, 3, 7, 6, 2])
@@ -209,7 +208,6 @@ def bandwidth(G, k=None):
         Traceback (most recent call last):
         ...
         ValueError: this method only works on unweighted graphs
-
     """
     if G.is_directed():
         raise ValueError("this method only works on undirected graphs")
@@ -219,8 +217,7 @@ def bandwidth(G, k=None):
     if G.order() <= 1:
         if k is None:
             return 0, list(G)
-        else:
-            return list(G)
+        return list(G)
 
     if not G.is_connected():
         max_k = 0 if k is None else k

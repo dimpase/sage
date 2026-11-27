@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 r"""
 Tate's parametrisation of `p`-adic curves with multiplicative reduction
 
@@ -40,17 +39,18 @@ AUTHORS:
 #
 #                  https://www.gnu.org/licenses/
 ######################################################################
-from sage.rings.integer_ring import ZZ
-from sage.rings.padics.factory import Qp
-from sage.structure.sage_object import SageObject
-from sage.structure.richcmp import richcmp, richcmp_method
 from sage.arith.functions import lcm as LCM
-from sage.modular.modform.constructor import EisensteinForms, CuspForms
-from sage.schemes.elliptic_curves.constructor import EllipticCurve
-from sage.functions.log import log
-from sage.misc.functional import denominator
-from sage.misc.misc_c import prod
 from sage.matrix.constructor import matrix
+from sage.misc.functional import denominator, log
+from sage.misc.lazy_import import lazy_import
+from sage.misc.misc_c import prod
+from sage.modular.modform.constructor import EisensteinForms, CuspForms
+from sage.rings.integer_ring import ZZ
+from sage.schemes.elliptic_curves.constructor import EllipticCurve
+from sage.structure.richcmp import richcmp, richcmp_method
+from sage.structure.sage_object import SageObject
+
+lazy_import('sage.rings.padics.factory', 'Qp')
 
 
 @richcmp_method
@@ -82,7 +82,7 @@ class TateCurve(SageObject):
         - ``E`` -- an elliptic curve over the rational numbers
 
         - ``p`` -- a prime where `E` has multiplicative reduction,
-                 i.e., such that `j(E)` has negative valuation.
+          i.e., such that `j(E)` has negative valuation
 
         EXAMPLES::
 
@@ -156,7 +156,7 @@ class TateCurve(SageObject):
              over Rational Field
             sage: eq.prime()
             5
-       """
+        """
         return self._p
 
     def parameter(self, prec=20):
@@ -167,7 +167,7 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -183,7 +183,7 @@ class TateCurve(SageObject):
         Delta = CuspForms(weight=12).basis()[0]
         j = (E4.q_expansion(prec + 3)) ** 3 / Delta.q_expansion(prec + 3)
         jinv = (1 / j).power_series()
-        q_in_terms_of_jinv = jinv.reverse()
+        q_in_terms_of_jinv = jinv.revert()
         R = Qp(self._p, prec=prec)
         qE = q_in_terms_of_jinv(R(1 / self._E.j_invariant()))
         self._q = qE
@@ -209,7 +209,7 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -244,7 +244,7 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -269,7 +269,7 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -313,10 +313,10 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``u`` -- a non-zero `p`-adic number.
+        - ``u`` -- a nonzero `p`-adic number
 
-        - ``prec`` -- the `p`-adic precision, default is the relative precision of ``u``
-          otherwise 20.
+        - ``prec`` -- the `p`-adic precision; default is the relative precision
+          of ``u``, otherwise 20
 
         EXAMPLES::
 
@@ -375,7 +375,7 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -406,7 +406,7 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -443,7 +443,7 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -466,9 +466,9 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``P`` -- a point on the elliptic curve.
+        - ``P`` -- a point on the elliptic curve
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
@@ -522,10 +522,10 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``u`` -- a non-zero `p`-adic number.
+        - ``u`` -- a nonzero `p`-adic number
 
-        - ``prec`` -- the `p`-adic precision, default is the relative precision of ``u``
-          otherwise 20.
+        - ``prec`` -- the `p`-adic precision; default is the relative precision
+          of ``u``, otherwise 20
 
         EXAMPLES::
 
@@ -578,14 +578,13 @@ class TateCurve(SageObject):
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
-        OUTPUT:
-
-        - A function that can be evaluated on rational points of `E`.
+        OUTPUT: a function that can be evaluated on rational points of `E`
 
         EXAMPLES::
 
+            sage: # needs eclib
             sage: e = EllipticCurve('130a1')
             sage: eq = e.tate_curve(5)
             sage: h = eq.padic_height(prec=10)
@@ -595,6 +594,7 @@ class TateCurve(SageObject):
 
         Check that it is a quadratic function::
 
+            sage: # needs eclib
             sage: h(3*P)-3^2*h(P)
             O(5^9)
         """
@@ -635,14 +635,15 @@ class TateCurve(SageObject):
 
         The `p`-adic Birch and Swinnerton-Dyer conjecture predicts
         that this value appears in the formula for the leading term of
-        the `p`-adic L-function.
+        the `p`-adic `L`-function.
 
         INPUT:
 
-        - ``prec`` -- the `p`-adic precision, default is 20.
+        - ``prec`` -- the `p`-adic precision (default: 20)
 
         EXAMPLES::
 
+            sage: # needs eclib
             sage: eq = EllipticCurve('130a1').tate_curve(5)
             sage: eq.padic_regulator()
             2*5^-1 + 1 + 2*5 + 2*5^2 + 3*5^3 + 3*5^6 + 5^7 + 3*5^9 + 3*5^10 + 3*5^12 + 4*5^13 + 3*5^15 + 2*5^16 + 3*5^18 + 4*5^19 +  4*5^20 + 3*5^21 + 4*5^22 + O(5^23)

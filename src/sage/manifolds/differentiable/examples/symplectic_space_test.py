@@ -1,15 +1,20 @@
+from __future__ import annotations
+import pytest
+
 import sage.all
-from sage.manifolds.differentiable.symplectic_form import SymplecticForm
 from sage.manifolds.differentiable.examples.symplectic_space import (
     StandardSymplecticSpace,
 )
-import pytest
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from sage.manifolds.differentiable.symplectic_form import SymplecticForm
 
 
 class TestR2VectorSpace:
     @pytest.fixture
     def M(self):
-        return StandardSymplecticSpace(2, "R2", symplectic_name="omega")
+        return StandardSymplecticSpace(2, 'R2', symplectic_name='omega')
 
     @pytest.fixture
     def omega(self, M: StandardSymplecticSpace):
@@ -25,7 +30,7 @@ class TestR2VectorSpace:
 class TestR4VectorSpace:
     @pytest.fixture
     def M(self):
-        return StandardSymplecticSpace(4, "R4", symplectic_name="omega")
+        return StandardSymplecticSpace(4, 'R4', symplectic_name='omega')
 
     @pytest.fixture
     def omega(self, M: StandardSymplecticSpace):
