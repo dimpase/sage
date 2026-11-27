@@ -95,6 +95,8 @@ class DeterminantalPointProcess(SageObject):
         """
         Really slow fallback test.
 
+        This uses Proposition 1 of [Brunel2018]_.
+
         EXAMPLES::
 
             sage: DPP = DeterminantalPointProcess(lambda x,y: 0.02 * exp(-(y - x).norm()^2/0.018))
@@ -105,7 +107,7 @@ class DeterminantalPointProcess(SageObject):
         """
         if not K.is_square():
             return False
-        # Run the test from Burnel (see Prop. 1 of [Pou2022]_)
+        # Run the test from Brunel, Proposition 1 of [Brunel2018]_.
         from itertools import combinations
         from copy import copy
         n = K.nrows()
@@ -120,8 +122,7 @@ class DeterminantalPointProcess(SageObject):
 
 class AztecDiamond(SageObject):
     """
-    We follow *Asymptotic domino statistics in the Aztec diamond*
-    by S. Chhita, K. Johansson, and B. Young :arXiv:`1212.5414`.
+    We follow [CJY2012]_.
     """
     def __init__(self, n, a=QQ.one()):
         self._n = n
