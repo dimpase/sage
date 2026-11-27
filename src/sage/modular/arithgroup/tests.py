@@ -426,7 +426,7 @@ class Test:
     def test_ross_dim_formula(self, N_ub=30, k_ub=8):
         r"""
         Test Ross' dimension formula for newspaces with character
-        `S_k^\text{new}(N, \chi)` from Theorem 1.4 of :arxiv:`2407.08881`.
+        `S_k^\text{new}(N, \chi)` from Theorem 1.4 of [Ross2024]_.
 
         EXAMPLES::
 

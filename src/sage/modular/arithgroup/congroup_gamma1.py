@@ -644,7 +644,7 @@ class Gamma1_class(GammaH_class):
 def _ross_dim_formula_newspace_character(N, k, chi):
     r"""
     Compute the dimension formula for `S_k^\text{new}(\Gamma_1(N), \chi)`
-    given in Theorem 1.4 of :arxiv:`2407.08881`.
+    given in Theorem 1.4 of [Ross2024]_.
     This formula computes the newspace convolution explicitly. Fuller tests
     are at :meth:`sage.modular.arithgroup.tests.Test.test_ross_dim_formula()`.
 
