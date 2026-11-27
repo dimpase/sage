@@ -3,7 +3,7 @@ if not symmetrica.found()
   # fallback for older versions without pkg-config
   symmetrica = cc.find_library(
     'symmetrica',
-    required: not is_windows,
+    required: false,
     disabler: true,
   )
 endif
@@ -15,7 +15,7 @@ py.install_sources(
   subdir: 'sage/libs/symmetrica',
 )
 
-extension_data = {'symmetrica' : files('symmetrica.pyx')}
+extension_data = {'symmetrica': files('symmetrica.pyx')}
 
 foreach name, pyx : extension_data
   py.extension_module(

@@ -3,6 +3,7 @@ py.install_sources(
   'abc.pyx',
   'all.py',
   'cone.py',
+  'cone_test.py',
   'cone_catalog.py',
   'cone_critical_angles.py',
   'convex_set.py',
@@ -30,12 +31,12 @@ py.install_sources(
 )
 
 extension_data = {
-  'abc' : files('abc.pyx'),
-  'integral_points_generic_dense' : files('integral_points_generic_dense.pyx'),
-  'integral_points_integer_dense' : files('integral_points_integer_dense.pyx'),
-  'palp_normal_form' : files('palp_normal_form.pyx'),
-  'point_collection' : files('point_collection.pyx'),
-  'toric_lattice_element' : files('toric_lattice_element.pyx'),
+  'abc': files('abc.pyx'),
+  'integral_points_generic_dense': files('integral_points_generic_dense.pyx'),
+  'integral_points_integer_dense': files('integral_points_integer_dense.pyx'),
+  'palp_normal_form': files('palp_normal_form.pyx'),
+  'point_collection': files('point_collection.pyx'),
+  'toric_lattice_element': files('toric_lattice_element.pyx'),
 }
 
 foreach name, pyx : extension_data

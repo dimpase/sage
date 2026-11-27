@@ -149,15 +149,6 @@ class DocTestReporter(SageObject):
             sage: DTR.were_doctests_with_optional_tag_run('nice_unavailable_package')
             False
 
-        When latex is available, doctests marked with optional tag
-        ``latex`` are run by default since :issue:`32174`::
-
-            sage: # needs SAGE_SRC
-            sage: filename = os.path.join(SAGE_SRC, 'sage', 'misc', 'latex.py')
-            sage: DC = DocTestController(DocTestDefaults(), [filename])
-            sage: DTR = DocTestReporter(DC)
-            sage: DTR.were_doctests_with_optional_tag_run('latex')   # optional - latex
-            True
         """
         if self.controller.options.optional is True or tag in self.controller.options.optional:
             return True
@@ -222,7 +213,7 @@ class DocTestReporter(SageObject):
                 cmd += f" [failed in baseline: {failed}]"
         return cmd
 
-    def _log_failure(self, source, fail_msg, event, output=None):
+    def _log_failure(self, source, fail_msg, event, output=None, *, process_tree_before_kill=None):
         r"""
         Report on the result of a failed doctest run.
 
@@ -235,6 +226,8 @@ class DocTestReporter(SageObject):
         - ``event`` -- string
 
         - ``output`` -- (optional) string
+
+        - ``process_tree_before_kill`` -- (optional) string
 
         EXAMPLES::
 
@@ -265,13 +258,9 @@ class DocTestReporter(SageObject):
         """
         log = self.controller.log
         format = self.controller.options.format
+        stars = "*" * 70
         if format == 'sage':
-            stars = "*" * 70
             log(f"    {fail_msg}\n{stars}\n")
-            if output:
-                log(f"Tests run before {event}:")
-                log(output)
-                log(stars)
         elif format == 'github':
             # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#using-workflow-commands-to-access-toolkit-functions
             command = f'::error title={fail_msg}'
@@ -292,8 +281,18 @@ class DocTestReporter(SageObject):
             log(command)
         else:
             raise ValueError(f'unknown format option: {format}')
+        # we log the tests ran even in github mode. The last test information is redundant since it's included
+        # in the {lineno} above, but the printed outputs of previously ran tests are not
+        if output:
+            log(f"Tests run before {event}:")
+            log(output)
+            log(stars)
+        if process_tree_before_kill:
+            log("Process tree before kill:")
+            log(process_tree_before_kill)
+            log(stars)
 
-    def report(self, source, timeout, return_code, results, output, pid=None):
+    def report(self, source, timeout, return_code, results, output, pid=None, *, process_tree_before_kill=None):
         """
         Report on the result of running doctests on a given source.
 
@@ -487,7 +486,7 @@ class DocTestReporter(SageObject):
             stats = self.stats
             basename = source.basename
             baseline = self.controller.source_baseline(source)
-            cmd = self.report_head(source)
+            self.report_head(source)
             try:
                 ntests, result_dict = results
             except (TypeError, ValueError):
@@ -507,7 +506,7 @@ class DocTestReporter(SageObject):
                         fail_msg += " (and interrupt failed)"
                     else:
                         fail_msg += " (with %s after interrupt)" % signal_name(sig)
-                self._log_failure(source, fail_msg, f"{process_name} timed out", output)
+                self._log_failure(source, fail_msg, f"{process_name} timed out", output, process_tree_before_kill=process_tree_before_kill)
                 postscript['lines'].append(self.report_head(source, fail_msg))
                 stats[basename] = {"failed": True, "walltime": 1e6, "ntests": ntests}
                 if not baseline.get('failed', False):

@@ -1079,7 +1079,7 @@ class NuDyckWord(CombinatorialElement):
             return j
         return False
 
-    def mutate(self, i) -> None | NuDyckWord:
+    def mutate(self, i) -> NuDyckWord | None:
         r"""
         Return a new `\nu`-Dyck Word if possible.
 
@@ -1435,7 +1435,7 @@ def path_weakly_above_other(path, other) -> bool:
     r"""
     Test if ``path`` is weakly above ``other``.
 
-    A path `P` is wealy above another path `Q` if `P` and `Q` are the same
+    A path `P` is weakly above another path `Q` if `P` and `Q` are the same
     length and if any prefix of length `n` of `Q` contains more North steps
     than the prefix of length `n` of `P`.
 

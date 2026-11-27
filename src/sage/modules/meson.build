@@ -9,6 +9,7 @@ py.install_sources(
   'free_module.py',
   'free_module_element.pxd',
   'free_module_element.pyx',
+  'free_module_element.pyi',
   'free_module_homspace.py',
   'free_module_integer.py',
   'free_module_morphism.py',
@@ -68,20 +69,20 @@ py.install_sources(
 )
 
 extension_data = {
-  'finite_submodule_iter' : files('finite_submodule_iter.pyx'),
-  'free_module_element' : files('free_module_element.pyx'),
-  'module' : files('module.pyx'),
-  'vector_complex_double_dense' : files('vector_complex_double_dense.pyx'),
-  'vector_double_dense' : files('vector_double_dense.pyx'),
-  'vector_integer_dense' : files('vector_integer_dense.pyx'),
-  'vector_integer_sparse' : files('vector_integer_sparse.pyx'),
-  'vector_modn_dense' : files('vector_modn_dense.pyx'),
-  'vector_modn_sparse' : files('vector_modn_sparse.pyx'),
-  'vector_numpy_dense' : files('vector_numpy_dense.pyx'),
-  'vector_numpy_integer_dense' : files('vector_numpy_integer_dense.pyx'),
-  'vector_rational_dense' : files('vector_rational_dense.pyx'),
-  'vector_rational_sparse' : files('vector_rational_sparse.pyx'),
-  'vector_real_double_dense' : files('vector_real_double_dense.pyx'),
+  'finite_submodule_iter': files('finite_submodule_iter.pyx'),
+  'free_module_element': files('free_module_element.pyx'),
+  'module': files('module.pyx'),
+  'vector_complex_double_dense': files('vector_complex_double_dense.pyx'),
+  'vector_double_dense': files('vector_double_dense.pyx'),
+  'vector_integer_dense': files('vector_integer_dense.pyx'),
+  'vector_integer_sparse': files('vector_integer_sparse.pyx'),
+  'vector_modn_dense': files('vector_modn_dense.pyx'),
+  'vector_modn_sparse': files('vector_modn_sparse.pyx'),
+  'vector_numpy_dense': files('vector_numpy_dense.pyx'),
+  'vector_numpy_integer_dense': files('vector_numpy_integer_dense.pyx'),
+  'vector_rational_dense': files('vector_rational_dense.pyx'),
+  'vector_rational_sparse': files('vector_rational_sparse.pyx'),
+  'vector_real_double_dense': files('vector_real_double_dense.pyx'),
 }
 
 foreach name, pyx : extension_data
@@ -96,7 +97,7 @@ foreach name, pyx : extension_data
 endforeach
 
 extension_data_cpp = {
-  'numpy_util' : files('numpy_util.pyx'),
+  'numpy_util': files('numpy_util.pyx'),
   'vector_mod2_dense': files('vector_mod2_dense.pyx'),
 }
 

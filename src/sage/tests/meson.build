@@ -13,6 +13,7 @@ py.install_sources(
   'functools_partial_src.py',
   'gosper-sum.py',
   'lazy_imports.py',
+  'maxima_library_test.py',
   'modular_group_cohomology.py',
   'numpy.py',
   'parigp.py',
@@ -24,7 +25,7 @@ py.install_sources(
   subdir: 'sage/tests',
 )
 
-extension_data = {'cython' : files('cython.pyx')}
+extension_data = {'cython': files('cython.pyx')}
 
 foreach name, pyx : extension_data
   py.extension_module(

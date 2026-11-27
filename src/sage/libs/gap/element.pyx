@@ -7,6 +7,7 @@ elements. For general information about GAP, you should read the
 """
 # ****************************************************************************
 #       Copyright (C) 2012 Volker Braun <vbraun.name@gmail.com>
+#                     2026 Vincent Delecroix <20100.delecroix@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +17,16 @@ elements. For general information about GAP, you should read the
 # ****************************************************************************
 
 from cpython.object cimport Py_EQ, Py_NE, Py_LE, Py_GE, Py_LT, Py_GT
-from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from libc.stdlib cimport free
 
 from sage.libs.gap.gap_includes cimport *
 from sage.libs.gap.libgap import libgap
 from sage.libs.gap.util cimport *
 from sage.libs.gap.util import GAPError, gap_sig_on, gap_sig_off
 from sage.libs.gmp.mpz cimport *
-from sage.libs.gmp.pylong cimport mpz_get_pylong, mpz_set_pylong
+from sage.libs.gmp.pylong cimport mpz_get_pylong, mpz_set_pylong, mpz_pythonhash
 from sage.cpython.string cimport str_to_bytes, char_to_str
+from sage.rings.integer cimport Integer
 from sage.rings.integer_ring import ZZ
 from sage.rings.rational_field import QQ
 from sage.rings.real_double import RDF
@@ -213,135 +215,79 @@ cdef Obj make_gap_record(sage_dict) except NULL:
         GAP_Leave()
 
 
-cdef Obj make_gap_integer(sage_int) except NULL:
+cdef extern from *:
+    long __BYTE_ORDER__, __ORDER_LITTLE_ENDIAN__
+
+
+cdef Obj make_gap_integer_from_mpz(mpz_srcptr z) except NULL:
     """
-    Convert Sage integer or Python integer into Gap integer
+    Internal helper to convert ``mpz`` integer into ``Gap`` integer.
+    """
+    cdef size_t num_gmp_limbs = mpz_size(z)
+    cdef void* temp
+    cdef size_t num_gap_words
+    if sizeof(mp_limb_t) == sizeof(UInt) or (
+            __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ and sizeof(mp_limb_t) * num_gmp_limbs % sizeof(UInt) == 0):
+        # use GMP internal to avoid memory allocation
+        num_gap_words = num_gmp_limbs * sizeof(mp_limb_t) / sizeof(UInt) if sizeof(mp_limb_t) != sizeof(UInt) else num_gmp_limbs
+        try:
+            GAP_Enter()
+            return GAP_MakeObjInt(<const UInt*>z._mp_d, -num_gap_words if mpz_sgn(z) < 0 else num_gap_words)
+        finally:
+            GAP_Leave()
+    else:
+        temp = mpz_export(NULL, &num_gap_words, -1, sizeof(UInt), 0, 0, z)  # because of sage.ext.memory, this uses sage_sig_malloc
+        try:
+            GAP_Enter()
+            return GAP_MakeObjInt(<const UInt*>temp, -num_gap_words if mpz_sgn(z) < 0 else num_gap_words)
+        finally:
+            GAP_Leave()
+            free(temp)
+
+
+def make_GapElement_Integer_from_sage_integer(parent, Integer x):
+    """
+    Internal helper to convert Sage :class:`~sage.rings.integer.Integer` into GapElement objects.
+    Not to be used directly, use ``libgap(x)`` instead.
+
+    TESTS::
+
+        sage: for x in [0, 1, 2**31, 2**32, 2**63, 2**64, 2**128]:
+        ....:     for y in [x, -x, x-1]:
+        ....:         assert str(libgap(y)) == str(y), y
+
+    Check that the following is fast (i.e. no conversion to decimal is performed)::
+
+        sage: ignore = libgap(1<<500000000)
+    """
+    return make_GapElement_Integer(parent, make_gap_integer_from_mpz(x.value))
+
+
+cdef Obj make_gap_integer(x) except NULL:
+    """
+    Convert Python integer into Gap integer. Not to be used directly, use ``libgap(x)`` instead.
 
     INPUT:
 
-    - ``sage_int`` -- Sage integer or Python int
+    - ``x`` -- Python ``int`` object
 
     OUTPUT: the integer as a GAP ``Obj``
 
-    TESTS:
+    TESTS::
 
-    Test with Sage integers::
+        sage: for x in [0, 1, 2**31, 2**32, 2**63, 2**64, 2**128]:
+        ....:     for y in [x, -x, x-1]:
+        ....:         assert str(libgap(int(y))) == str(y), y
 
-        sage: libgap(0)   # indirect doctest
-        0
-        sage: libgap(1)
-        1
-        sage: libgap(-1)
-        -1
-        sage: libgap(2**31)
-        2147483648
-        sage: libgap(-2**63)
-        -9223372036854775808
-        sage: libgap(2**64)
-        18446744073709551616
-        sage: libgap(-(2**256))
-        -115792089237316195423570985008687907853269984665640564039457584007913129639936
+    Check that the following is fast (i.e. no conversion to decimal is performed)::
 
-    Test with Python int (not Sage Integer)::
-
-        sage: libgap(int(0))
-        0
-        sage: libgap(int(1))
-        1
-        sage: libgap(int(-1))
-        -1
-        sage: libgap(int(10**30))
-        1000000000000000000000000000000
-        sage: libgap(-int(10**30))
-        -1000000000000000000000000000000
-        sage: libgap(int(2**100))
-        1267650600228229401496703205376
-
-    Test round-trip conversion::
-
-        sage: n = int(123456789012345678901234567890)
-        sage: gap_n = libgap(n)
-        sage: gap_n.sage() == n
-        True
-
-        sage: n = factorial(100)
-        sage: gap_n = libgap(n)
-        sage: gap_n.sage() == n
-        True
+        sage: ignore = libgap(int(1<<500000000))
     """
     cdef mpz_t temp
-    cdef Obj result
-    cdef Int size
-    cdef Int sign
-    cdef UInt* limbs = NULL
-    cdef size_t limb_count
-    cdef size_t i
-    
-    # We need to handle this carefully to avoid accessing GMP internals
     mpz_init(temp)
     try:
-        # Convert Python int to GMP mpz_t
-        mpz_set_pylong(temp, sage_int)
-        
-        # Handle zero specially (mpz_size returns 0 for zero)
-        size = mpz_size(temp)
-        if size == 0:
-            return GAP_NewObjIntFromInt(0)
-        
-        # Get the sign: mpz_sgn returns -1, 0, or 1
-        sign = <Int>mpz_sgn(temp)
-        
-        # Allocate limb buffer for export
-        # sizeof(mp_limb_t) may differ from sizeof(UInt), so we need to handle this
-        if sizeof(mp_limb_t) == sizeof(UInt):
-            # Direct case: limb sizes match, we can use mpz_export directly
-            # into a UInt buffer
-            limbs = <UInt*>PyMem_Malloc(size * sizeof(UInt))
-            if limbs == NULL:
-                raise MemoryError("Failed to allocate limb buffer")
-            
-            # Export limbs: order=-1 (least significant first, native GMP/GAP order),
-            # size=sizeof(UInt), endian=0 (native), nails=0 (use full limbs)
-            mpz_export(limbs, &limb_count, -1, sizeof(UInt), 0, 0, temp)
-            
-            # GAP_MakeObjInt expects signed size (negative for negative numbers)
-            if sign < 0:
-                size = -<Int>limb_count
-            else:
-                size = <Int>limb_count
-            
-            try:
-                GAP_Enter()
-                result = GAP_MakeObjInt(<const UInt*>limbs, size)
-            finally:
-                GAP_Leave()
-                PyMem_Free(limbs)
-            
-            return result
-        else:
-            # Fallback case: limb sizes don't match
-            # We need to copy limb-by-limb using mpz_getlimbn
-            # This is slower but portable
-            limbs = <UInt*>PyMem_Malloc(size * sizeof(UInt))
-            if limbs == NULL:
-                raise MemoryError("Failed to allocate limb buffer")
-            
-            # Copy each limb individually
-            for i in range(size):
-                limbs[i] = <UInt>mpz_getlimbn(temp, i)
-            
-            # GAP_MakeObjInt expects signed size
-            if sign < 0:
-                size = -size
-            
-            try:
-                GAP_Enter()
-                result = GAP_MakeObjInt(<const UInt*>limbs, size)
-            finally:
-                GAP_Leave()
-                PyMem_Free(limbs)
-            
-            return result
+        mpz_set_pylong(temp, x)
+        return make_gap_integer_from_mpz(temp)
     finally:
         mpz_clear(temp)
 
@@ -712,10 +658,15 @@ cdef class GapElement(RingElement):
             sage: a
             [ [ 0, -2 ], [ 2, 3, 4 ] ]
         """
+        cdef Obj copy
         if IS_MUTABLE_OBJ(self.value):
-            return make_any_gap_element(self.parent(), SHALLOW_COPY_OBJ(self.value))
-        else:
-            return self
+            try:
+                GAP_Enter()
+                copy = SHALLOW_COPY_OBJ(self.value)
+            finally:
+                GAP_Leave()
+            return make_any_gap_element(self.parent(), copy)
+        return self
 
     cpdef GapElement deepcopy(self, bint mut):
         r"""
@@ -744,10 +695,15 @@ cdef class GapElement(RingElement):
             sage: l.deepcopy(1).IsMutable()
             true
         """
+        cdef Obj copy
         if IS_MUTABLE_OBJ(self.value):
-            return make_any_gap_element(self.parent(), CopyObj(self.value, mut))
-        else:
-            return self
+            try:
+                GAP_Enter()
+                copy = CopyObj(self.value, mut)
+            finally:
+                GAP_Leave()
+            return make_any_gap_element(self.parent(), copy)
+        return self
 
     def __deepcopy__(self, memo):
         r"""
@@ -798,6 +754,24 @@ cdef class GapElement(RingElement):
 
         return (_from_sage, (elem,))
 
+    cdef bint _check_contains(self, Element other) except -2:
+        """
+        Helper function to check containment.
+        """
+        cdef GapElement c_other
+        if isinstance(other, GapElement):
+            c_other = <GapElement>other
+        else:
+            c_other = <GapElement>libgap(other)
+
+        try:
+            gap_sig_on()
+            GAP_Enter()
+            return GAP_IN(c_other.value, self.value)
+        finally:
+            GAP_Leave()
+            gap_sig_off()
+
     def __contains__(self, other):
         r"""
         TESTS::
@@ -817,8 +791,7 @@ cdef class GapElement(RingElement):
             ...
             GAPError: Error, no method found! Error, no 1st choice method found for `in' on 2 arguments
         """
-        GAP_IN = libgap.eval(r'\in')
-        return GAP_IN(other, self).sage()
+        return self._check_contains(other)
 
     cpdef _type_number(self):
         """
@@ -1629,6 +1602,38 @@ cdef class GapElement_Integer(GapElement):
         sage: ZZ(i)
         123
     """
+    cdef inline int mpz_ro(self, mpz_t z):
+        cdef Int size
+        cdef int c_sign
+        cdef int c_size
+        cdef const UInt* x
+
+        # gap integers are stored as a mp_limb_t
+        size = GAP_SizeInt(self.value) # count limbs and extract sign
+        if size > 0:
+            c_sign = 1
+            c_size = size
+        else: # Must have size < 0, or else self.value == 0 and self.is_C_int() == True
+            c_sign = -1
+            c_size = -size
+        x = GAP_AddrInt(self.value) # pointer to limbs
+        mpz_roinit_n(z, <mp_limb_t *>x, c_size)
+        return c_sign
+
+    def __hash__(self):
+        r"""
+        TESTS::
+
+            sage: all(hash(libgap(i)) == hash(i) for i in range(-100, 100))
+            True
+            sage: all(hash(s * libgap(2)^i + j) == hash(s * 2^i + j) for s in [-1, 1] for i in range(1, 1024, 13) for j in [-1,0,1])
+            True
+        """
+        if self.is_C_int():
+            return GAP_ValueInt(self.value)
+        cdef mpz_t z
+        cdef c_sign = self.mpz_ro(z)
+        return c_sign * mpz_pythonhash(z)
 
     def is_C_int(self):
         r"""
@@ -1707,10 +1712,8 @@ cdef class GapElement_Integer(GapElement):
             10000
         """
         cdef const UInt* x
-        cdef Int size
-        cdef int c_sign
-        cdef int c_size
         cdef mpz_t output
+        cdef int c_sign
         if ring is None:
             ring = ZZ
         try:
@@ -1718,17 +1721,8 @@ cdef class GapElement_Integer(GapElement):
             if self.is_C_int():
                 return ring(GAP_ValueInt(self.value))
             else:
-                # gap integers are stored as a mp_limb_t
-                size = GAP_SizeInt(self.value) # count limbs and extract sign
-                if size > 0:
-                    c_sign = 1
-                    c_size = size
-                else: # Must have size < 0, or else self.value == 0 and self.is_C_int() == True
-                    c_sign = -1
-                    c_size = -size
-                x = GAP_AddrInt(self.value) # pointer to limbs
-                mpz_roinit_n(output, <mp_limb_t *>x, c_size)
-                return ring(c_sign*mpz_get_pylong(output))
+                c_sign = self.mpz_ro(output)
+                return ring(c_sign * mpz_get_pylong(output))
         finally:
             GAP_Leave()
 
@@ -1998,7 +1992,7 @@ cdef class GapElement_FiniteField(GapElement):
 
         A Sage finite field element. The isomorphism is chosen such
         that the Gap ``PrimitiveRoot()`` maps to the Sage
-        :meth:`~sage.rings.finite_rings.finite_field_prime_modn.multiplicative_generator`.
+        :meth:`~sage.rings.finite_rings.finite_field_base.FiniteField.multiplicative_generator`.
 
         EXAMPLES::
 
@@ -2208,6 +2202,33 @@ cdef class GapElement_Rational(GapElement):
         sage: type(r)
         <class 'sage.libs.gap.element.GapElement_Rational'>
     """
+    def __hash__(self):
+        r"""
+        TESTS::
+
+            sage: all(hash(libgap(x)) == hash(x) for x in [1/2, -1/3, 2^1024/3^352])
+            True
+        """
+        cdef int snum, sden
+        cdef mpz_t znum, zden
+        cdef Py_hash_t n, d
+        cdef GapElement_Integer num = libgap.NumeratorRat(self)
+        cdef GapElement_Integer den = libgap.DenominatorRat(self)
+
+        if num.is_C_int():
+            n = GAP_ValueInt(num.value)
+        else:
+            snum = num.mpz_ro(znum)
+            n = snum * mpz_pythonhash(znum)
+
+        if den.is_C_int():
+            d = GAP_ValueInt(den.value)
+        else:
+            sden = den.mpz_ro(zden)
+            d = sden * mpz_pythonhash(zden)
+
+        return n + (d - 1) * <Py_hash_t>(7461864723258187525)
+
     def _rational_(self):
         r"""
         EXAMPLES::
@@ -2754,7 +2775,10 @@ cdef class GapElement_Function(GapElement):
 
     def _instancedoc_(self):
         r"""
-        Return the help string.
+        Return the help string from the current libgap session.
+
+        If several entries match, return GAP's numbered list of matches.
+        Return ``None`` if no entry or no text documentation is available.
 
         EXAMPLES::
 
@@ -2763,10 +2787,135 @@ cdef class GapElement_Function(GapElement):
             True
 
         You would get the full help by typing ``f?`` in the command line.
+
+        For an ambiguous topic, select an entry with :meth:`help`::
+
+            sage: 'several entries match' in libgap.HasSize.__doc__
+            True
+            sage: 'Size( ' in libgap.HasSize.help(1, pager=False)
+            True
+
+        Undocumented and anonymous functions have no help string::
+
+            sage: f = libgap.eval('x -> x')
+            sage: f.__doc__ is None
+            True
         """
+        return self.help(pager=False)
+
+    def help(self, match=None, pager=True):
+        r"""
+        Show documentation or a numbered menu of matching GAP help entries.
+
+        Use GAP's search rules and ordering, including its expansion of
+        attribute testers and setters such as ``HasSize`` and ``SetSize``.
+        If several entries match, choose one by calling this method again
+        with its number. The selection is specific to this function and
+        does not depend on GAP's interactive help history.
+
+        INPUT:
+
+        - ``match`` -- positive integer (optional); the number of an entry
+          in this function's help menu, starting at 1
+
+        - ``pager`` -- boolean (default: ``True``); display the result in
+          Sage's pager. If ``False``, return the text instead.
+
+        OUTPUT:
+
+        With ``pager=False``, a string containing the documentation or menu.
+        Return ``None`` if no entry or no text documentation is available.
+
+        EXAMPLES::
+
+            sage: f = libgap.HasSize
+            sage: menu = f.help(pager=False)
+            sage: menu.splitlines()[:2]
+            ['Help: several entries match this topic.', "Call this function's help(n) method to view match [n]."]
+            sage: '[1] Reference: Size' in menu
+            True
+            sage: 'Size( ' in f.help(1, pager=False)
+            True
+
+        Calling ``f.help()`` displays the menu; ``f.help(1)`` displays the
+        first entry. For an unambiguous topic, the documentation is shown
+        directly::
+
+            sage: 'constructs  the  cyclic  group' in libgap.CyclicGroup.help(pager=False)
+            True
+
+        TESTS::
+
+            sage: f.help(0, pager=False)
+            Traceback (most recent call last):
+            ...
+            ValueError: help match number out of range
+            sage: f.help('1', pager=False)
+            Traceback (most recent call last):
+            ...
+            TypeError: 'str' object cannot be interpreted as an integer
+        """
+        if match is not None:
+            from operator import index
+            match = index(match)
+            if match < 1:
+                raise ValueError('help match number out of range')
         libgap = self.parent()
-        from sage.interfaces.gap import gap
-        return gap.help(libgap.NameFunction(self).sage(), pager=False)
+        name = libgap.NameFunction(self).sage()
+        if name == 'unknown':
+            return None
+        # libgap uses a very wide screen to prevent wrapping printed objects.
+        # Help text should instead be formatted for reading in a pager.
+        screen = libgap.SizeScreen()
+        try:
+            libgap.SizeScreen([80, 24])
+            topic = libgap.SIMPLE_STRING(name)
+            exact, partial = libgap.HELP_GET_MATCHES(libgap.HELP_KNOWN_BOOKS[0], topic, True)
+            # Follow HELP_SHOW_MATCHES: one exact match is shown directly;
+            # otherwise list exact matches followed by partial matches.
+            matches = exact if len(exact) == 1 else libgap.Concatenation(exact, partial)
+            if not matches:
+                return None
+            if match is None and len(matches) > 1:
+                lines = ['Help: several entries match this topic.',
+                         "Call this function's help(n) method to view match [n]."]
+                for number, (book, entry) in enumerate(matches, 1):
+                    title = book['entries'][int(entry) - 1][0]
+                    line = libgap.Concatenation(book['bookname'], ': ', title)
+                    line = libgap.Concatenation(f'[{number}] ', line)
+                    line = libgap.InitialSubstringUTF8Text(line, 80)
+                    lines.append(libgap.StripEscapeSequences(line).sage())
+                text = '\n'.join(lines)
+            else:
+                if match is None:
+                    match = 1
+                if match > len(matches):
+                    raise ValueError('help match number out of range')
+                book, entry = matches[match - 1]
+                handler = libgap.HELP_BOOK_HANDLER[book['handler'].sage()]
+                data = handler['HelpData'](book, entry, 'text')
+                if data == libgap.fail:
+                    return None
+                start = 1
+                if isinstance(data, GapElement_Record):
+                    data = dict(data)
+                    start = int(data.get('start', 1))
+                    data = data['lines']
+                if not isinstance(data, GapElement_String):
+                    data = libgap.JoinStringsWithSeparator(data, '\n')
+                data = libgap.StripEscapeSequences(data)
+                # GAPDoc returns text in GAP's terminal encoding, which need
+                # not be UTF-8 (the default for conversion of libgap strings).
+                encoding = libgap.GAPInfo['TermEncoding'].sage()
+                text = char_to_str(GAP_CSTR_STRING((<GapElement>data).value), encoding)
+                text = '\n'.join(text.split('\n')[start - 1:])
+        finally:
+            libgap.SizeScreen(screen)
+        if pager:
+            from IPython.core.page import page
+            page(text)
+        else:
+            return text
 
 
 ############################################################################
@@ -2852,8 +3001,7 @@ cdef class GapElement_MethodProxy(GapElement_Function):
         """
         if len(args) > 0:
             return GapElement_Function.__call__(self, * ([self.first_argument] + list(args)))
-        else:
-            return GapElement_Function.__call__(self, self.first_argument)
+        return GapElement_Function.__call__(self, self.first_argument)
 
 
 ############################################################################
@@ -2939,7 +3087,11 @@ cdef class GapElement_List(GapElement):
             sage: len(lst)
             4
         """
-        return GAP_LenList(self.value)
+        try:
+            GAP_Enter()
+            return GAP_LenList(self.value)
+        finally:
+            GAP_Leave()
 
     def __getitem__(self, i):
         r"""
@@ -2981,23 +3133,44 @@ cdef class GapElement_List(GapElement):
             Traceback (most recent call last):
             ...
             ValueError: too many indices
+
+        TESTS:
+
+        Check that :issue:`41595` is fixed::
+
+            sage: W = WeylGroup("E8", implementation='permutation')
+            sage: s = W.gens()
+            sage: G = W.subgroup([s[0], s[1], s[2], s[3], s[4], s[6], s[7]])
+            sage: R = libgap.RightTransversal(W, G)
+            sage: len(R)
+            60480
+            sage: for w in R:  # long time
+            ....:     v = W(w)
         """
         cdef int j
         cdef Obj obj = self.value
 
         if isinstance(i, tuple):
             for j in i:
-                if not GAP_IsList(obj):
-                    raise ValueError('too many indices')
-                if j < 0 or j >= GAP_LenList(obj):
-                    raise IndexError('index out of range')
-                obj = ELM_LIST(obj, j+1)
+                try:
+                    GAP_Enter()
+                    if not GAP_IsList(obj):
+                        raise ValueError('too many indices')
+                    if j < 0 or j >= GAP_LenList(obj):
+                        raise IndexError('index out of range')
+                    obj = ELM_LIST(obj, j+1)
+                finally:
+                    GAP_Leave()
 
         else:
             j = i
-            if j < 0 or j >= GAP_LenList(obj):
-                raise IndexError('index out of range.')
-            obj = ELM_LIST(obj, j+1)
+            try:
+                GAP_Enter()
+                if j < 0 or j >= GAP_LenList(obj):
+                    raise IndexError('index out of range.')
+                obj = ELM_LIST(obj, j+1)
+            finally:
+                GAP_Leave()
 
         return make_any_gap_element(self.parent(), obj)
 
@@ -3058,13 +3231,21 @@ cdef class GapElement_List(GapElement):
 
         if isinstance(i, tuple):
             for j in i[:-1]:
+                try:
+                    GAP_Enter()
+                    if not GAP_IsList(obj):
+                        raise ValueError('too many indices')
+                    if j < 0 or j >= GAP_LenList(obj):
+                        raise IndexError('index out of range')
+                    obj = ELM_LIST(obj, j+1)
+                finally:
+                    GAP_Leave()
+            try:
+                GAP_Enter()
                 if not GAP_IsList(obj):
                     raise ValueError('too many indices')
-                if j < 0 or j >= GAP_LenList(obj):
-                    raise IndexError('index out of range')
-                obj = ELM_LIST(obj, j+1)
-            if not GAP_IsList(obj):
-                raise ValueError('too many indices')
+            finally:
+                GAP_Leave()
             j = i[-1]
         else:
             j = i
@@ -3078,7 +3259,11 @@ cdef class GapElement_List(GapElement):
         else:
             celt= self.parent()(elt)
 
-        GAP_AssList(obj, j+1, celt.value)
+        try:
+            GAP_Enter()
+            GAP_AssList(obj, j+1, celt.value)
+        finally:
+            GAP_Leave()
 
     def sage(self, **kwds):
         r"""
@@ -3244,8 +3429,7 @@ cdef class GapElement_Permutation(GapElement):
 
         if parent is None:
             return Permutation(lst.sage(), check=False)
-        else:
-            return parent.one()._generate_new_GAP(lst)
+        return parent.one()._generate_new_GAP(lst)
 
 ############################################################################
 ### GapElement_Record ######################################################

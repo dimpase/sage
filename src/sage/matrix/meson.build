@@ -1,4 +1,4 @@
-iml = cc.find_library('iml', required: not is_windows, disabler: true)
+iml = cc.find_library('iml', required: false, disabler: true)
 
 
 py.install_sources(
@@ -13,14 +13,18 @@ py.install_sources(
   'change_ring.pyx',
   'compute_J_ideal.py',
   'constructor.pyx',
+  'constructor.pyi',
   'docs.py',
   'echelon_matrix.pyx',
   'matrix.pxd',
   'matrix0.pxd',
+  'matrix0.pyi',
   'matrix0.pyx',
   'matrix1.pxd',
+  'matrix1.pyi',
   'matrix1.pyx',
   'matrix2.pxd',
+  'matrix2.pyi',
   'matrix2.pyx',
   'matrix_cdv.pxd',
   'matrix_cdv.pyx',
@@ -31,6 +35,7 @@ py.install_sources(
   'matrix_cyclo_dense.pxd',
   'matrix_cyclo_dense.pyx',
   'matrix_dense.pxd',
+  'matrix_dense.pyi',
   'matrix_dense.pyx',
   'matrix_domain_dense.pxd',
   'matrix_domain_sparse.pxd',
@@ -49,6 +54,7 @@ py.install_sources(
   'matrix_gfpn_dense.pxd',
   'matrix_gfpn_dense.pyx',
   'matrix_integer_dense.pxd',
+  'matrix_integer_dense.pyi',
   'matrix_integer_dense.pyx',
   'matrix_integer_dense_hnf.py',
   'matrix_integer_dense_saturation.py',
@@ -61,6 +67,9 @@ py.install_sources(
   'matrix_mod2_dense.pyx',
   'matrix_modn_dense_double.pxd',
   'matrix_modn_dense_double.pyx',
+  'matrix_modn_dense_flint.pxd',
+  'matrix_modn_dense_flint.pyi',
+  'matrix_modn_dense_flint.pyx',
   'matrix_modn_dense_float.pxd',
   'matrix_modn_dense_float.pyx',
   'matrix_modn_sparse.pxd',
@@ -86,6 +95,7 @@ py.install_sources(
   'matrix_symbolic_dense.pyx',
   'matrix_symbolic_sparse.pxd',
   'matrix_symbolic_sparse.pyx',
+  'matrix_utils.pxd',
   'matrix_window.pxd',
   'matrix_window.pyx',
   'misc.pyx',
@@ -101,40 +111,41 @@ py.install_sources(
 )
 
 extension_data = {
-  'action' : files('action.pyx'),
-  'args' : files('args.pyx'),
-  'change_ring' : files('change_ring.pyx'),
-  'constructor' : files('constructor.pyx'),
-  'echelon_matrix' : files('echelon_matrix.pyx'),
-  'matrix0' : files('matrix0.pyx'),
-  'matrix1' : files('matrix1.pyx'),
-  'matrix2' : files('matrix2.pyx'),
-  'matrix_cdv' : files('matrix_cdv.pyx'),
-  'matrix_complex_ball_dense' : files('matrix_complex_ball_dense.pyx'),
-  'matrix_complex_double_dense' : files('matrix_complex_double_dense.pyx'),
-  'matrix_dense' : files('matrix_dense.pyx'),
-  'matrix_double_dense' : files('matrix_double_dense.pyx'),
-  'matrix_double_sparse' : files('matrix_double_sparse.pyx'),
-  'matrix_gap' : files('matrix_gap.pyx'),
-  'matrix_generic_dense' : files('matrix_generic_dense.pyx'),
-  'matrix_generic_sparse' : files('matrix_generic_sparse.pyx'),
-  'matrix_gfpn_dense' : files('matrix_gfpn_dense.pyx'),
+  'action': files('action.pyx'),
+  'args': files('args.pyx'),
+  'change_ring': files('change_ring.pyx'),
+  'constructor': files('constructor.pyx'),
+  'echelon_matrix': files('echelon_matrix.pyx'),
+  'matrix0': files('matrix0.pyx'),
+  'matrix1': files('matrix1.pyx'),
+  'matrix2': files('matrix2.pyx'),
+  'matrix_cdv': files('matrix_cdv.pyx'),
+  'matrix_complex_ball_dense': files('matrix_complex_ball_dense.pyx'),
+  'matrix_complex_double_dense': files('matrix_complex_double_dense.pyx'),
+  'matrix_dense': files('matrix_dense.pyx'),
+  'matrix_double_dense': files('matrix_double_dense.pyx'),
+  'matrix_double_sparse': files('matrix_double_sparse.pyx'),
+  'matrix_gap': files('matrix_gap.pyx'),
+  'matrix_generic_dense': files('matrix_generic_dense.pyx'),
+  'matrix_generic_sparse': files('matrix_generic_sparse.pyx'),
+  'matrix_gfpn_dense': files('matrix_gfpn_dense.pyx'),
   'matrix_gf2e_dense': files('matrix_gf2e_dense.pyx'),
-  'matrix_laurent_mpolynomial_dense' : files(
+  'matrix_laurent_mpolynomial_dense': files(
     'matrix_laurent_mpolynomial_dense.pyx',
   ),
-  'matrix_numpy_dense' : files('matrix_numpy_dense.pyx'),
-  'matrix_numpy_integer_dense' : files('matrix_numpy_integer_dense.pyx'),
-  'matrix_polynomial_dense' : files('matrix_polynomial_dense.pyx'),
-  'matrix_real_double_dense' : files('matrix_real_double_dense.pyx'),
-  'matrix_sparse' : files('matrix_sparse.pyx'),
-  'matrix_symbolic_dense' : files('matrix_symbolic_dense.pyx'),
-  'matrix_symbolic_sparse' : files('matrix_symbolic_sparse.pyx'),
-  'matrix_window' : files('matrix_window.pyx'),
-  'misc' : files('misc.pyx'),
-  'misc_flint' : files('misc_flint.pyx'),
-  'misc_mpfr' : files('misc_mpfr.pyx'),
-  'strassen' : files('strassen.pyx'),
+  'matrix_numpy_dense': files('matrix_numpy_dense.pyx'),
+  'matrix_numpy_integer_dense': files('matrix_numpy_integer_dense.pyx'),
+  'matrix_polynomial_dense': files('matrix_polynomial_dense.pyx'),
+  'matrix_real_double_dense': files('matrix_real_double_dense.pyx'),
+  'matrix_sparse': files('matrix_sparse.pyx'),
+  'matrix_symbolic_dense': files('matrix_symbolic_dense.pyx'),
+  'matrix_symbolic_sparse': files('matrix_symbolic_sparse.pyx'),
+  'matrix_window': files('matrix_window.pyx'),
+  'misc': files('misc.pyx'),
+  'misc_flint': files('misc_flint.pyx'),
+  'misc_mpfr': files('misc_mpfr.pyx'),
+  'strassen': files('strassen.pyx'),
+  'matrix_modn_dense_flint': files('matrix_modn_dense_flint.pyx'),
 }
 
 foreach name, pyx : extension_data
@@ -147,7 +158,7 @@ foreach name, pyx : extension_data
     deps += [mpfr]
   elif name == 'matrix_complex_ball_dense'
     deps += [flint, mpfi]
-  elif name == 'misc_flint' or name == 'matrix_rational_sparse' or name == 'change_ring'
+  elif name == 'misc_flint' or name == 'matrix_rational_sparse' or name == 'change_ring' or name == 'matrix_modn_dense_flint'
     deps += [flint]
   elif name == 'matrix_gf2e_dense'
     deps += [m4rie]
@@ -216,7 +227,6 @@ foreach name, pyx : extension_data_cpp
     mpfr,
     ntl,
     numpy,
-    pari,
     png,
     singular,
     zlib,

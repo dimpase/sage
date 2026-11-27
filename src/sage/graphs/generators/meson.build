@@ -1,5 +1,6 @@
 py.install_sources(
   '__init__.py',
+  'luw_graphs.py',
   'all.py',
   'basic.py',
   'chessboard.py',
@@ -20,8 +21,8 @@ py.install_sources(
 )
 
 extension_data = {
-  'distance_regular' : files('distance_regular.pyx'),
-  'trees' : files('trees.pyx'),
+  'distance_regular': files('distance_regular.pyx'),
+  'trees': files('trees.pyx'),
 }
 
 foreach name, pyx : extension_data
@@ -34,4 +35,3 @@ foreach name, pyx : extension_data
     dependencies: [py_dep, cysignals, gmp],
   )
 endforeach
-

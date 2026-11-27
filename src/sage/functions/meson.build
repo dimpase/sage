@@ -9,6 +9,8 @@ py.install_sources(
   'generalized.py',
   'hyperbolic.py',
   'hypergeometric.py',
+  'hypergeometric_algebraic.py',
+  'hypergeometric_parameters.py',
   'jacobi.py',
   'log.py',
   'min_max.py',
@@ -24,7 +26,7 @@ py.install_sources(
   subdir: 'sage/functions',
 )
 
-extension_data = {'prime_pi' : files('prime_pi.pyx')}
+extension_data = {'prime_pi': files('prime_pi.pyx')}
 
 foreach name, pyx : extension_data
   py.extension_module(
