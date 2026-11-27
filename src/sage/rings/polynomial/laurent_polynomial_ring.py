@@ -52,7 +52,7 @@ from sage.structure.element import parent
 _cache = {}
 
 
-def LaurentPolynomialRing(base_ring, *args, **kwds):
+def LaurentPolynomialRing(base_ring, *args, **kwds) -> LaurentPolynomialRing_generic:
     r"""
     Return the globally unique univariate or multivariate Laurent polynomial
     ring with given properties and variable name or names.
@@ -207,6 +207,19 @@ def LaurentPolynomialRing(base_ring, *args, **kwds):
            Defining w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14
            sage: (w0 + 2*w8 + w13)^2                                                    # needs sage.modules
            w0^2 + 4*w0*w8 + 4*w8^2 + 2*w0*w13 + 4*w8*w13 + w13^2
+
+    TESTS:
+
+    The return annotation matches the runtime type for the common cases::
+
+        sage: from sage.rings.polynomial.laurent_polynomial_ring_base import LaurentPolynomialRing_generic
+        sage: isinstance(LaurentPolynomialRing(ZZ, 'x'), LaurentPolynomialRing_generic)
+        True
+        sage: isinstance(LaurentPolynomialRing(ZZ, 2, 'x,y'), LaurentPolynomialRing_generic)
+        True
+        sage: import typing
+        sage: typing.get_type_hints(LaurentPolynomialRing)['return'] is LaurentPolynomialRing_generic
+        True
     """
     from sage.rings.polynomial.polynomial_ring import PolynomialRing_generic
     from sage.rings.polynomial.multi_polynomial_ring_base import MPolynomialRing_base
@@ -303,8 +316,7 @@ def _split_dict_(D, indices, group_by=None):
         result.setdefault(G, dict()).update({I: V})
     if not group_by:
         return result.popitem()[1]
-    else:
-        return result
+    return result
 
 
 def _split_laurent_polynomial_dict_(P, M, d):
@@ -395,8 +407,7 @@ def from_fraction_field(L, x):
     if d.is_unit():
         n = L(x.numerator())
         return n * d.inverse_of_unit()
-    else:
-        raise TypeError("fraction must have unit denominator")
+    raise TypeError("fraction must have unit denominator")
 
 
 class LaurentPolynomialRing_univariate(LaurentPolynomialRing_generic):
@@ -507,7 +518,7 @@ class LaurentPolynomialRing_univariate(LaurentPolynomialRing_generic):
         if isinstance(x, Expression):
             return x.laurent_polynomial(ring=self)
 
-        elif isinstance(x, LaurentPolynomial):
+        if isinstance(x, LaurentPolynomial):
             P = x.parent()
             if set(self.variable_names()) & set(P.variable_names()):
                 if isinstance(x, LaurentPolynomial_univariate):

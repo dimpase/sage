@@ -57,6 +57,23 @@ class MumfordDivisorClassField(AdditiveGroupElement, SchemeMorphism):
             sage: J = H.jacobian()
             sage: D = J(x^2 + 14*x + 16, 3*x + 4); D # indirect doctest
             (x^2 + 14*x + 16, 3*x + 4)
+
+        Non-monic ``u`` is scaled to a monic representative (see :issue:`43180`)::
+
+            sage: x = polygen(GF(419))
+            sage: H = HyperellipticCurve(x**5 + 1, 0)
+            sage: J = H.jacobian()
+            sage: J(42, 0)
+            (1, 0)
+            sage: J(42, 0).is_zero()
+            True
+
+        The zero polynomial is not a valid Mumford coordinate::
+
+            sage: J(x.parent().zero(), x.parent().zero())
+            Traceback (most recent call last):
+            ...
+            ValueError: Mumford coordinate u=0 must be nonzero
         """
         SchemeMorphism.__init__(self, parent)
 
@@ -66,6 +83,13 @@ class MumfordDivisorClassField(AdditiveGroupElement, SchemeMorphism):
         # TODO:
         # 1. allow elements of the base field as input
         #   (in particular something like (u,v) = (x-alpha, 0))
+
+        # Mumford representatives are unique with monic u; only the vanishing
+        # locus of u matters, so scale by units (see :issue:`43180`).
+        # The zero polynomial is invalid (would later fail with ZeroDivisionError).
+        if u.is_zero():
+            raise ValueError(f"Mumford coordinate u={u} must be nonzero")
+        u = u.monic()
 
         # Ensure the divisor is valid
         if check:
@@ -118,14 +142,31 @@ class MumfordDivisorClassField(AdditiveGroupElement, SchemeMorphism):
         EXAMPLES::
 
             sage: R.<x> = PolynomialRing(QQ)
-            sage: H = HyperellipticCurve(x^5 + 2*x^3 + x, x^3 + 1)
+            sage: H = HyperellipticCurve(x^5 + x^2 + x + 1)
             sage: P = H([0,-1])
-            sage: Q = H([0,0])
+            sage: Q = H([1,-2])
             sage: J = H.jacobian()
             sage: D = J(P,Q); D # indirect doctest
-            (x^2, -x - 1 : 0)
+            (x^2 - x, 3*x - 1)
         """
         return f"({self._u}, {self._v})"
+
+    def _latex_(self) -> str:
+        r"""
+        Return the Mumford presentation of the divisor class in LaTeX.
+
+        EXAMPLES::
+
+            sage: R.<x> = PolynomialRing(QQ)
+            sage: H = HyperellipticCurve(x^5 + x^2 + x + 1)
+            sage: P = H([0,-1])
+            sage: Q = H([1,-2])
+            sage: J = H.jacobian()
+            sage: D = J(P, Q)
+            sage: latex(D)
+            (x^{2} - x, 3 x - 1)
+        """
+        return f"({self._u._latex_()}, {self._v._latex_()})"
 
     def uv(self) -> tuple[Polynomial, Polynomial]:
         r"""
@@ -170,7 +211,7 @@ class MumfordDivisorClassField(AdditiveGroupElement, SchemeMorphism):
         """
         return richcmp(tuple(self), tuple(other), op)
 
-    def __iter__(self) -> Iterator[Polynomial]:
+    def __iter__(self) -> Iterator[Polynomial | int | Integer]:
         r"""
         TESTS:
 
@@ -247,8 +288,15 @@ class MumfordDivisorClassField(AdditiveGroupElement, SchemeMorphism):
             True
             sage: bool(J.zero())
             False
+
+        ::
+
+            sage: x = polygen(GF(419))
+            sage: C = HyperellipticCurve(x^5 + x)
+            sage: bool(C.jacobian().zero())
+            False
         """
-        return not (self._u.is_one() and not self._v.is_zero())
+        return not (self._u.is_one() and self._v.is_zero())
 
     @cached_method
     def order(self) -> Integer:
@@ -265,6 +313,13 @@ class MumfordDivisorClassField(AdditiveGroupElement, SchemeMorphism):
             sage: D = JK(x^2 + 5*x + 6, 6*x + 3)
             sage: D.order()
             38
+
+        TESTS:
+
+        Check that the :meth:`additive_order()` alias works::
+
+            sage: D.additive_order()
+            38
         """
         if not isinstance(self.base_ring(), FiniteField_generic):
             raise NotImplementedError(
@@ -272,6 +327,8 @@ class MumfordDivisorClassField(AdditiveGroupElement, SchemeMorphism):
             )
         n = self.parent().order()
         return order_from_multiple(self, n)
+
+    additive_order = order  # compatibility alias
 
     def degree(self) -> Integer:
         r"""
@@ -388,7 +445,7 @@ class MumfordDivisorClassFieldRamified(MumfordDivisorClassField):
 class MumfordDivisorClassFieldInert(MumfordDivisorClassField):
     def __init__(self, parent, u, v, check=True) -> None:
         r"""
-        Create an element of the Jacobian of a ramified
+        Create an element of the Jacobian of an inert
         hyperelliptic curve.
 
         TESTS::
@@ -412,7 +469,7 @@ class MumfordDivisorClassFieldInert(MumfordDivisorClassField):
         self._n = (g - u.degree()) // 2
         super().__init__(parent, u, v, check=check)
 
-    def __repr__(self) -> str:
+    def _repr_(self) -> str:
         """
         Return a representation of the element.
 
@@ -427,6 +484,97 @@ class MumfordDivisorClassFieldInert(MumfordDivisorClassField):
             (x^2 + x + 4, 4*x : 0)
         """
         return f"({self._u}, {self._v} : {self._n})"
+
+    def _latex_(self) -> str:
+        """
+        Return a LaTeX representation of the element.
+
+        TESTS::
+
+            sage: R.<x> = GF(5)[]
+            sage: H = HyperellipticCurve(2*x^6 + 1)
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + x + 4, 4*x)
+            sage: latex(D)
+            (x^{2} + x + 4, 4 x : 0)
+        """
+        return f"({self._u._latex_()}, {self._v._latex_()} : {self._n})"
+
+    def _add_(self, *args, **kwds):
+        r"""
+        Thin wrapper around :meth:`MumfordDivisorClassField._add_` which
+        fails in case of odd genus since that case is not implemented.
+
+        EXAMPLES::
+
+            sage: R.<x> = GF(5)[]
+            sage: H = HyperellipticCurve(2*x^6 + 1)
+            sage: H.genus()
+            2
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + x + 4, 4*x)
+            sage: D + D
+            (x^2 + x + 4, x : 0)
+
+        ::
+
+            sage: H = HyperellipticCurve(2*x^8 + 1)
+            sage: H.genus()
+            3
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + 3, 3*x)
+            sage: D + D
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus; consider extending the base field to adjoin the points at infinity
+        """
+        if self.parent().curve().genus() % 2:
+            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus; '
+                                      'consider extending the base field to adjoin the points at infinity')
+        return super()._add_(*args, **kwds)
+
+    def _neg_(self, *args, **kwds):
+        r"""
+        Thin wrapper around :meth:`MumfordDivisorClassField._neg_` which
+        fails in case of odd genus since that case is not implemented.
+
+        EXAMPLES::
+
+            sage: R.<x> = GF(5)[]
+            sage: H = HyperellipticCurve(2*x^6 + 1)
+            sage: H.genus()
+            2
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + x + 4, 4*x)
+            sage: -D
+            (x^2 + x + 4, x : 0)
+
+        ::
+
+            sage: H = HyperellipticCurve(2*x^8 + 1)
+            sage: H.genus()
+            3
+            sage: H.is_inert()
+            True
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + 3, 3*x)
+            sage: -D
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: unable to perform arithmetic for inert models of odd genus; consider extending the base field to adjoin the points at infinity
+        """
+        if self.parent().curve().genus() % 2:
+            raise NotImplementedError('unable to perform arithmetic for inert models of odd genus; '
+                                      'consider extending the base field to adjoin the points at infinity')
+        return super()._neg_(*args, **kwds)
 
 
 class MumfordDivisorClassFieldSplit(MumfordDivisorClassField):
@@ -457,7 +605,7 @@ class MumfordDivisorClassFieldSplit(MumfordDivisorClassField):
 
         super().__init__(parent, u, v, check=check)
 
-    def __repr__(self) -> str:
+    def _repr_(self) -> str:
         r"""
         Return a representation of the element.
 
@@ -470,6 +618,21 @@ class MumfordDivisorClassFieldSplit(MumfordDivisorClassField):
             (x^2 + 3, 3 : 0)
         """
         return f"({self._u}, {self._v} : {self._n})"
+
+    def _latex_(self) -> str:
+        r"""
+        Return a LaTeX representation of the element.
+
+        TESTS::
+
+            sage: R.<x> = GF(5)[]
+            sage: H = HyperellipticCurve(x^6 + 1)
+            sage: J = Jacobian(H)
+            sage: D = J(x^2 + 3, 3)
+            sage: latex(D)
+            (x^{2} + 3, 3 : 0)
+        """
+        return f"({self._u._latex_()}, {self._v._latex_()} : {self._n})"
 
     def __bool__(self) -> bool:
         r"""
@@ -503,7 +666,7 @@ class MumfordDivisorClassFieldSplit(MumfordDivisorClassField):
         g = self._parent.curve().genus()
         return not (self._u.is_one() and self._v.is_zero() and self._n == (g + 1) // 2)
 
-    def __iter__(self) -> Iterator[Polynomial]:
+    def __iter__(self) -> Iterator[Polynomial | int | Integer]:
         r"""
         TESTS:
 

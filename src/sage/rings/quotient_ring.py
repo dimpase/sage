@@ -109,7 +109,7 @@ easily::
 #                  https://www.gnu.org/licenses/
 # ****************************************************************************
 import sage.interfaces.abc
-import sage.misc.latex as latex
+from sage.misc import latex
 import sage.structure.parent_gens
 
 from sage.structure.parent import Parent
@@ -128,7 +128,7 @@ _CommRings = CommutativeRings()
 MPolynomialIdeal_quotient = None
 
 
-def QuotientRing(R, I, names=None, **kwds):
+def QuotientRing(R, I, names=None, **kwds) -> Parent:
     r"""
     Create a quotient ring of the ring `R` by the twosided ideal `I`.
 
@@ -280,6 +280,31 @@ def QuotientRing(R, I, names=None, **kwds):
         sage: I = R.ideal(0)
         sage: R is R.quotient(I)
         True
+
+    TESTS:
+
+    The return annotation matches the runtime type for generic, principal,
+    noncommutative and unchanged quotient rings::
+
+        sage: from sage.structure.parent import Parent
+        sage: isinstance(QuotientRing(ZZ, 2*ZZ), Parent)
+        True
+        sage: R = QQ['x']
+        sage: isinstance(QuotientRing(R, R.ideal(R.gen()**2)), Parent)
+        True
+        sage: F.<x,y> = FreeAlgebra(QQ, 2)
+        sage: I = F * [x*y, y*x] * F
+        sage: isinstance(QuotientRing(F, I), Parent)
+        True
+        sage: R = QQ['x']
+        sage: QuotientRing(R, R.zero_ideal()) is R
+        True
+
+    The annotation resolves to the common parent base::
+
+        sage: import typing
+        sage: typing.get_type_hints(QuotientRing)['return'] is Parent
+        True
     """
     # 1. Not all rings inherit from the base class of rings.
     # 2. We want to support quotients of free algebras by homogeneous two-sided ideals.
@@ -313,7 +338,7 @@ def QuotientRing(R, I, names=None, **kwds):
         return R
     try:
         if I.is_principal():
-            return R.quotient_by_principal_ideal(I.gen(), names)
+            return R.quotient_by_principal_ideal(I.gen(), names, **kwds)
     except (AttributeError, NotImplementedError):
         pass
     if not is_commutative:
@@ -375,7 +400,7 @@ class QuotientRing_nc(Parent):
         sage: j^3
         -j*k*i - j*k*j - j*k*k
 
-    For rings that *do* inherit from :class:`~sage.rings.ring.CommutativeRing`,
+    For rings that *do* inherit from :class:`~sage.rings.ring.Ring`,
     we provide a subclass :class:`QuotientRing_generic`, for backwards
     compatibility.
 
@@ -511,9 +536,8 @@ class QuotientRing_nc(Parent):
             return QuotientFunctor(self.__I, names=names, domain=_CommRings,
                                    codomain=_CommRings,
                                    as_field=isinstance(self, Field)), self.__R
-        else:
-            return QuotientFunctor(self.__I, names=names,
-                                   as_field=isinstance(self, Field)), self.__R
+        return QuotientFunctor(self.__I, names=names,
+                               as_field=isinstance(self, Field)), self.__R
 
     def _repr_(self):
         """
@@ -1332,7 +1356,7 @@ class QuotientRing_nc(Parent):
         return self.retract(self.cover_ring().random_element())
 
 
-class QuotientRing_generic(QuotientRing_nc, ring.CommutativeRing):
+class QuotientRing_generic(QuotientRing_nc, ring.Ring):
     r"""
     Create a quotient ring of a *commutative* ring `R` by the ideal `I`.
 
@@ -1351,7 +1375,7 @@ class QuotientRing_generic(QuotientRing_nc, ring.CommutativeRing):
 
         INPUT:
 
-        - ``R`` -- a ring that is a :class:`~sage.rings.ring.CommutativeRing`
+        - ``R`` -- a ring that is a :class:`~sage.rings.ring.Ring`
 
         - ``I`` -- an ideal of `R`
 

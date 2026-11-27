@@ -23,7 +23,7 @@ AUTHORS:
 # ****************************************************************************
 
 
-from collections.abc import Iterator
+from __future__ import annotations
 from itertools import product
 
 from sage.categories.commutative_additive_groups import CommutativeAdditiveGroups
@@ -50,6 +50,10 @@ from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing
 from sage.sets.primes import Primes
 from sage.structure.parent import Parent
 from sage.structure.unique_representation import UniqueRepresentation
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 def fast_char_p_power(x, n, p=None):
@@ -1139,22 +1143,21 @@ class WittVectorRing_finotti(WittVectorRing):
 
         # if vec is longer, we split and recurse: Proposition 5.4
         # This is where we need to using multiprocessing.
-        else:
-            m = len(vec) // 2
-            v_1 = vec[:m]
-            v_2 = vec[m:]
-            s_1 = sum(v_1)
-            s_2 = sum(v_2)
-            scriptM = [[] for _ in range(k+1)]
-            for t in range(1, k+1):
-                scriptM[t].append(self._eta_bar(v_1, t))
-                scriptM[t].append(self._eta_bar(v_2, t))
-                scriptM[t].append(self._eta_bar((s_1, s_2), t))
-            for t in range(2, k+1):
-                for s in range(1, t):
-                    result = self._eta_bar(scriptM[t-s], s)
-                    scriptM[t].append(result)
-            return sum(scriptM[k])
+        m = len(vec) // 2
+        v_1 = vec[:m]
+        v_2 = vec[m:]
+        s_1 = sum(v_1)
+        s_2 = sum(v_2)
+        scriptM = [[] for _ in range(k+1)]
+        for t in range(1, k+1):
+            scriptM[t].append(self._eta_bar(v_1, t))
+            scriptM[t].append(self._eta_bar(v_2, t))
+            scriptM[t].append(self._eta_bar((s_1, s_2), t))
+        for t in range(2, k+1):
+            for s in range(1, t):
+                result = self._eta_bar(scriptM[t-s], s)
+                scriptM[t].append(result)
+        return sum(scriptM[k])
 
 
 class WittVectorRing_phantom(WittVectorRing):
@@ -1428,8 +1431,8 @@ class WittVectorFrobeniusMorphism(RingHomomorphism):
 
     def _call_char_p_truncate(self, x):
         """
-        Evaluate ``self`` at ``x`` when the coefficient ring has charaterisic `p`
-        for the truncated Frobenius.
+        Evaluate ``self`` at ``x`` when the coefficient ring has
+        characteristic `p` for the truncated Frobenius.
 
         EXAMPLES::
 

@@ -893,8 +893,7 @@ class ProjectivePlaneCurve(ProjectiveCurve):
         if P is None:
             poly = self.defining_polynomial()
             return poly.parent().ideal(poly.gradient()+[poly]).dimension() > 0
-        else:
-            return not self.is_smooth(P)
+        return not self.is_smooth(P)
 
     def degree(self):
         r"""
@@ -1458,12 +1457,11 @@ class ProjectivePlaneCurve(ProjectiveCurve):
             K = number_field_elements_from_algebraics(L)[0]
             if isinstance(K, RationalField):
                 return F.embeddings(F)[0]
-            elif isinstance(F, RationalField):
+            if isinstance(F, RationalField):
                 return F.embeddings(K)[0]
-            else:
-                # make sure the defining polynomial variable names are the same for K, N
-                N = NumberField(K.defining_polynomial().parent()(F.defining_polynomial()), str(K.gen()))
-                return N.composite_fields(K, both_maps=True)[0][1]*F.embeddings(N)[0]
+            # make sure the defining polynomial variable names are the same for K, N
+            N = NumberField(K.defining_polynomial().parent()(F.defining_polynomial()), str(K.gen()))
+            return N.composite_fields(K, both_maps=True)[0][1]*F.embeddings(N)[0]
         if self.base_ring() not in NumberFields():
             raise NotImplementedError("the base ring of this curve must be a number field")
         if not self.is_irreducible():
@@ -1702,6 +1700,18 @@ class ProjectiveCurve_field(ProjectiveCurve, AlgebraicScheme_subscheme_projectiv
             sage: C.tangent_line(p)
             Projective Curve over Rational Field
              defined by -2*x + y + w, -3*x + z + 2*w
+
+        TESTS:
+
+        The name of the base field generator does not matter (:issue:`34100`)::
+
+            sage: # needs sage.rings.number_field
+            sage: E = EllipticCurve("19a1")
+            sage: K.<z> = CyclotomicField(3)
+            sage: EK = E.base_extend(K)
+            sage: EK.tangent_line(EK(5, 9))
+            Projective Plane Curve over Cyclotomic Field of order 3 and degree 2
+             defined by -4*x + y + 11*z
         """
         for i in range(len(p)):
             if p[i]:
@@ -1822,8 +1832,8 @@ class ProjectivePlaneCurve_field(ProjectivePlaneCurve, ProjectiveCurve_field):
         f = ring(self.affine_patch(2).defining_polynomial())
         if f.degree() == self.degree():
             return fundamental_group(f, projective=True)
-        else:  # in this case, the line at infinity is part of the curve, so the complement lies in the affine patch
-            return fundamental_group(f, projective=False)
+        # in this case, the line at infinity is part of the curve, so the complement lies in the affine patch
+        return fundamental_group(f, projective=False)
 
     def rational_parameterization(self):
         r"""

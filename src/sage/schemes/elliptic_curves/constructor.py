@@ -7,6 +7,9 @@ AUTHORS:
 
 - John Cremona (2008-01): EllipticCurve(j) fixed for all cases
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, overload
 
 # *****************************************************************************
 #       Copyright (C) 2005 William Stein <wstein@gmail.com>
@@ -20,7 +23,7 @@ AUTHORS:
 #
 #  The full text of the GPL is available at:
 #
-#                  http://www.gnu.org/licenses/
+#                  https://www.gnu.org/licenses/
 # *****************************************************************************
 
 from sage.rings.integer_ring import ZZ
@@ -36,11 +39,23 @@ from sage.rings.polynomial.multi_polynomial import MPolynomial
 from sage.categories.rings import Rings
 from sage.categories.fields import Fields
 
-_Fields = Fields()
-
 from sage.structure.sequence import Sequence
 from sage.structure.element import parent, Expression
 from sage.structure.factory import UniqueFactory
+from sage.misc.lazy_import import lazy_import
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence as AbcSequence
+    from sage.rings.integer import Integer
+    from sage.rings.ring import Field
+    from sage.schemes.elliptic_curves.ell_finite_field import EllipticCurve_finite_field
+    from sage.schemes.elliptic_curves.ell_field import EllipticCurve_field
+    from sage.schemes.elliptic_curves.ell_generic import EllipticCurve_generic
+    from sage.schemes.elliptic_curves.ell_rational_field import EllipticCurve_rational_field
+
+lazy_import('sage.symbolic.ring', 'SymbolicRing')
+
+_Fields = Fields()
 
 
 class EllipticCurveFactory(UniqueFactory):
@@ -74,6 +89,13 @@ class EllipticCurveFactory(UniqueFactory):
       arbitrary commutative ring, although most functionality is only
       implemented over fields.
 
+    For a native additive-group object using a twisted Edwards equation and
+    its complete Edwards addition law, see
+    :class:`~sage.schemes.elliptic_curves.ell_edwards.TwistedEdwardsCurve`.
+    This constructor returns Sage's Weierstrass-based elliptic-curve object,
+    while ``TwistedEdwardsCurve`` preserves Edwards coordinates and
+    operations.
+
     - ``EllipticCurve(j=j0)`` or ``EllipticCurve_from_j(j0)``: Return
       an elliptic curve with `j`-invariant ``j0``.
 
@@ -84,6 +106,9 @@ class EllipticCurveFactory(UniqueFactory):
     - ``EllipticCurve(cubic, point)``: The elliptic curve defined by a
       plane cubic (homogeneous polynomial in three variables), with a
       rational point.
+
+    - ``EllipticCurve(A=A)``: Returns an elliptic curve that is in
+      Montgomery form, i.e. a curve with equation `y^2 = x^3 + Ax^2 + x`.
 
     Instead of giving the coefficients as a *list* of length 2 or 5,
     one can also give a *tuple*.
@@ -183,6 +208,21 @@ class EllipticCurveFactory(UniqueFactory):
         Elliptic Curve defined by y^2 = x^3 + x + 1 over Finite Field of size 5
         2
 
+    We can create an elliptic curve in Montgomery form, i.e. a curve
+    with equation `y^2 = x^3 + Ax^2 + x`, by specifying the parameter
+    `A`::
+
+        sage: E = EllipticCurve(A=6); E
+        Elliptic Curve defined by y^2 = x^3 + 6*x^2 + x over Rational Field
+        sage: E.a_invariants()
+        (0, 6, 0, 1, 0)
+
+        sage: E = EllipticCurve(A=GF(5)(1)); E                                          # needs sage.rings.finite_rings
+        Elliptic Curve defined by y^2 = x^3 + x^2 + x over Finite Field of size 5
+
+        sage: E = EllipticCurve(GF(144169), A=6); E                                     # needs sage.rings.finite_rings
+        Elliptic Curve defined by y^2 = x^3 + 6*x^2 + x over Finite Field of size 144169
+
     See :issue:`6657` ::
 
         sage: EllipticCurve(GF(144169), j=1728)                                         # needs sage.rings.finite_rings
@@ -262,9 +302,27 @@ class EllipticCurveFactory(UniqueFactory):
         ...
         ValueError: First parameter must be a ring containing 3/5
 
+    The parameter `A` behaves analogously, and cannot be combined with `j`::
+
+        sage: EllipticCurve(3, A=6)
+        Traceback (most recent call last):
+        ...
+        ValueError: First parameter (if present) must be a ring when A is specified
+        sage: EllipticCurve(GF(5), A=3/5)
+        Traceback (most recent call last):
+        ...
+        ValueError: First parameter must be a ring containing 3/5
+        sage: EllipticCurve(A=6, j=1728)
+        Traceback (most recent call last):
+        ...
+        ValueError: only one of A and j may be specified
+
     If the universe of the coefficients is a general field, the object
-    constructed has type :class:`EllipticCurve_field`.  Otherwise it is
-    :class:`EllipticCurve_generic`.  See :issue:`9816` ::
+    constructed has type
+    :class:`~sage.schemes.elliptic_curves.ell_field.EllipticCurve_field`.
+    Otherwise it is
+    :class:`~sage.schemes.elliptic_curves.ell_generic.EllipticCurve_generic`.
+    See :issue:`9816` ::
 
         sage: E = EllipticCurve([QQbar(1), 3]); E                                       # needs sage.rings.number_field
         Elliptic Curve defined by y^2 = x^3 + x + 3 over Algebraic Field
@@ -312,8 +370,35 @@ class EllipticCurveFactory(UniqueFactory):
         TypeError: invalid input to EllipticCurve constructor
     """
 
+    @overload
+    def __call__(self, x: AbcSequence[int] | AbcSequence[Integer], **kwds: Any) -> EllipticCurve_rational_field: ...
+
+    @overload
+    def __call__(self, x: str, **kwds: Any) -> EllipticCurve_rational_field: ...
+
+    @overload
+    def __call__(self, *, j: int | Integer, minimal_twist: bool = ..., **kwds: Any) -> EllipticCurve_rational_field: ...
+
+    @overload
+    def __call__(self, x: RationalField, y: AbcSequence, **kwds: Any) -> EllipticCurve_rational_field: ...
+
+    @overload
+    def __call__(self, x: FiniteField, y: AbcSequence, **kwds: Any) -> EllipticCurve_finite_field: ...
+
+    @overload
+    def __call__(self, x: Field, y: AbcSequence, **kwds: Any) -> EllipticCurve_field: ...
+
+    @overload
+    def __call__(self, x: AbcSequence, **kwds: Any) -> EllipticCurve_field: ...
+
+    def __call__(self, *args: Any, **kwds: Any) -> EllipticCurve_generic:
+        # A pure forwarding override: the @overload declarations above give
+        # static checkers the concrete return classes; instances still
+        # dispatch to the inherited UniqueFactory.__call__ machinery.
+        return super().__call__(*args, **kwds)
+
     def create_key_and_extra_args(
-        self, x=None, y=None, j=None, minimal_twist=True, **kwds
+        self, x=None, y=None, j=None, A=None, minimal_twist=True, **kwds
     ):
         r"""
         Return a ``UniqueFactory`` key and possibly extra parameters.
@@ -413,6 +498,8 @@ class EllipticCurveFactory(UniqueFactory):
             R, x = (x, y)
 
         if j is not None:
+            if A is not None:
+                raise ValueError("only one of A and j may be specified")
             if R is not None:
                 try:
                     j = R(j)
@@ -423,27 +510,18 @@ class EllipticCurveFactory(UniqueFactory):
                     "First parameter (if present) must be a ring when j is specified"
                 )
             x = coefficients_from_j(j, minimal_twist)
-
-        if isinstance(x, Expression) and x.is_relational():
-            import operator
-
-            if x.operator() != operator.eq:
+        elif A is not None:
+            if R is not None:
+                try:
+                    A = R(A)
+                except (ZeroDivisionError, ValueError, TypeError):
+                    raise ValueError("First parameter must be a ring containing %s" % A)
+            elif x is not None:
                 raise ValueError(
-                    "no symbolic relations other than equalities are allowed"
+                    "First parameter (if present) must be a ring when A is specified"
                 )
-            x = x.lhs() - x.rhs()
-
-        if isinstance(parent(x), sage.rings.abc.SymbolicRing):
-            x = x._polynomial_(QQ["x", "y"])
-
-        if isinstance(x, MPolynomial):
-            if y is None:
-                x = coefficients_from_Weierstrass_polynomial(x)
-            else:
-                # x is a cubic, y a rational point
-                x = EllipticCurve_from_cubic(x, y, morphism=False).ainvs()
-
-        if isinstance(x, str):
+            x = coefficients_from_montgomery(A)
+        elif isinstance(x, str):
             # Interpret x as a Cremona or LMFDB label.
             from sage.databases.cremona import CremonaDatabase
 
@@ -455,6 +533,24 @@ class EllipticCurveFactory(UniqueFactory):
             # User-provided keywords may override database entries.
             data.update(kwds)
             kwds = data
+        elif isinstance(x, Expression) and x.is_relational():
+            import operator
+
+            if x.operator() != operator.eq:
+                raise ValueError(
+                    "no symbolic relations other than equalities are allowed"
+                )
+            x = x.lhs() - x.rhs()
+
+        if isinstance(parent(x), SymbolicRing):
+            x = x._polynomial_(QQ["x", "y"])
+
+        if isinstance(x, MPolynomial):
+            if y is None:
+                x = coefficients_from_Weierstrass_polynomial(x)
+            else:
+                # x is a cubic, y a rational point
+                x = EllipticCurve_from_cubic(x, y, morphism=False).ainvs()
 
         if not isinstance(x, (list, tuple)):
             raise TypeError("invalid input to EllipticCurve constructor")
@@ -483,9 +579,11 @@ class EllipticCurveFactory(UniqueFactory):
 
         ``names`` is ignored at the moment, however it is used to support a convenient way to get a generator::
 
+            sage: # needs eclib
             sage: E.<P> = EllipticCurve(QQ, [1, 3])
             sage: P
             (-1 : 1 : 1)
+
             sage: E.<P> = EllipticCurve(GF(5), [1, 3])
             sage: P
             (4 : 1 : 1)
@@ -518,25 +616,25 @@ class EllipticCurveFactory(UniqueFactory):
             from .ell_rational_field import EllipticCurve_rational_field
 
             return EllipticCurve_rational_field(x, **kwds)
-        elif kwds:
+        if kwds:
             raise TypeError(f"unexpected keyword arguments: {kwds}")
 
         if isinstance(R, NumberField):
             from .ell_number_field import EllipticCurve_number_field
 
             return EllipticCurve_number_field(R, x)
-        elif isinstance(R, sage.rings.abc.pAdicField):
+        if isinstance(R, sage.rings.abc.pAdicField):
             from .ell_padic_field import EllipticCurve_padic_field
 
             return EllipticCurve_padic_field(R, x)
-        elif isinstance(R, FiniteField) or (
+        if isinstance(R, FiniteField) or (
             isinstance(R, sage.rings.abc.IntegerModRing)
             and R.characteristic().is_prime()
         ):
             from .ell_finite_field import EllipticCurve_finite_field
 
             return EllipticCurve_finite_field(R, x)
-        elif R in _Fields:
+        if R in _Fields:
             from .ell_field import EllipticCurve_field
 
             return EllipticCurve_field(R, x)
@@ -700,7 +798,7 @@ def EllipticCurve_from_c4c6(c4, c6):
     return EllipticCurve([-K(c4) / K(48), -K(c6) / K(864)])
 
 
-def EllipticCurve_from_j(j, minimal_twist=True):
+def EllipticCurve_from_j(j, minimal_twist: bool = True) -> EllipticCurve_generic:
     r"""
     Return an elliptic curve with given `j`-invariant.
 
@@ -795,13 +893,11 @@ def coefficients_from_j(j, minimal_twist=True):
     if char == 2:
         if j == 0:
             return Sequence([0, 0, 1, 0, 0], universe=K)
-        else:
-            return Sequence([1, 0, 0, 0, 1 / j], universe=K)
+        return Sequence([1, 0, 0, 0, 1 / j], universe=K)
     if char == 3:
         if j == 0:
             return Sequence([0, 0, 0, 1, 0], universe=K)
-        else:
-            return Sequence([0, j, 0, 0, -(j**2)], universe=K)
+        return Sequence([0, j, 0, 0, -(j**2)], universe=K)
 
     if K is RationalField():
         # we construct the minimal twist, i.e. the curve with minimal
@@ -856,6 +952,52 @@ def coefficients_from_j(j, minimal_twist=True):
         return Sequence([0, 0, 0, 1, 0], universe=K)
     k = j - 1728
     return Sequence([0, 0, 0, -3 * j * k, -2 * j * k**2], universe=K)
+
+
+def coefficients_from_montgomery(A):
+    r"""
+    Return Weierstrass coefficients `(a_1, a_2, a_3, a_4, a_6)` for the
+    Montgomery elliptic curve `y^2 = x^3 + Ax^2 + x`.
+
+    INPUT:
+
+    - ``A`` -- an element of some field
+
+    EXAMPLES::
+
+        sage: from sage.schemes.elliptic_curves.constructor import coefficients_from_montgomery
+        sage: coefficients_from_montgomery(6)
+        [0, 6, 0, 1, 0]
+        sage: coefficients_from_montgomery(GF(83)(7))
+        [0, 7, 0, 1, 0]
+    """
+    return [0, A, 0, 1, 0]
+
+
+def EllipticCurve_from_montgomery(A):
+    r"""
+    Return the Montgomery elliptic curve `y^2 = x^3 + Ax^2 + x`.
+
+    INPUT:
+
+    - ``A`` -- an element of some field
+
+    OUTPUT: the elliptic curve `y^2 = x^3 + Ax^2 + x`
+
+    EXAMPLES::
+
+        sage: from sage.schemes.elliptic_curves.constructor import EllipticCurve_from_montgomery
+        sage: EllipticCurve_from_montgomery(6)
+        Elliptic Curve defined by y^2 = x^3 + 6*x^2 + x over Rational Field
+
+    The Montgomery curve is singular when `A = \pm 2`::
+
+        sage: EllipticCurve_from_montgomery(2)
+        Traceback (most recent call last):
+        ...
+        ArithmeticError: y^2 = x^3 + 2*x^2 + x defines a singular curve
+    """
+    return EllipticCurve(coefficients_from_montgomery(A))
 
 
 def EllipticCurve_from_cubic(F, P=None, morphism=True):
@@ -1025,13 +1167,15 @@ def EllipticCurve_from_cubic(F, P=None, morphism=True):
     the generator::
 
         sage: E = f.codomain()
+        sage: finv = f.inverse()
+
+        sage: # needs eclib
         sage: E.label()
         '720e2'
         sage: E.rank()
         1
         sage: R = E.gens()[0]; R
         (-17280000/2527 : 9331200000/6859 : 1)
-        sage: finv = f.inverse()
         sage: [finv(k*R) for k in range(1,10)]
         [(-4 : 1 : 0),
         (-1 : 4 : 1),
@@ -1553,6 +1697,7 @@ def EllipticCurves_with_good_reduction_outside_S(S=[], proof=None, verbose=False
 
     EXAMPLES::
 
+        sage: # needs eclib
         sage: EllipticCurves_with_good_reduction_outside_S([])
         []
         sage: elist = EllipticCurves_with_good_reduction_outside_S([2])
@@ -1568,14 +1713,15 @@ def EllipticCurves_with_good_reduction_outside_S(S=[], proof=None, verbose=False
 
     Without ``Proof=False``, this example gives two warnings::
 
-        sage: elist = EllipticCurves_with_good_reduction_outside_S([11], proof=False)   # long time (14s on sage.math, 2011)
-        sage: len(elist)                                                                # long time
+        sage: # long time, needs eclib
+        sage: elist = EllipticCurves_with_good_reduction_outside_S([11], proof=False)
+        sage: len(elist)
         12
-        sage: ', '.join(e.label() for e in elist)                                       # long time
+        sage: ', '.join(e.label() for e in elist)
         '11a1, 11a2, 11a3, 121a1, 121a2, 121b1, 121b2, 121c1, 121c2, 121d1, 121d2, 121d3'
 
-        sage: # long time
-        sage: elist = EllipticCurves_with_good_reduction_outside_S([2,3])               # long time (26s on sage.math, 2011)
+        sage: # long time, needs eclib
+        sage: elist = EllipticCurves_with_good_reduction_outside_S([2,3])
         sage: len(elist)
         752
         sage: conds = sorted(set([e.conductor() for e in elist]))
